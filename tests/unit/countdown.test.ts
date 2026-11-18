@@ -36,9 +36,9 @@ it('requests a refresh when a boundary passes before the server confirms it', ()
 })
 
 it('retries the same unconfirmed boundary once two seconds have elapsed', () => {
-  const state = { confirmed: null, passed: 100, lastRequestAt: 100 }
-  expect(shouldRequestRefresh({ ...state, now: 1100 })).toBe(false)
-  expect(shouldRequestRefresh({ ...state, now: 2100 })).toBe(true)
+  const state = { confirmed: null, passed: 0, lastRequestAt: 0 }
+  expect(shouldRequestRefresh({ ...state, now: 1999 })).toBe(false)
+  expect(shouldRequestRefresh({ ...state, now: 2000 })).toBe(true)
 })
 
 it('stops retrying once the server confirms the boundary', () => {
