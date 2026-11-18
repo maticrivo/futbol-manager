@@ -159,12 +159,15 @@ async function insertGuestMoney(tx: Tx, row: Omit<GuestPayment, 'id'>): Promise<
 export async function recordGuestPayment(
   db: Db,
   { actorId, entryId, amountAgorot, paidAt, note }: GuestPaymentInput,
-): Promise<Result<GuestPayment, 'FORBIDDEN' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'NOT_GUEST'>> {
+): Promise<Result<GuestPayment, 'FORBIDDEN' | 'NOT_FOUND' | 'INVALID_AMOUNT' | 'NOT_GUEST' | 'MATCH_FINISHED'>> {
   return db.transaction(async tx => {
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
-    const [entry] = await tx.select({ kind: entries.kind }).from(entries).where(eq(entries.id, entryId)).for('update')
+    const [entry] = await tx.select({ kind: entries.kind, matchId: entries.matchId })
+      .from(entries).where(eq(entries.id, entryId)).for('update')
     if (!entry) return err('NOT_FOUND')
     if (entry.kind !== 'guest') return err('NOT_GUEST')
+    const [parent] = await tx.select({ status: matches.status }).from(matches).where(eq(matches.id, entry.matchId))
+    if (parent?.status === 'cancelled') return err('MATCH_FINISHED')
     // Only a linked refund may subtract from the guest ledger.
     if (amountAgorot <= 0 || !isSignedAmount(amountAgorot)) return err('INVALID_AMOUNT')
     const payment = await insertGuestMoney(tx, {
@@ -199,12 +202,16 @@ async function insertGuestRefund(
 
 export async function refundGuestPayment(
   db: Db, input: RefundInput,
-): Promise<Result<GuestPayment, 'FORBIDDEN' | RefundError>> {
+): Promise<Result<GuestPayment, 'FORBIDDEN' | RefundError | 'MATCH_FINISHED'>> {
   return db.transaction(async tx => {
     if (!await lockAdminActor(tx, input.actorId)) return err('FORBIDDEN')
     const [original] = await tx.select().from(guestPayments).where(eq(guestPayments.id, input.guestPaymentId))
     if (!original || original.kind !== 'payment') return err('NOT_FOUND')
-    await tx.select({ id: entries.id }).from(entries).where(eq(entries.id, original.entryId)).for('update')
+    const [entry] = await tx.select({ id: entries.id, matchId: entries.matchId })
+      .from(entries).where(eq(entries.id, original.entryId)).for('update')
+    if (!entry) return err('NOT_FOUND')
+    const [parent] = await tx.select({ status: matches.status }).from(matches).where(eq(matches.id, entry.matchId))
+    if (parent?.status === 'cancelled') return err('MATCH_FINISHED')
     return insertGuestRefund(tx, original, input)
   }, { isolationLevel: 'read committed' })
 }
@@ -232,7 +239,7 @@ export async function listGuestPayments(db: Db, matchId: number): Promise<MatchG
 
 export async function cancelMatch(
   db: Db, input: { actorId: number; matchId: number; now: Date; reason: string },
-): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND' | 'ALREADY_CANCELLED' | 'INVALID_REASON'>> {
+): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND' | 'ALREADY_CANCELLED' | 'MATCH_FINISHED' | 'INVALID_REASON'>> {
   const { actorId, matchId, now } = input
   return db.transaction(async tx => {
     const match = await lockMatch(tx, matchId)
@@ -240,6 +247,7 @@ export async function cancelMatch(
     const reason = input.reason.trim()
     if (!isValidReason(reason)) return err('INVALID_REASON')
     if (!match) return err('NOT_FOUND')
+    if (match.status === 'played') return err('MATCH_FINISHED')
     if (match.status === 'cancelled') return err('ALREADY_CANCELLED')
 
     const update = { status: 'cancelled', updatedAt: now } as const

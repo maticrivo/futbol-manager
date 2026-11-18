@@ -255,10 +255,10 @@ it('waives charges and reverses guest money without replacing the original payme
     .toMatchObject([{ actorId: adminId, entityId: String(match.id), detail: { reason: 'match cancelled' }, createdAt: now }])
 })
 
-it('does not duplicate a manual guest refund racing cancellation of a played match', async () => {
+it('does not duplicate a manual guest refund racing cancellation of a locked match', async () => {
   const { adminId, match, entryId } = await setupGuest()
   const [second] = await testDb.insert(members).values({ name: 'Second admin', role: 'admin' }).$returningId()
-  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  await testDb.update(matches).set({ status: 'locked' }).where(eq(matches.id, match.id))
   const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
   const [cancelled, manualRefund] = await Promise.all([
     cancelMatch(testDb, { actorId: adminId, matchId: match.id, now, reason: 'match cancelled' }),
@@ -268,6 +268,42 @@ it('does not duplicate a manual guest refund racing cancellation of a played mat
   if (!manualRefund.ok) expect(manualRefund.code).toBe('ALREADY_REFUNDED')
   expect(await testDb.select().from(guestPayments).where(eq(guestPayments.refundOfId, payment.id)))
     .toMatchObject([{ kind: 'refund', amountAgorot: -3500 }])
+})
+
+it('rejects cancelling a played match without touching charges or guest payments', async () => {
+  const { adminId, memberId, match, entryId } = await setupGuest()
+  await testDb.insert(entries).values([{ matchId: match.id, memberId, kind: 'member' }])
+  await lockMatch(testDb, match.id, now)
+  const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+
+  expect(await cancelMatch(testDb, { actorId: adminId, matchId: match.id, now, reason: 'weather' }))
+    .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+
+  expect(await testDb.select().from(charges)).toMatchObject([{ status: 'charged' }])
+  expect(await testDb.select().from(guestPayments).where(eq(guestPayments.id, payment.id)))
+    .toMatchObject([{ kind: 'payment' }])
+  expect(await testDb.select().from(guestPayments).where(eq(guestPayments.refundOfId, payment.id))).toEqual([])
+})
+
+it('records guest payments on a played match but rejects them once cancelled', async () => {
+  const played = await setupGuest('2027-03-30')
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, played.match.id))
+  expect(await recordGuestPayment(testDb, { actorId: played.adminId, entryId: played.entryId, amountAgorot: 3500, paidAt: now }))
+    .toMatchObject({ ok: true, value: { kind: 'payment' } })
+
+  const cancelled = await setupGuest('2027-04-06')
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, cancelled.match.id))
+  expect(await recordGuestPayment(testDb, { actorId: cancelled.adminId, entryId: cancelled.entryId, amountAgorot: 3500, paidAt: now }))
+    .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+})
+
+it('refunds a guest payment on a played match', async () => {
+  const { adminId, match, entryId } = await setupGuest()
+  const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  expect(await refundGuestPayment(testDb, { actorId: adminId, guestPaymentId: payment.id, now }))
+    .toMatchObject({ ok: true, value: { kind: 'refund', refundOfId: payment.id } })
 })
 
 it('rejects cancellation by a non-admin, without a valid reason, or for a missing match', async () => {

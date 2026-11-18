@@ -113,12 +113,13 @@ type EditEntry = { actorId: number; entryId: number }
 export async function adminRemoveEntry(
   db: Db,
   input: EditEntry & { now: Date; reason: string },
-): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'INVALID_REASON'>> {
+): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'INVALID_REASON' | 'MATCH_FINISHED'>> {
   const { actorId, entryId, now } = input
   return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     if (!match) return err('NOT_FOUND')
+    if (match.status === 'played' || match.status === 'cancelled') return err('MATCH_FINISHED')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')
     if (entry.status !== 'confirmed') return err('NOT_CONFIRMED')
@@ -143,11 +144,12 @@ export async function setAttendance(
   db: Db,
   { actorId, entryId, attended }: EditEntry & { attended: boolean },
   now = new Date(),
-): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED'>> {
+): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'MATCH_FINISHED'>> {
   return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     if (!match) return err('NOT_FOUND')
+    if (match.status === 'cancelled') return err('MATCH_FINISHED')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')
     if (entry.status !== 'confirmed') return err('NOT_CONFIRMED')

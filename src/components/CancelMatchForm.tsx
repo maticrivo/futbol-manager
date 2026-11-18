@@ -57,16 +57,21 @@ function CancelForm({ matchId }: { matchId: number }) {
   )
 }
 
-export default function CancelMatchForm({ matchId, disabled }: { matchId: number; disabled: boolean }) {
+export default function CancelMatchForm({ matchId, state }: {
+  matchId: number
+  state: 'open' | 'cancelled' | 'played'
+}) {
   const t = useTranslations()
 
   return (
     <section className="space-y-3 rounded-xl border border-red-300 p-5">
       <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">{t('admin.match.cancel.title')}</h2>
-      {disabled ? (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.cancel.disabled')}</p>
-      ) : (
+      {state === 'open' ? (
         <CancelForm matchId={matchId} />
+      ) : (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+          {state === 'played' ? t('admin.match.cancel.finished') : t('admin.match.cancel.disabled')}
+        </p>
       )}
     </section>
   )

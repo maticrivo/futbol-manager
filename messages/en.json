@@ -189,6 +189,7 @@
         "restore": "Restore",
         "waived": "Waived",
         "guestOfLabel": "Guest of",
+        "finished": "The roster can no longer be changed for a played or cancelled match.",
         "working": "Working…"
       },
       "attendance": {
@@ -197,7 +198,7 @@
         "present": "Present",
         "absent": "No-show",
         "unset": "Not set",
-        "disabled": "Attendance can no longer be changed for this match."
+        "disabled": "Attendance can no longer be changed for a cancelled match."
       },
       "guests": {
         "title": "Guest payments",
@@ -211,7 +212,7 @@
         "history": "Payment history",
         "noPayments": "No payments recorded.",
         "refunded": "Refunded",
-        "disabled": "Guest payments can no longer be recorded or refunded."
+        "disabled": "Guest payments can no longer be recorded or refunded for a cancelled match."
       },
       "cancel": {
         "title": "Cancel match",
@@ -219,6 +220,7 @@
         "confirm": "I understand this cancels the match and reverses charges and guest payments.",
         "submit": "Cancel match",
         "submitting": "Cancelling…",
+        "finished": "This match has already been played.",
         "disabled": "This match has already been cancelled."
       }
     }

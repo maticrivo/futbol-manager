@@ -61,7 +61,7 @@ function AddMemberForm({ matchId, members, locked }: {
   )
 }
 
-function RemoveEntry({ matchId, entryId, locked }: { matchId: number; entryId: number; locked: boolean }) {
+function RemoveEntry({ matchId, entryId }: { matchId: number; entryId: number }) {
   const t = useTranslations()
   const [state, formAction] = useActionState(adminRemoveEntryAction, null)
   return (
@@ -69,7 +69,7 @@ function RemoveEntry({ matchId, entryId, locked }: { matchId: number; entryId: n
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="entryId" value={entryId} />
       <input
-        name="reason" dir="auto" required={locked} placeholder={t('admin.match.roster.reason')}
+        name="reason" dir="auto" required placeholder={t('admin.match.roster.reason')}
         className="rounded border px-2 py-1"
       />
       <SubmitButton label={t('admin.match.roster.remove')} pendingLabel={t('admin.match.roster.removing')} />
@@ -108,17 +108,21 @@ function RestoreCharge({ matchId, chargeId }: { matchId: number; chargeId: numbe
   )
 }
 
-export default function AdminRoster({ matchId, rows, members, locked }: {
+export default function AdminRoster({ matchId, rows, members, locked, disabled }: {
   matchId: number
   rows: RosterRow[]
   members: { id: number; name: string }[]
   locked: boolean
+  disabled: boolean
 }) {
   const t = useTranslations()
 
   return (
     <section className="space-y-3 rounded-xl border p-5">
       <h2 className="text-lg font-semibold">{t('admin.match.roster.title')}</h2>
+      {disabled && (
+        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.roster.finished')}</p>
+      )}
 
       {rows.length === 0 ? (
         <p className="text-neutral-600 dark:text-neutral-300">{t('admin.match.roster.empty')}</p>
@@ -142,10 +146,10 @@ export default function AdminRoster({ matchId, rows, members, locked }: {
                       )}
                     </span>
                   )}
-                  <RemoveEntry matchId={matchId} entryId={row.entryId} locked={locked} />
+                  {!disabled && <RemoveEntry matchId={matchId} entryId={row.entryId} />}
                 </div>
               </div>
-              {row.charge && (
+              {row.charge && !disabled && (
                 <div className="mt-2">
                   {row.charge.status === 'charged'
                     ? <WaiveCharge matchId={matchId} chargeId={row.charge.id} />
@@ -157,7 +161,7 @@ export default function AdminRoster({ matchId, rows, members, locked }: {
         </ul>
       )}
 
-      <AddMemberForm matchId={matchId} members={members} locked={locked} />
+      {!disabled && <AddMemberForm matchId={matchId} members={members} locked={locked} />}
     </section>
   )
 }

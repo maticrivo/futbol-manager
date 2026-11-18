@@ -150,18 +150,34 @@ it('preserves an existing waiver when another admin removes that member', async 
   }])
 })
 
-it('waives a confirmed member charge when removed at the played boundary', async () => {
+it('blocks removal on played and cancelled matches and leaves the entry confirmed', async () => {
   const { match, people, roster } = await setup()
   await lockMatch(testDb, match.id, lockTime)
-  const now = new Date(match.kickoffAt.getTime() + 3 * 60 * 60_000)
-  await advanceMatch(testDb, match.id, now)
-  expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'played' })
-  expect(await adminRemoveEntry(testDb, {
-    actorId: people.admin.id, entryId: roster[0].id, now, reason: 'post-match correction',
-  })).toMatchObject({ ok: true, value: { status: 'removed' } })
-  const [charge] = await matchCharges(match.id)
-  expect(charge).toMatchObject({ status: 'waived', waivedBy: people.admin.id, waiveReason: 'post-match correction' })
-  expect(await logs('charge.waive')).toMatchObject([{ entityId: String(charge.id), createdAt: now }])
+  const entryId = roster[0].id
+
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  expect(await adminRemoveEntry(testDb, { actorId: people.admin.id, entryId, now: lockTime, reason: 'x' }))
+    .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+  expect((await testDb.select().from(entries).where(eq(entries.id, entryId)))[0].status).toBe('confirmed')
+
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, match.id))
+  expect(await adminRemoveEntry(testDb, { actorId: people.admin.id, entryId, now: lockTime, reason: 'x' }))
+    .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+  expect((await testDb.select().from(entries).where(eq(entries.id, entryId)))[0].status).toBe('confirmed')
+})
+
+it('rejects attendance on a cancelled match but allows it after play', async () => {
+  const { match, people, roster } = await setup()
+  await lockMatch(testDb, match.id, lockTime)
+  const entryId = roster[0].id
+
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, match.id))
+  expect(await setAttendance(testDb, { actorId: people.admin.id, entryId, attended: true }, lockTime))
+    .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  expect(await setAttendance(testDb, { actorId: people.admin.id, entryId, attended: true }, lockTime))
+    .toMatchObject({ ok: true, value: { attended: true } })
 })
 
 it('rejects reasons longer than 255 characters after trimming', async () => {

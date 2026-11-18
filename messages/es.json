@@ -189,6 +189,7 @@
         "restore": "Restaurar",
         "waived": "Anulado",
         "guestOfLabel": "Invitación de",
+        "finished": "La lista ya no se puede cambiar en un partido jugado o cancelado.",
         "working": "Procesando…"
       },
       "attendance": {
@@ -197,7 +198,7 @@
         "present": "Asistió",
         "absent": "No asistió",
         "unset": "Sin definir",
-        "disabled": "La asistencia ya no se puede cambiar en este partido."
+        "disabled": "La asistencia ya no se puede cambiar en un partido cancelado."
       },
       "guests": {
         "title": "Pagos de invitados",
@@ -211,7 +212,7 @@
         "history": "Historial de pagos",
         "noPayments": "No hay pagos registrados.",
         "refunded": "Reembolsado",
-        "disabled": "Ya no se pueden registrar ni reembolsar pagos de invitados."
+        "disabled": "Ya no se pueden registrar ni reembolsar pagos de invitados en un partido cancelado."
       },
       "cancel": {
         "title": "Cancelar partido",
@@ -219,6 +220,7 @@
         "confirm": "Entiendo que esto cancela el partido y revierte cargos y pagos de invitados.",
         "submit": "Cancelar partido",
         "submitting": "Cancelando…",
+        "finished": "Este partido ya se ha jugado.",
         "disabled": "Este partido ya ha sido cancelado."
       }
     }

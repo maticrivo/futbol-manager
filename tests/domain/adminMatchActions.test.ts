@@ -183,6 +183,19 @@ it('cancelMatchAction cancels with a reason', async () => {
   expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'cancelled' })
 })
 
+it('cancelMatchAction on a played match returns MATCH_FINISHED', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const form = new FormData()
+  form.set('matchId', String(match.id))
+  form.set('reason', 'weather')
+  expect(await cancelMatchAction(null, form)).toEqual({ ok: false, code: 'MATCH_FINISHED' })
+  expect(revalidatePath).not.toHaveBeenCalled()
+})
+
 it('rejects a non-admin without mutating', async () => {
   const redirectError = new Error('NEXT_REDIRECT')
   vi.mocked(requireAdmin).mockRejectedValueOnce(redirectError)

@@ -138,18 +138,18 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
         finished={finished}
       />
 
-      <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} />
+      <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} disabled={finished} />
 
-      <AttendanceList matchId={current.id} attendees={attendees} disabled={finished} />
+      <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
 
       <GuestPayments
         matchId={current.id}
         costShekels={(current.costAgorot / 100).toFixed(2)}
         guests={guestRows}
-        disabled={finished}
+        disabled={current.status === 'cancelled'}
       />
 
-      <CancelMatchForm matchId={current.id} disabled={current.status === 'cancelled'} />
+      <CancelMatchForm matchId={current.id} state={current.status === 'cancelled' ? 'cancelled' : current.status === 'played' ? 'played' : 'open'} />
     </main>
   )
 }
