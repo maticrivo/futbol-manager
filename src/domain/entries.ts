@@ -21,7 +21,7 @@ export function pendingOfferCount(db: Db, matchId: number): Promise<number> {
   return countByStatus(db, matchId, 'offered')
 }
 
-async function remainingSpots(executor: Executor, match: Match): Promise<number> {
+export async function remainingSpots(executor: Executor, match: Match): Promise<number> {
   // A locking read sees commits made while this transaction waited for the match.
   const rows = await executor.select({ id: entries.id }).from(entries)
     .where(and(eq(entries.matchId, match.id), inArray(entries.status, ['confirmed', 'offered'])))
@@ -43,12 +43,12 @@ export async function freeSpots(db: Db, matchId: number, executor?: Executor): P
   return roster ? roster.capacity - roster.occupied : 0
 }
 
-async function lockMatch(executor: Executor, matchId: number): Promise<Match | undefined> {
+export async function lockMatch(executor: Executor, matchId: number): Promise<Match | undefined> {
   const [match] = await executor.select().from(matches).where(eq(matches.id, matchId)).for('update')
   return match
 }
 
-async function lockMatchForEntry(tx: Tx, entryId: number): Promise<Match | undefined> {
+export async function lockMatchForEntry(tx: Tx, entryId: number): Promise<Match | undefined> {
   // The scalar lookup only locates the parent; FOR UPDATE locks the match,
   // not the subquery's entry. Read the entry itself after taking that lock.
   const matchId = tx.select({ matchId: entries.matchId }).from(entries).where(eq(entries.id, entryId))
@@ -62,7 +62,7 @@ async function readEntry(tx: Tx, entryId: number): Promise<Entry> {
   return entry
 }
 
-function isLocked(match: Match, now: Date): boolean {
+export function isLocked(match: Match, now: Date): boolean {
   return match.status !== 'scheduled' || now >= match.lockAt
 }
 
@@ -101,7 +101,7 @@ export async function withdraw(
   db: Db,
   { entryId, actorMemberId, now }: { entryId: number; actorMemberId: number; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_WITHDRAWABLE'>> {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await tx.select().from(entries)
@@ -112,9 +112,13 @@ export async function withdraw(
     if (isLocked(match, now)) return err('LOCKED')
 
     await tx.update(entries).set({ status: 'withdrawn', updatedAt: now }).where(eq(entries.id, entryId))
-    // Task 7: offerNext is called here
     return ok(await readEntry(tx, entryId))
   })
+  if (result.ok) {
+    const { offerNext } = await import('./queue')
+    await offerNext(db, result.value.matchId, now)
+  }
+  return result
 }
 
 export async function addGuest(
@@ -144,7 +148,7 @@ export async function removeGuest(
   db: Db,
   { entryId, actorMemberId, asAdmin, now }: { entryId: number; actorMemberId: number; asAdmin?: boolean; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_GUEST'>> {
-  return db.transaction(async tx => {
+  const result = await db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await tx.select().from(entries)
@@ -155,7 +159,11 @@ export async function removeGuest(
     if (isLocked(match, now)) return err('LOCKED')
 
     await tx.update(entries).set({ status: 'removed', updatedAt: now }).where(eq(entries.id, entryId))
-    // Task 7: offerNext is called here
     return ok(await readEntry(tx, entryId))
   })
+  if (result.ok) {
+    const { offerNext } = await import('./queue')
+    await offerNext(db, result.value.matchId, now)
+  }
+  return result
 }
