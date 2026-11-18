@@ -2,7 +2,7 @@ import type { Db } from '@/db'
 import { loginTokens, members, sessions } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { generateToken, hashToken } from '@/lib/tokens'
-import { and, eq, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { revokeSessions, SESSION_LIFETIME_MS } from './sessions'
 
@@ -65,30 +65,30 @@ export async function regenerateInvite(
   memberId: number,
   now: Date = new Date()
 ): Promise<Result<{ inviteToken: string }, 'FORBIDDEN' | 'NOT_FOUND'>> {
-  const [actor] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, actorId))
-    .limit(1)
+  return await db.transaction(async (tx) => {
+    // Global lock order: member rows first, ordered by ascending id
+    const ids = Array.from(new Set([actorId, memberId])).sort((a, b) => a - b)
 
-  if (!actor || actor.role !== 'admin') {
-    return err('FORBIDDEN')
-  }
+    const lockedMembers = await tx
+      .select()
+      .from(members)
+      .where(inArray(members.id, ids))
+      .for('update')
+      .orderBy(asc(members.id))
 
-  const [target] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, memberId))
-    .limit(1)
+    const actor = lockedMembers.find((m) => m.id === actorId)
+    if (!actor || actor.role !== 'admin') {
+      return err('FORBIDDEN')
+    }
 
-  if (!target) {
-    return err('NOT_FOUND')
-  }
+    const target = lockedMembers.find((m) => m.id === memberId)
+    if (!target) {
+      return err('NOT_FOUND')
+    }
 
-  const inviteToken = generateToken()
-  const tokenHash = hashToken(inviteToken)
+    const inviteToken = generateToken()
+    const tokenHash = hashToken(inviteToken)
 
-  await db.transaction(async (tx) => {
     await tx
       .update(loginTokens)
       .set({ revokedAt: now })
@@ -107,9 +107,9 @@ export async function regenerateInvite(
       entity: 'member',
       entityId: String(memberId),
     })
-  })
 
-  return ok({ inviteToken })
+    return ok({ inviteToken })
+  })
 }
 
 export async function loginWithInvite(
@@ -120,22 +120,45 @@ export async function loginWithInvite(
   const tokenHash = hashToken(rawToken)
 
   return await db.transaction(async (tx) => {
-    const [row] = await tx
+    // 1. Find memberId without lock to establish global lock hierarchy
+    const [tokenLookup] = await tx
       .select({
-        token: loginTokens,
-        member: members,
+        memberId: loginTokens.memberId,
       })
       .from(loginTokens)
-      .innerJoin(members, eq(loginTokens.memberId, members.id))
+      .where(eq(loginTokens.tokenHash, tokenHash))
+      .limit(1)
+
+    if (!tokenLookup) {
+      return err('INVALID_TOKEN')
+    }
+
+    // 2. Global lock order: member rows first
+    const [member] = await tx
+      .select()
+      .from(members)
+      .where(eq(members.id, tokenLookup.memberId))
+      .for('update')
+      .limit(1)
+
+    if (!member) {
+      return err('INVALID_TOKEN')
+    }
+
+    // 3. Global lock order: login-token row second
+    const [token] = await tx
+      .select()
+      .from(loginTokens)
       .where(eq(loginTokens.tokenHash, tokenHash))
       .for('update')
       .limit(1)
 
-    if (!row || row.token.revokedAt !== null) {
+    // 4. Re-check eligibility under exclusive locks
+    if (!token || token.revokedAt !== null) {
       return err('INVALID_TOKEN')
     }
 
-    if (row.member.status !== 'active') {
+    if (member.status !== 'active') {
       return err('DISABLED')
     }
 
@@ -146,22 +169,23 @@ export async function loginWithInvite(
     await tx
       .update(loginTokens)
       .set({ lastUsedAt: now })
-      .where(eq(loginTokens.id, row.token.id))
+      .where(eq(loginTokens.id, token.id))
 
+    // 5. Global lock order: session row third
     await tx.insert(sessions).values({
-      memberId: row.member.id,
+      memberId: member.id,
       tokenHash: sessionTokenHash,
       expiresAt,
     })
 
     await writeAudit(tx, {
-      actorId: row.member.id,
+      actorId: member.id,
       action: 'auth.login',
       entity: 'member',
-      entityId: String(row.member.id),
+      entityId: String(member.id),
     })
 
-    return ok({ member: row.member, sessionToken })
+    return ok({ member, sessionToken })
   })
 }
 
@@ -171,27 +195,27 @@ export async function setMemberStatus(
   memberId: number,
   status: 'active' | 'disabled'
 ): Promise<Result<Member, 'FORBIDDEN' | 'NOT_FOUND'>> {
-  const [actor] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, actorId))
-    .limit(1)
+  return await db.transaction(async (tx) => {
+    // Global lock order: member rows first, ordered by ascending id
+    const ids = Array.from(new Set([actorId, memberId])).sort((a, b) => a - b)
 
-  if (!actor || actor.role !== 'admin') {
-    return err('FORBIDDEN')
-  }
+    const lockedMembers = await tx
+      .select()
+      .from(members)
+      .where(inArray(members.id, ids))
+      .for('update')
+      .orderBy(asc(members.id))
 
-  const [target] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, memberId))
-    .limit(1)
+    const actor = lockedMembers.find((m) => m.id === actorId)
+    if (!actor || actor.role !== 'admin') {
+      return err('FORBIDDEN')
+    }
 
-  if (!target) {
-    return err('NOT_FOUND')
-  }
+    const target = lockedMembers.find((m) => m.id === memberId)
+    if (!target) {
+      return err('NOT_FOUND')
+    }
 
-  const updated = await db.transaction(async (tx) => {
     await tx
       .update(members)
       .set({ status })
@@ -205,14 +229,12 @@ export async function setMemberStatus(
       detail: { status },
     })
 
-    const [row] = await tx
+    const [updated] = await tx
       .select()
       .from(members)
       .where(eq(members.id, memberId))
       .limit(1)
 
-    return row!
+    return ok(updated!)
   })
-
-  return ok(updated)
 }

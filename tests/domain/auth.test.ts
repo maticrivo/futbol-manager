@@ -150,7 +150,7 @@ it('loginWithInvite stamps lastUsedAt and audits auth.login on success', async (
   expect(JSON.stringify(audits[0])).not.toContain(login.value.sessionToken)
 })
 
-it('serializes login against concurrent invite revocation, rejecting with INVALID_TOKEN and creating no session', async () => {
+it('serializes login against concurrent invite revocation, proving login blocks until revocation commits', async () => {
   const target = await createMember(testDb, { name: 'ConcurrentRevoke' })
 
   let signalLocked!: () => void
@@ -164,7 +164,7 @@ it('serializes login against concurrent invite revocation, rejecting with INVALI
   })
 
   const txPromise = testDb.transaction(async (txA) => {
-    // 1. Lock the token row with FOR UPDATE
+    // Lock the login token row with FOR UPDATE
     await txA
       .select()
       .from(loginTokens)
@@ -174,11 +174,8 @@ it('serializes login against concurrent invite revocation, rejecting with INVALI
     // Signal that lock is acquired
     signalLocked()
 
-    // Wait until test has initiated loginWithInvite
+    // Wait until test confirms login is blocked
     await proceedPromise
-
-    // Small delay to ensure loginWithInvite has reached and is waiting on the row lock
-    await new Promise((r) => setTimeout(r, 60))
 
     // Revoke the token while holding the lock
     await txA
@@ -190,8 +187,16 @@ it('serializes login against concurrent invite revocation, rejecting with INVALI
   // Wait until txA has locked the row
   await lockedPromise
 
-  // Start loginWithInvite; it will attempt SELECT ... FOR UPDATE and block on txA's lock
+  // Start loginWithInvite; it will attempt to lock and must block on txA's lock
   const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+
+  // Race loginPromise against a 100ms timer to prove login has NOT settled
+  const sentinel = Symbol('blocked')
+  const raceResult = await Promise.race([
+    loginPromise.then(() => 'settled', () => 'settled'),
+    new Promise((r) => setTimeout(() => r(sentinel), 100)),
+  ])
+  expect(raceResult).toBe(sentinel)
 
   // Allow txA to perform update and commit
   signalProceedWithRevoke()
@@ -209,7 +214,7 @@ it('serializes login against concurrent invite revocation, rejecting with INVALI
   expect(tokenRow.lastUsedAt).toBeNull()
 })
 
-it('serializes login against concurrent member status disabling, rejecting with DISABLED and creating no session', async () => {
+it('serializes login against concurrent member status disabling, proving login blocks until status change commits', async () => {
   const target = await createMember(testDb, { name: 'ConcurrentStatus' })
 
   let signalLocked!: () => void
@@ -232,7 +237,6 @@ it('serializes login against concurrent member status disabling, rejecting with 
 
     signalLocked()
     await proceedPromise
-    await new Promise((r) => setTimeout(r, 60))
 
     await txA
       .update(members)
@@ -242,8 +246,16 @@ it('serializes login against concurrent member status disabling, rejecting with 
 
   await lockedPromise
 
-  // loginWithInvite joins members with .for('update'), so it blocks on the member lock
+  // loginWithInvite locks the member row first with .for('update'), so it blocks on txA's lock
   const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+
+  // Race loginPromise against a 100ms timer to prove login has NOT settled
+  const sentinel = Symbol('blocked')
+  const raceResult = await Promise.race([
+    loginPromise.then(() => 'settled', () => 'settled'),
+    new Promise((r) => setTimeout(() => r(sentinel), 100)),
+  ])
+  expect(raceResult).toBe(sentinel)
 
   signalProceed()
 
@@ -257,6 +269,58 @@ it('serializes login against concurrent member status disabling, rejecting with 
   // Verify lastUsedAt was not stamped
   const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
   expect(tokenRow.lastUsedAt).toBeNull()
+})
+
+it('does not deadlock when admin logs in while rotating invite for another member (and reverse pairing)', async () => {
+  // 1. Forward pairing: Admin A logs in while Admin A rotates Member B's invite
+  for (let i = 0; i < 3; i++) {
+    const adminA = await createMember(testDb, { name: `AdminA_${i}`, role: 'admin' })
+    const memberB = await createMember(testDb, { name: `MemberB_${i}`, role: 'member' })
+
+    const results = await Promise.allSettled([
+      loginWithInvite(testDb, adminA.inviteToken, now),
+      regenerateInvite(testDb, adminA.member.id, memberB.member.id, now),
+    ])
+
+    for (const r of results) {
+      if (r.status === 'rejected') throw r.reason
+      expect(r.value.ok).toBe(true)
+    }
+  }
+
+  // 2. Reverse pairing: Admin B logs in while Admin B rotates Member A's invite
+  for (let i = 0; i < 3; i++) {
+    const memberA = await createMember(testDb, { name: `MemberA_rev_${i}`, role: 'member' })
+    const adminB = await createMember(testDb, { name: `AdminB_rev_${i}`, role: 'admin' })
+
+    const results = await Promise.allSettled([
+      loginWithInvite(testDb, adminB.inviteToken, now),
+      regenerateInvite(testDb, adminB.member.id, memberA.member.id, now),
+    ])
+
+    for (const r of results) {
+      if (r.status === 'rejected') throw r.reason
+      expect(r.value.ok).toBe(true)
+    }
+  }
+
+  // 3. Cross pairing: Member B logs in while Admin A rotates Member B's invite
+  for (let i = 0; i < 3; i++) {
+    const adminA = await createMember(testDb, { name: `AdminA_cross_${i}`, role: 'admin' })
+    const memberB = await createMember(testDb, { name: `MemberB_cross_${i}`, role: 'member' })
+
+    const results = await Promise.allSettled([
+      loginWithInvite(testDb, memberB.inviteToken, now),
+      regenerateInvite(testDb, adminA.member.id, memberB.member.id, now),
+    ])
+
+    for (const r of results) {
+      if (r.status === 'rejected') throw r.reason
+    }
+    const [loginRes, regenRes] = results as [PromiseFulfilledResult<any>, PromiseFulfilledResult<any>]
+    expect(regenRes.value.ok).toBe(true)
+    expect(['ok', 'INVALID_TOKEN'].includes(loginRes.value.ok ? 'ok' : loginRes.value.code)).toBe(true)
+  }
 })
 
 it('getSessionMember rejects session if member is disabled later', async () => {
