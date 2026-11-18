@@ -89,17 +89,19 @@ export async function regenerateInvite(
     const inviteToken = generateToken()
     const tokenHash = hashToken(inviteToken)
 
+    // Token writes first: revoke outstanding tokens and insert replacement
     await tx
       .update(loginTokens)
       .set({ revokedAt: now })
       .where(and(eq(loginTokens.memberId, memberId), isNull(loginTokens.revokedAt)))
 
-    await revokeSessions(tx, memberId)
-
     await tx.insert(loginTokens).values({
       memberId,
       tokenHash,
     })
+
+    // Session writes second: delete existing sessions
+    await revokeSessions(tx, memberId)
 
     await writeAudit(tx, {
       actorId,

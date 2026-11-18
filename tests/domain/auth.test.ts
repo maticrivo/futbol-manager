@@ -10,10 +10,33 @@ import {
 import { getSessionMember } from '@/domain/sessions'
 import { auditLog, loginTokens, members, sessions } from '@/db/schema'
 import { hashToken } from '@/lib/tokens'
-import { eq } from 'drizzle-orm'
+import { eq, sql } from 'drizzle-orm'
 
 const now = new Date('2027-03-27T10:00:00Z')
 beforeEach(resetDb)
+
+async function waitForLockWait(
+  expectedQueryPattern?: RegExp,
+  timeoutMs = 2000
+): Promise<{ trx_id: string; trx_state: string; trx_query: string | null }> {
+  const start = Date.now()
+  while (Date.now() - start < timeoutMs) {
+    await new Promise((r) => setTimeout(r, 20))
+    const [rows]: any = await testDb.execute(
+      sql`SELECT trx_id, trx_state, trx_query FROM information_schema.innodb_trx`
+    )
+    if (rows && rows.length > 0) {
+      const waitRow = rows.find((r: any) => r.trx_state === 'LOCK WAIT')
+      if (waitRow) {
+        if (expectedQueryPattern && waitRow.trx_query) {
+          expect(waitRow.trx_query.toLowerCase()).toMatch(expectedQueryPattern)
+        }
+        return waitRow
+      }
+    }
+  }
+  throw new Error(`Timed out after ${timeoutMs}ms waiting for transaction to enter LOCK WAIT in innodb_trx`)
+}
 
 it('logs in with a personal link, storing only a hash', async () => {
   const { member, inviteToken } = await createMember(testDb, { name: 'Ana' })
@@ -150,7 +173,7 @@ it('loginWithInvite stamps lastUsedAt and audits auth.login on success', async (
   expect(JSON.stringify(audits[0])).not.toContain(login.value.sessionToken)
 })
 
-it('serializes login against concurrent invite revocation, proving login blocks until revocation commits', async () => {
+it('serializes login against concurrent invite revocation, proving login blocks in innodb_trx until revocation commits', async () => {
   const target = await createMember(testDb, { name: 'ConcurrentRevoke' })
 
   let signalLocked!: () => void
@@ -163,58 +186,75 @@ it('serializes login against concurrent invite revocation, proving login blocks 
     signalProceedWithRevoke = resolve
   })
 
-  const txPromise = testDb.transaction(async (txA) => {
-    // Lock the login token row with FOR UPDATE
-    await txA
-      .select()
-      .from(loginTokens)
-      .where(eq(loginTokens.memberId, target.member.id))
-      .for('update')
+  let gateReleased = false
+  const releaseGate = () => {
+    if (!gateReleased) {
+      gateReleased = true
+      signalProceedWithRevoke()
+    }
+  }
 
-    // Signal that lock is acquired
-    signalLocked()
+  let txPromise: Promise<void> | null = null
+  let loginPromise: Promise<any> | null = null
 
-    // Wait until test confirms login is blocked
-    await proceedPromise
+  try {
+    txPromise = testDb.transaction(async (txA) => {
+      // Lock the login token row with FOR UPDATE
+      await txA
+        .select()
+        .from(loginTokens)
+        .where(eq(loginTokens.memberId, target.member.id))
+        .for('update')
 
-    // Revoke the token while holding the lock
-    await txA
-      .update(loginTokens)
-      .set({ revokedAt: now })
-      .where(eq(loginTokens.memberId, target.member.id))
-  })
+      // Signal that lock is acquired
+      signalLocked()
 
-  // Wait until txA has locked the row
-  await lockedPromise
+      // Wait until test confirms login is observed in LOCK WAIT
+      await proceedPromise
 
-  // Start loginWithInvite; it will attempt to lock and must block on txA's lock
-  const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+      // Revoke the token while holding the lock
+      await txA
+        .update(loginTokens)
+        .set({ revokedAt: now })
+        .where(eq(loginTokens.memberId, target.member.id))
+    })
 
-  // Race loginPromise against a 100ms timer to prove login has NOT settled
-  const sentinel = Symbol('blocked')
-  const raceResult = await Promise.race([
-    loginPromise.then(() => 'settled', () => 'settled'),
-    new Promise((r) => setTimeout(() => r(sentinel), 100)),
-  ])
-  expect(raceResult).toBe(sentinel)
+    // Wait until txA has locked the row
+    await lockedPromise
 
-  // Allow txA to perform update and commit
-  signalProceedWithRevoke()
+    // Start loginWithInvite; it will attempt to lock loginTokens and block on txA's lock
+    loginPromise = loginWithInvite(testDb, target.inviteToken, now)
 
-  const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+    // Poll information_schema.innodb_trx to observe login in LOCK WAIT
+    const waitInfo = await waitForLockWait(/logintokens.*for update/i)
+    expect(waitInfo.trx_state).toBe('LOCK WAIT')
 
-  expect(loginResult).toEqual({ ok: false, code: 'INVALID_TOKEN' })
+    // Allow txA to perform update and commit
+    releaseGate()
 
-  // Verify no session was created
-  const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
-  expect(sessionRows).toHaveLength(0)
+    const [_, loginResult] = await Promise.all([txPromise, loginPromise])
 
-  // Verify lastUsedAt was not stamped
-  const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
-  expect(tokenRow.lastUsedAt).toBeNull()
+    expect(loginResult).toEqual({ ok: false, code: 'INVALID_TOKEN' })
+
+    // Verify no session was created
+    const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+    expect(sessionRows).toHaveLength(0)
+
+    // Verify lastUsedAt was not stamped
+    const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
+    expect(tokenRow.lastUsedAt).toBeNull()
+  } finally {
+    releaseGate()
+    if (txPromise) {
+      await txPromise.catch(() => {})
+    }
+    if (loginPromise) {
+      await loginPromise.catch(() => {})
+    }
+  }
 })
 
-it('serializes login against concurrent member status disabling, proving login blocks until status change commits', async () => {
+it('serializes login against concurrent member status disabling, proving login blocks in innodb_trx until status change commits', async () => {
   const target = await createMember(testDb, { name: 'ConcurrentStatus' })
 
   let signalLocked!: () => void
@@ -227,48 +267,65 @@ it('serializes login against concurrent member status disabling, proving login b
     signalProceed = resolve
   })
 
-  const txPromise = testDb.transaction(async (txA) => {
-    // Lock the member row with FOR UPDATE
-    await txA
-      .select()
-      .from(members)
-      .where(eq(members.id, target.member.id))
-      .for('update')
+  let gateReleased = false
+  const releaseGate = () => {
+    if (!gateReleased) {
+      gateReleased = true
+      signalProceed()
+    }
+  }
 
-    signalLocked()
-    await proceedPromise
+  let txPromise: Promise<void> | null = null
+  let loginPromise: Promise<any> | null = null
 
-    await txA
-      .update(members)
-      .set({ status: 'disabled' })
-      .where(eq(members.id, target.member.id))
-  })
+  try {
+    txPromise = testDb.transaction(async (txA) => {
+      // Lock the member row with FOR UPDATE
+      await txA
+        .select()
+        .from(members)
+        .where(eq(members.id, target.member.id))
+        .for('update')
 
-  await lockedPromise
+      signalLocked()
+      await proceedPromise
 
-  // loginWithInvite locks the member row first with .for('update'), so it blocks on txA's lock
-  const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+      await txA
+        .update(members)
+        .set({ status: 'disabled' })
+        .where(eq(members.id, target.member.id))
+    })
 
-  // Race loginPromise against a 100ms timer to prove login has NOT settled
-  const sentinel = Symbol('blocked')
-  const raceResult = await Promise.race([
-    loginPromise.then(() => 'settled', () => 'settled'),
-    new Promise((r) => setTimeout(() => r(sentinel), 100)),
-  ])
-  expect(raceResult).toBe(sentinel)
+    await lockedPromise
 
-  signalProceed()
+    // loginWithInvite locks the member row first with .for('update'), so it blocks on txA's lock
+    loginPromise = loginWithInvite(testDb, target.inviteToken, now)
 
-  const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+    // Poll information_schema.innodb_trx to observe login in LOCK WAIT
+    const waitInfo = await waitForLockWait(/members.*for update/i)
+    expect(waitInfo.trx_state).toBe('LOCK WAIT')
 
-  expect(loginResult).toEqual({ ok: false, code: 'DISABLED' })
+    releaseGate()
 
-  const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
-  expect(sessionRows).toHaveLength(0)
+    const [_, loginResult] = await Promise.all([txPromise, loginPromise])
 
-  // Verify lastUsedAt was not stamped
-  const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
-  expect(tokenRow.lastUsedAt).toBeNull()
+    expect(loginResult).toEqual({ ok: false, code: 'DISABLED' })
+
+    const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+    expect(sessionRows).toHaveLength(0)
+
+    // Verify lastUsedAt was not stamped
+    const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
+    expect(tokenRow.lastUsedAt).toBeNull()
+  } finally {
+    releaseGate()
+    if (txPromise) {
+      await txPromise.catch(() => {})
+    }
+    if (loginPromise) {
+      await loginPromise.catch(() => {})
+    }
+  }
 })
 
 it('does not deadlock when admin logs in while rotating invite for another member (and reverse pairing)', async () => {
