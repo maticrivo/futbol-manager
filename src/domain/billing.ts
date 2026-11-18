@@ -160,8 +160,8 @@ export async function recordGuestPayment(
     const [entry] = await tx.select({ kind: entries.kind }).from(entries).where(eq(entries.id, entryId)).for('update')
     if (!entry) return err('NOT_FOUND')
     if (entry.kind !== 'guest') return err('NOT_GUEST')
-    // Both the original and its reversal must fit the signed ledger column.
-    if (amountAgorot === 0 || !isSignedAmount(amountAgorot) || !isSignedAmount(-amountAgorot)) return err('INVALID_AMOUNT')
+    // Only a linked refund may subtract from the guest ledger.
+    if (amountAgorot <= 0 || !isSignedAmount(amountAgorot)) return err('INVALID_AMOUNT')
     const payment = await insertGuestMoney(tx, {
       entryId, amountAgorot, paidAt, note: note ?? null, kind: 'payment',
       refundOfId: null, recordedBy: actorId, createdAt: paidAt,

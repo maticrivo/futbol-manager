@@ -160,6 +160,18 @@ it('rejects invalid guest payments', async () => {
   expect(await recordGuestPayment(testDb, { ...input, entryId: 999 })).toEqual({ ok: false, code: 'NOT_FOUND' })
   expect(await recordGuestPayment(testDb, { ...input, entryId: memberEntry.id })).toEqual({ ok: false, code: 'NOT_GUEST' })
   expect(await recordGuestPayment(testDb, { ...input, amountAgorot: 0 })).toEqual({ ok: false, code: 'INVALID_AMOUNT' })
+
+  const [paidGuest] = await testDb.insert(entries).values({
+    matchId: match.id, kind: 'guest', guestName: 'Paid guest', hostMemberId: memberId,
+  }).$returningId()
+  valueOf(await recordGuestPayment(testDb, { ...input, entryId: paidGuest.id }))
+  const before = await monthSummary(testDb, '2027-03')
+  expect(before.guestCollectedAgorot).toBe(3500)
+
+  const rejected = await recordGuestPayment(testDb, { ...input, amountAgorot: -3500 })
+  expect(rejected).toEqual({ ok: false, code: 'INVALID_AMOUNT' })
+  expect(await testDb.select().from(guestPayments).where(eq(guestPayments.entryId, entryId))).toEqual([])
+  expect(await monthSummary(testDb, '2027-03')).toEqual(before)
 })
 
 it('calculates the monthly pot separately from member debt and upserts field rent', async () => {
