@@ -5,14 +5,16 @@ import MatchActionForm from './MatchActionForm'
 
 export default async function QueuePanel({
   match, phase, spotsLeft, queue, queuePosition, myEntry, myQueueEntry, myOffer,
-}: MatchView) {
+}: Pick<MatchView, 'match' | 'phase' | 'spotsLeft' | 'queue' | 'queuePosition' | 'myEntry' | 'myQueueEntry' | 'myOffer'>) {
   const [locale, t] = await Promise.all([getLocale(), getTranslations('queue')])
-  const canQueue = (phase === 'open' || phase === 'guest') && spotsLeft === 0 && !myEntry && !myOffer
+  const queueOpen = phase === 'open' || phase === 'guest'
+  const canJoin = queueOpen && spotsLeft === 0 && !myEntry && !myOffer && !myQueueEntry
+  const canLeave = queueOpen && myQueueEntry !== null
   const expiration = myOffer?.offerExpiresAt
   return (
     <section className="space-y-3 rounded-xl border p-5">
       <h2 className="text-lg font-semibold">{t('title')}</h2>
-      {myOffer && (
+      {myOffer && queueOpen && (
         <div className="space-y-2 rounded-md border-2 border-emerald-600 p-3">
           <p className="font-semibold">{t('offered')}</p>
           {expiration && <p>{t.rich('expires', {
@@ -28,7 +30,8 @@ export default async function QueuePanel({
           {queue.map(entry => <li key={entry.id}><bdi>{entry.memberName}</bdi></li>)}
         </ol>
       )}
-      {canQueue && <MatchActionForm key={myQueueEntry ? 'leave' : 'join'} intent={myQueueEntry ? 'leave' : 'join'} matchId={match.id} />}
+      {canJoin && <MatchActionForm key="join" intent="join" matchId={match.id} />}
+      {canLeave && <MatchActionForm key="leave" intent="leave" matchId={match.id} />}
     </section>
   )
 }

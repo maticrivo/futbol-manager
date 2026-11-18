@@ -27,7 +27,7 @@ export default async function Home() {
   }
   await advanceMatch(db, upcoming.id, now)
   const view = await getMatchView(db, { matchId: upcoming.id, memberId: member.id, now })
-  const { match, phase, spotsLeft, roster, myEntry, myQueueEntry, myOffer } = view
+  const { match, phase, spotsLeft, roster, queue, queuePosition, myEntry, myQueueEntry, myOffer } = view
   const canSignup = (phase === 'open' || phase === 'guest') && spotsLeft > 0 && !myEntry && !myQueueEntry && !myOffer
   const canWithdraw = myEntry && (phase === 'before' || phase === 'open' || phase === 'guest')
 
@@ -36,6 +36,7 @@ export default async function Home() {
       <MatchCard match={match} phase={phase} spotsLeft={spotsLeft} />
       {phase !== 'played' && phase !== 'cancelled' && (
         <Countdown
+          renderedAt={now.toISOString()}
           signupAt={match.signupOpensAt.toISOString()}
           guestAt={match.guestPhaseAt.toISOString()}
           lockAt={match.lockAt.toISOString()}
@@ -49,7 +50,16 @@ export default async function Home() {
       {canSignup && <MatchActionForm key="signup" intent="signup" matchId={match.id} />}
       {canWithdraw && <MatchActionForm key="withdraw" intent="withdraw" matchId={match.id} entryId={myEntry.id} />}
       <RosterList roster={roster} matchId={match.id} myEntryId={myEntry?.id ?? null} memberId={member.id} asAdmin={member.role === 'admin'} phase={phase} />
-      <QueuePanel {...view} />
+      <QueuePanel
+        match={match}
+        phase={phase}
+        spotsLeft={spotsLeft}
+        queue={queue}
+        queuePosition={queuePosition}
+        myEntry={myEntry}
+        myQueueEntry={myQueueEntry}
+        myOffer={myOffer}
+      />
       {phase === 'guest' && <GuestForm matchId={match.id} />}
     </main>
   )

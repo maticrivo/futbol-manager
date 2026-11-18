@@ -87,3 +87,20 @@ it('rejects a nonexistent match', async () => {
   await expect(getMatchView(testDb, { matchId: 1, memberId: 1, now: new Date('2027-03-30') }))
     .rejects.toThrow('Match 1 not found')
 })
+
+it('still reports the caller as queued when there is an unreserved spot', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const now = match.signupOpensAt
+  const { member: player } = await createMember(testDb, { name: 'Ana' })
+  const { member: waiting } = await createMember(testDb, { name: 'Noa' })
+  await testDb.update(matches).set({ capacity: 1 }).where(eq(matches.id, match.id))
+  expect((await signup(testDb, { matchId: match.id, memberId: player.id, now })).ok).toBe(true)
+  expect((await joinQueue(testDb, { matchId: match.id, memberId: waiting.id, now })).ok).toBe(true)
+  await testDb.update(matches).set({ capacity: 2 }).where(eq(matches.id, match.id))
+
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: waiting.id, now })
+  expect(view.phase).toBe('open')
+  expect(view.spotsLeft).toBe(1)
+  expect(view.myQueueEntry).toMatchObject({ memberId: waiting.id, status: 'queued' })
+  expect(view.myOffer).toBeNull()
+})
