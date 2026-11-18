@@ -1,17 +1,25 @@
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
-import { notificationPrefs } from '@/db/schema'
+import { notificationCategoryEnum, notificationPrefs } from '@/db/schema'
 import { createMember } from '@/domain/members'
-import { listNotificationPrefs, NOTIFICATION_CATEGORIES, setNotificationPref } from '@/domain/notifications'
+import {
+  listNotificationPrefs, NOTIFICATION_CATEGORIES, setNotificationPref, type NotificationCategory,
+} from '@/domain/notifications'
 import { resetDb, testDb } from '../db'
 
 beforeEach(resetDb)
 
+// Drizzle 0.45 keeps the enum tuple on the column config; the builder exposes no public enumValues.
+const schemaCategories = (notificationCategoryEnum as unknown as {
+  config: { enumValues: NotificationCategory[] }
+}).config.enumValues
+
 const allOn = () => Object.fromEntries(NOTIFICATION_CATEGORIES.map(category => [category, true]))
 
-it('contains exactly the six schema categories with no duplicates', () => {
+it('contains exactly the schema enum categories with no duplicates', () => {
   const expected = ['signup_open', 'guest_phase', 'lock_reminder', 'queue_offer', 'bill_ready', 'payment_reminder']
-  expect(NOTIFICATION_CATEGORIES).toHaveLength(expected.length)
+  expect(new Set(NOTIFICATION_CATEGORIES)).toEqual(new Set(schemaCategories))
+  expect(new Set(NOTIFICATION_CATEGORIES).size).toBe(NOTIFICATION_CATEGORIES.length)
   expect(new Set(NOTIFICATION_CATEGORIES)).toEqual(new Set(expected))
 })
 
