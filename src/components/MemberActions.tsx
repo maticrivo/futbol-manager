@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { regenerateInviteAction, setMemberStatusAction } from '@/app/actions/admin'
 import InviteLink from './InviteLink'
+import SubmitButton from './SubmitButton'
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
@@ -35,17 +36,16 @@ export default function MemberActions({
       <div className="flex flex-wrap items-center gap-3">
         <form action={regenAction}>
           <input type="hidden" name="memberId" value={memberId} />
-          <button type="submit" className="cursor-pointer text-sm underline">
-            {t('admin.members.regenerate')}
-          </button>
+          <SubmitButton label={t('admin.members.regenerate')} pendingLabel={t('admin.members.working')} />
         </form>
         <form action={statusAction}>
           <input type="hidden" name="memberId" value={memberId} />
           <input type="hidden" name="status" value={nextStatus} />
           {canDisable ? (
-            <button type="submit" className="cursor-pointer text-sm underline">
-              {status === 'active' ? t('admin.members.disable') : t('admin.members.enable')}
-            </button>
+            <SubmitButton
+              label={status === 'active' ? t('admin.members.disable') : t('admin.members.enable')}
+              pendingLabel={t('admin.members.working')}
+            />
           ) : (
             <span className="text-sm text-neutral-500 dark:text-neutral-400">{t('admin.members.selfNote')}</span>
           )}

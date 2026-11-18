@@ -125,7 +125,8 @@
       "statusActive": "Active",
       "statusDisabled": "Disabled",
       "add": "Add member",
-      "adding": "Adding…"
+      "adding": "Adding…",
+      "working": "Working…"
     },
     "invite": {
       "heading": "Invite link",

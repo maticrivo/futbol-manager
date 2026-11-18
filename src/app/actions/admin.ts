@@ -102,6 +102,7 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   }
 
   revalidatePath('/admin/members')
+  revalidatePath('/admin')
   revalidatePath('/')
   return { ok: true }
 }

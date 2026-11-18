@@ -66,6 +66,20 @@ async function matchDates() {
   return rows.map((row) => row.matchDate)
 }
 
+it('rejects when the admin authorization check fails, without creating rows', async () => {
+  const redirectError = new Error('NEXT_REDIRECT')
+  const membersBefore = (await listMembers(testDb)).length
+  const matchesBefore = (await matchDates()).length
+
+  vi.mocked(requireAdmin).mockRejectedValueOnce(redirectError)
+  await expect(addMemberAction(null, addForm('Ghost'))).rejects.toThrow('NEXT_REDIRECT')
+  expect(await listMembers(testDb)).toHaveLength(membersBefore)
+
+  vi.mocked(requireAdmin).mockRejectedValueOnce(redirectError)
+  await expect(createNextMatchAction(null, new FormData())).rejects.toThrow('NEXT_REDIRECT')
+  expect(await matchDates()).toHaveLength(matchesBefore)
+})
+
 it('addMemberAction creates a member and returns a working invite URL', async () => {
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   vi.mocked(requireAdmin).mockResolvedValue(admin)

@@ -125,7 +125,8 @@
       "statusActive": "פעיל",
       "statusDisabled": "מושבת",
       "add": "הוספת חבר",
-      "adding": "מוסיף…"
+      "adding": "מוסיף…",
+      "working": "מבצע…"
     },
     "invite": {
       "heading": "קישור הזמנה",
