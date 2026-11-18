@@ -88,7 +88,27 @@
       "queue_offer": "Oferta de la lista de espera",
       "bill_ready": "Cuenta mensual lista",
       "payment_reminder": "Recordatorio de pago"
+    },
+    "push": {
+      "title": "Notificaciones push",
+      "description": "Recibe avisos en este dispositivo cuando se abra la inscripción y cuando la cuenta esté lista.",
+      "loading": "Comprobando este dispositivo…",
+      "unsupported": "Este navegador no admite notificaciones push.",
+      "misconfigured": "Las notificaciones push no están configuradas en este servidor.",
+      "denied": "Las notificaciones están bloqueadas para este sitio. Permítelas en los ajustes del navegador e inténtalo de nuevo.",
+      "subscribed": "Las notificaciones están activadas en este dispositivo.",
+      "enable": "Activar notificaciones",
+      "enabling": "Activando…",
+      "disable": "Desactivar notificaciones",
+      "disabling": "Desactivando…",
+      "iosInstallTitle": "Para recibir notificaciones en el iPhone, instala primero la aplicación:",
+      "iosStep1": "Abre el menú Compartir en Safari.",
+      "iosStep2": "Toca “Añadir a pantalla de inicio”.",
+      "iosStep3": "Abre la aplicación desde la pantalla de inicio y activa las notificaciones."
     }
+  },
+  "copy": {
+    "copied": "¡Copiado!"
   },
   "admin": {
     "nav": {
@@ -139,7 +159,11 @@
       "sending": "Enviando…",
       "reminderSent": "Recordatorio enviado.",
       "working": "Procesando…",
-      "empty": "No hay miembros activos."
+      "empty": "No hay miembros activos.",
+      "copy": {
+        "title": "Compartir por WhatsApp",
+        "button": "Copiar mensaje de cuenta"
+      }
     },
     "members": {
       "title": "Miembros",
@@ -191,6 +215,10 @@
       "title": "Partido",
       "back": "Volver a administración",
       "confirmed": "{count, plural, one {# jugador confirmado} other {# jugadores confirmados}}",
+      "copy": {
+        "title": "Compartir por WhatsApp",
+        "button": "Copiar mensaje de inscripción"
+      },
       "edit": {
         "title": "Editar partido",
         "venue": "Lugar",

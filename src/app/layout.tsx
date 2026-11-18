@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
@@ -18,8 +18,21 @@ const geistMono = Geist_Mono({
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("common");
-  return { title: t("appName") };
+  return {
+    title: t("appName"),
+    applicationName: t("appName"),
+    manifest: "/manifest.webmanifest",
+    appleWebApp: {
+      capable: true,
+      title: t("appName"),
+      statusBarStyle: "default",
+    },
+  };
 }
+
+export const viewport: Viewport = {
+  themeColor: "#0a7d3a",
+};
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();

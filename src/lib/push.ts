@@ -1,4 +1,4 @@
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import type { Db } from '@/db'
 import { pushSubscriptions } from '@/db/schema'
 
@@ -21,6 +21,13 @@ export async function savePushSubscription(db: Db, { endpoint, memberId, p256dh,
 
 export async function deletePushSubscription(db: Db, endpoint: string): Promise<void> {
   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint))
+}
+
+/** Deletes only the signed-in member's subscription row, never another member's. */
+export async function deletePushSubscriptionForMember(db: Db, memberId: number, endpoint: string): Promise<void> {
+  await db.delete(pushSubscriptions).where(
+    and(eq(pushSubscriptions.memberId, memberId), eq(pushSubscriptions.endpoint, endpoint)),
+  )
 }
 
 /**

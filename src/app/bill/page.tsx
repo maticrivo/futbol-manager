@@ -2,6 +2,7 @@ import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import BillTable, { type BillChargeRow, type BillPaymentRow } from '@/components/BillTable'
 import NotificationPrefs from '@/components/NotificationPrefs'
+import PushSetup from '@/components/PushSetup'
 import { getDb } from '@/db'
 import { memberBalance, memberBill } from '@/domain/billing'
 import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
@@ -48,6 +49,7 @@ export default async function BillPage() {
       </section>
       <BillTable charges={chargeRows} payments={paymentRows} moneyLocale={member.locale} />
       <NotificationPrefs categories={NOTIFICATION_CATEGORIES} prefs={prefs} />
+      <PushSetup />
     </main>
   )
 }

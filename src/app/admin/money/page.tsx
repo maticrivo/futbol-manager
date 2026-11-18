@@ -1,11 +1,15 @@
 import { getLocale, getTranslations } from 'next-intl/server'
+import { headers } from 'next/headers'
 import AdminNav from '@/components/AdminNav'
 import BalanceTable from '@/components/BalanceTable'
+import CopyMessage from '@/components/CopyMessage'
 import MoneySummary from '@/components/MoneySummary'
 import { getDb } from '@/db'
 import { memberBalance, monthSummary } from '@/domain/billing'
 import { listMembers } from '@/domain/members'
 import { requireAdmin } from '@/lib/auth'
+import { buildGroupMessage } from '@/lib/copy'
+import { requestOrigin } from '@/lib/request-origin'
 import { billingMonthOf, formatMoney } from '@/lib/time'
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
@@ -44,6 +48,9 @@ export default async function MoneyPage({
     }
   })
 
+  const origin = requestOrigin(await headers(), process.env.APP_URL ?? 'http://localhost:3000')
+  const billCopy = buildGroupMessage('bill_ready', locale, { month, url: `${origin}/bill` })
+
   return (
     <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
       <AdminNav />
@@ -71,6 +78,12 @@ export default async function MoneyPage({
       />
 
       <BalanceTable rows={rows} />
+
+      <section className="space-y-2 rounded-xl border p-5">
+        <h2 className="text-xl font-semibold">{t('money.copy.title')}</h2>
+        <pre dir="auto" className="whitespace-pre-wrap break-words rounded bg-neutral-100 p-3 text-sm dark:bg-neutral-900">{billCopy}</pre>
+        <CopyMessage text={billCopy} label={t('money.copy.button')} />
+      </section>
     </main>
   )
 }

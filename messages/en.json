@@ -88,7 +88,27 @@
       "queue_offer": "Waiting-list offer",
       "bill_ready": "Monthly bill ready",
       "payment_reminder": "Payment reminder"
+    },
+    "push": {
+      "title": "Push notifications",
+      "description": "Get notified on this device when sign-ups open and bills are ready.",
+      "loading": "Checking this device…",
+      "unsupported": "This browser does not support push notifications.",
+      "misconfigured": "Push notifications are not configured on this server.",
+      "denied": "Notifications are blocked for this site. Allow them in your browser settings, then try again.",
+      "subscribed": "Notifications are enabled on this device.",
+      "enable": "Enable notifications",
+      "enabling": "Enabling…",
+      "disable": "Disable notifications",
+      "disabling": "Disabling…",
+      "iosInstallTitle": "To receive notifications on iPhone, install this app first:",
+      "iosStep1": "Open the Share menu in Safari.",
+      "iosStep2": "Tap “Add to Home Screen”.",
+      "iosStep3": "Open the app from your home screen, then enable notifications."
     }
+  },
+  "copy": {
+    "copied": "Copied!"
   },
   "admin": {
     "nav": {
@@ -139,7 +159,11 @@
       "sending": "Sending…",
       "reminderSent": "Reminder sent.",
       "working": "Working…",
-      "empty": "No active members."
+      "empty": "No active members.",
+      "copy": {
+        "title": "Share on WhatsApp",
+        "button": "Copy bill message"
+      }
     },
     "members": {
       "title": "Members",
@@ -191,6 +215,10 @@
       "title": "Match",
       "back": "Back to admin",
       "confirmed": "{count, plural, one {# confirmed player} other {# confirmed players}}",
+      "copy": {
+        "title": "Share on WhatsApp",
+        "button": "Copy sign-up message"
+      },
       "edit": {
         "title": "Edit match",
         "venue": "Venue",

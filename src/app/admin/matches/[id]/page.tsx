@@ -1,12 +1,14 @@
 import { notFound } from 'next/navigation'
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
+import { headers } from 'next/headers'
 import { and, eq, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import AdminNav from '@/components/AdminNav'
 import AdminRoster from '@/components/AdminRoster'
 import AttendanceList from '@/components/AttendanceList'
 import CancelMatchForm from '@/components/CancelMatchForm'
+import CopyMessage from '@/components/CopyMessage'
 import EditMatchForm from '@/components/EditMatchForm'
 import GuestPayments from '@/components/GuestPayments'
 import { getDb } from '@/db'
@@ -18,6 +20,8 @@ import { listMembers } from '@/domain/members'
 import { getMatch } from '@/domain/matches'
 import { getMatchView } from '@/domain/matchView'
 import { requireAdmin } from '@/lib/auth'
+import { buildGroupMessage } from '@/lib/copy'
+import { requestOrigin } from '@/lib/request-origin'
 import { formatMatchDate, formatMoney, TZ } from '@/lib/time'
 
 function localDateTime(date: Date): string {
@@ -50,6 +54,13 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
   const { match: current, phase, spotsLeft, roster } = view
   const finished = current.status === 'played' || current.status === 'cancelled'
   const locked = current.status === 'locked' || now >= current.lockAt
+
+  const origin = requestOrigin(await headers(), process.env.APP_URL ?? 'http://localhost:3000')
+  const signupCopy = buildGroupMessage('signup_open', locale, {
+    date: formatMatchDate(current.kickoffAt, locale),
+    venue: current.venue,
+    url: `${origin}/`,
+  })
 
   // Active members not already confirmed, queued or offered on this match.
   const occupied = await db.select({ memberId: entries.memberId }).from(entries)
@@ -122,6 +133,12 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
         <p className="text-sm">
           <Link href="/admin">{t('match.back')}</Link>
         </p>
+      </section>
+
+      <section className="space-y-2 rounded-xl border p-5">
+        <h2 className="text-xl font-semibold">{t('match.copy.title')}</h2>
+        <pre dir="auto" className="whitespace-pre-wrap break-words rounded bg-neutral-100 p-3 text-sm dark:bg-neutral-900">{signupCopy}</pre>
+        <CopyMessage text={signupCopy} label={t('match.copy.button')} />
       </section>
 
       <EditMatchForm
