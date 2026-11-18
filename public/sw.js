@@ -6,9 +6,10 @@ self.addEventListener('push', (event) => {
 })
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = event.notification.data?.url ?? '/'
+  const dataUrl = event.notification.data?.url ?? '/'
+  const target = new URL(dataUrl, self.location.origin)
   event.waitUntil(clients.matchAll({ type: 'window' }).then((list) => {
-    const open = list.find((c) => c.url.includes(url))
-    return open ? open.focus() : clients.openWindow(url)
+    const open = list.find((c) => new URL(c.url).pathname === target.pathname)
+    return open ? open.focus() : clients.openWindow(target.href)
   }))
 })

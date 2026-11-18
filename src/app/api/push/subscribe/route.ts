@@ -29,13 +29,13 @@ async function readJson(req: Request): Promise<unknown | null> {
 
 export async function POST(req: Request): Promise<Response> {
   const member = await getCurrentMember()
-  if (!member) return new Response('unauthorized', { status: 401 })
+  if (!member) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const body = await readJson(req)
-  if (body === null) return new Response('invalid json', { status: 400 })
+  if (body === null) return Response.json({ error: 'invalid json' }, { status: 400 })
 
   const parsed = subscribeSchema.safeParse(body)
-  if (!parsed.success) return new Response('invalid subscription', { status: 400 })
+  if (!parsed.success) return Response.json({ error: 'invalid subscription' }, { status: 400 })
 
   const userAgent = (req.headers.get('user-agent') ?? '').slice(0, 255)
   await savePushSubscription(getDb(), {
@@ -51,13 +51,13 @@ export async function POST(req: Request): Promise<Response> {
 
 export async function DELETE(req: Request): Promise<Response> {
   const member = await getCurrentMember()
-  if (!member) return new Response('unauthorized', { status: 401 })
+  if (!member) return Response.json({ error: 'unauthorized' }, { status: 401 })
 
   const body = await readJson(req)
-  if (body === null) return new Response('invalid json', { status: 400 })
+  if (body === null) return Response.json({ error: 'invalid json' }, { status: 400 })
 
   const parsed = deleteSchema.safeParse(body)
-  if (!parsed.success) return new Response('invalid endpoint', { status: 400 })
+  if (!parsed.success) return Response.json({ error: 'invalid endpoint' }, { status: 400 })
 
   await deletePushSubscriptionForMember(getDb(), member.id, parsed.data.endpoint)
 

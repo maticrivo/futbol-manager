@@ -43,6 +43,8 @@ beforeEach(async () => {
 it('POST returns 401 without a member', async () => {
   const res = await POST(jsonRequest('POST', validBody))
   expect(res.status).toBe(401)
+  expect(res.headers.get('content-type')).toContain('application/json')
+  expect(await res.json()).toEqual({ error: 'unauthorized' })
 })
 
 it('DELETE returns 401 without a member', async () => {
@@ -59,6 +61,8 @@ it('POST returns 400 for malformed JSON', async () => {
     body: '{not json',
   }))
   expect(res.status).toBe(400)
+  expect(res.headers.get('content-type')).toContain('application/json')
+  expect(await res.json()).toEqual({ error: 'invalid json' })
 })
 
 it('POST returns 400 for missing keys or a non-https endpoint', async () => {
