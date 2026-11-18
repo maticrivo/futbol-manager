@@ -18,10 +18,15 @@ export function resolveLocale(cookie?: string, acceptLanguage?: string): Locale 
   for (const range of acceptLanguage?.split(',') ?? []) {
     const [tag, ...params] = range.split(';')
     const trimmedTag = tag.trim()
-    if (!/^[a-z]{2,3}(-[a-z0-9]+)*$/i.test(trimmedTag)) continue
+    if (!/^[a-z]{2,3}(?:-[a-z0-9]{1,8})*$/i.test(trimmedTag)) continue
 
-    const quality = params.map((param) => /^q\s*=\s*(\S+)\s*$/i.exec(param.trim())).find(Boolean)
-    if (quality && Number(quality[1]) === 0) continue
+    const excludesRange = params.some((param) => {
+      const trimmedParam = param.trim()
+      if (!/^q(?:\s|=|$)/i.test(trimmedParam)) return false
+      const quality = /^q\s*=\s*(0(?:\.\d{0,3})?|1(?:\.0{0,3})?)\s*$/i.exec(trimmedParam)
+      return !quality || Number(quality[1]) === 0
+    })
+    if (excludesRange) continue
 
     const language = trimmedTag.split('-')[0].toLowerCase()
     if (isLocale(language)) return language

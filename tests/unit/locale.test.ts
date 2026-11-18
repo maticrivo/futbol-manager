@@ -17,6 +17,12 @@ it('skips zero-quality language ranges', () => {
 
 it('skips malformed language ranges', () => {
   expect(resolveLocale(undefined, 'he-,fr;q=0.9')).toBe('en')
+  expect(resolveLocale(undefined, 'he-abcdefghi,es')).toBe('es')
+})
+
+it('skips ranges with malformed quality values', () => {
+  expect(resolveLocale(undefined, 'he;q=bogus,es')).toBe('es')
+  expect(resolveLocale(undefined, 'he;q,es')).toBe('es')
 })
 
 it('skips unsupported ranges and preserves the order of eligible ranges', () => {
