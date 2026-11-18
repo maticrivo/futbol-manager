@@ -1,0 +1,24 @@
+{
+  "common": { "appName": "Fútbol semanal", "loading": "Cargando…" },
+  "nav": {
+    "home": "Inicio",
+    "bill": "Cuenta",
+    "admin": "Administración",
+    "logout": "Cerrar sesión"
+  },
+  "auth": {
+    "signedInAs": "Sesión iniciada como {name}",
+    "invalidLink": "El enlace caducó o fue revocado",
+    "askAdmin": "Pide un enlace nuevo al equipo de administración"
+  },
+  "home": { "placeholder": "Aquí aparecerán los detalles del partido." },
+  "errors": {
+    "NOT_OPEN": "La inscripción aún no está abierta.",
+    "FULL": "No quedan plazas para el partido.",
+    "MATCH_LOCKED": "El partido ya no admite cambios.",
+    "ALREADY_SIGNED_UP": "Ya te inscribiste en el partido.",
+    "GUEST_PHASE_CLOSED": "La inscripción de invitados no está abierta.",
+    "FORBIDDEN": "No tienes permiso para hacer eso.",
+    "INVALID_REASON": "Indica un motivo válido."
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "common": { "appName": "Weekly Football", "loading": "Loading…" },
+  "nav": {
+    "home": "Home",
+    "bill": "Bill",
+    "admin": "Admin",
+    "logout": "Sign out"
+  },
+  "auth": {
+    "signedInAs": "Signed in as {name}",
+    "invalidLink": "Link expired or revoked",
+    "askAdmin": "Ask an admin for a new link"
+  },
+  "home": { "placeholder": "Match details will appear here." },
+  "errors": {
+    "NOT_OPEN": "Sign-ups aren’t open yet.",
+    "FULL": "The match is full.",
+    "MATCH_LOCKED": "The match is locked.",
+    "ALREADY_SIGNED_UP": "You’ve already signed up.",
+    "GUEST_PHASE_CLOSED": "Guest sign-ups aren’t open.",
+    "FORBIDDEN": "You don’t have permission to do that.",
+    "INVALID_REASON": "Enter a valid reason."
+  }
+}
