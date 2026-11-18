@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { latestPassedBoundary, nextTransition } from '@/lib/countdown'
+import { latestPassedBoundary, nextTransition, shouldRequestRefresh } from '@/lib/countdown'
 
 export default function Countdown({
   renderedAt, signupAt, guestAt, lockAt, kickoffAt, signupLabel, guestLabel, lockLabel, kickoffLabel,
@@ -26,19 +26,25 @@ export default function Countdown({
     { at: Date.parse(kickoffAt), label: kickoffLabel },
   ], [signupAt, guestAt, lockAt, kickoffAt, signupLabel, guestLabel, lockLabel, kickoffLabel])
   const renderedBoundary = latestPassedBoundary(transitions, Date.parse(renderedAt))
-  const lastRefreshRef = useRef(renderedBoundary)
+  const confirmedRef = useRef(renderedBoundary)
+  const lastRequestRef = useRef<number | null>(null)
 
   useEffect(() => {
-    // A new server payload can already reflect a boundary; don't reload it again.
-    if (renderedBoundary !== null && (lastRefreshRef.current === null || renderedBoundary > lastRefreshRef.current)) {
-      lastRefreshRef.current = renderedBoundary
+    // Only the server payload confirms a boundary; a skewed browser may request it early.
+    if (renderedBoundary !== null && (confirmedRef.current === null || renderedBoundary > confirmedRef.current)) {
+      confirmedRef.current = renderedBoundary
     }
     const tick = () => {
       const currentTime = Date.now()
       setNow(currentTime)
       const passed = latestPassedBoundary(transitions, currentTime)
-      if (passed !== null && (lastRefreshRef.current === null || passed > lastRefreshRef.current)) {
-        lastRefreshRef.current = passed
+      if (shouldRequestRefresh({
+        confirmed: confirmedRef.current,
+        passed,
+        now: currentTime,
+        lastRequestAt: lastRequestRef.current,
+      })) {
+        lastRequestRef.current = currentTime
         router.refresh()
       }
     }

@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest'
-import { latestPassedBoundary, nextTransition } from '@/lib/countdown'
+import { latestPassedBoundary, nextTransition, shouldRequestRefresh } from '@/lib/countdown'
 
 const transitions = [
   { at: 300, label: 'Lock' },
@@ -25,4 +25,30 @@ it('returns no passed boundary before the first one', () => {
 
 it('counts a boundary equal to now as passed', () => {
   expect(latestPassedBoundary(transitions, 300)).toBe(300)
+})
+
+it('does not request a refresh before any boundary has passed', () => {
+  expect(shouldRequestRefresh({ confirmed: null, passed: null, now: 99, lastRequestAt: null })).toBe(false)
+})
+
+it('requests a refresh when a boundary passes before the server confirms it', () => {
+  expect(shouldRequestRefresh({ confirmed: null, passed: 100, now: 100, lastRequestAt: null })).toBe(true)
+})
+
+it('retries the same unconfirmed boundary once two seconds have elapsed', () => {
+  const state = { confirmed: null, passed: 100, lastRequestAt: 100 }
+  expect(shouldRequestRefresh({ ...state, now: 1100 })).toBe(false)
+  expect(shouldRequestRefresh({ ...state, now: 2100 })).toBe(true)
+})
+
+it('stops retrying once the server confirms the boundary', () => {
+  expect(shouldRequestRefresh({ confirmed: 100, passed: 100, now: 5100, lastRequestAt: 100 })).toBe(false)
+})
+
+it('requests a refresh for a later boundary after the throttle window', () => {
+  expect(shouldRequestRefresh({ confirmed: 100, passed: 200, now: 3100, lastRequestAt: 100 })).toBe(true)
+})
+
+it('respects a custom retry interval', () => {
+  expect(shouldRequestRefresh({ confirmed: null, passed: 100, now: 600, lastRequestAt: 100, retryMs: 500 })).toBe(true)
 })
