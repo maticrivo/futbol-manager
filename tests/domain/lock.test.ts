@@ -41,8 +41,8 @@ it('charges confirmed members once, including no-shows, and never guests', async
   await testDb.update(entries).set({ attended: false }).where(eq(entries.id, roster[0].id))
   const first = await lockMatch(testDb, match.id, lockTime)
   const second = await lockMatch(testDb, match.id, lockTime)
-  expect(first).toEqual({ ok: true, value: { chargesCreated: 3 } })
-  expect(second).toEqual({ ok: true, value: { chargesCreated: 0 } })
+  expect(first).toEqual({ ok: true, value: { chargesCreated: 3, transitioned: true } })
+  expect(second).toEqual({ ok: true, value: { chargesCreated: 0, transitioned: false } })
   const rows = await matchCharges(match.id)
   expect(rows.map(row => row.memberId)).toEqual(roster.map(entry => entry.memberId))
   for (const row of rows) {
@@ -66,7 +66,7 @@ it('expires both a queued entry and an unexpired offer at lock, without charging
   })
   expect(await read(queued.value.id)).toMatchObject({ status: 'queued' })
 
-  expect(await lockMatch(testDb, match.id, lockTime)).toEqual({ ok: true, value: { chargesCreated: 2 } })
+  expect(await lockMatch(testDb, match.id, lockTime)).toEqual({ ok: true, value: { chargesCreated: 2, transitioned: true } })
   expect(await read(offered.value.id)).toMatchObject({ status: 'expired' })
   expect(await read(queued.value.id)).toMatchObject({ status: 'expired' })
   expect((await matchCharges(match.id)).map(row => row.memberId)).toEqual(roster.slice(1).map(entry => entry.memberId))
@@ -211,7 +211,7 @@ it('bounds an optional scheduled-add reason without requiring one', async () => 
 it('bills the kickoff month when processed in the following month', async () => {
   const { match } = await setup()
   const now = new Date('2027-04-01T00:00:00Z')
-  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 3 } })
+  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 3, transitioned: true } })
   expect((await matchCharges(match.id)).map(charge => charge.billingMonth)).toEqual(['2027-03', '2027-03', '2027-03'])
 })
 
@@ -308,7 +308,7 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
     expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'locked' })
     const rows = await matchCharges(match.id)
     const targetCharge = rows.find(charge => charge.memberId === target.memberId)
-    expect(locked.value).toEqual({ ok: true, value: { chargesCreated: targetCharge ? 4 : 3 } })
+    expect(locked.value).toEqual({ ok: true, value: { chargesCreated: targetCharge ? 4 : 3, transitioned: true } })
     expect(rows).toHaveLength(targetCharge ? 4 : 3)
     expect(rows.filter(charge => charge.status === 'charged').map(charge => charge.memberId))
       .toEqual([actorId, ...roster.slice(1).map(entry => entry.memberId)])
@@ -362,7 +362,7 @@ it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different mat
 
 it('advances matches repeatedly and concurrently without duplicate charges or premature play', async () => {
   const { match } = await setup()
-  expect(await lockMatch(testDb, match.id, guestOpen)).toEqual({ ok: true, value: { chargesCreated: 0 } })
+  expect(await lockMatch(testDb, match.id, guestOpen)).toEqual({ ok: true, value: { chargesCreated: 0, transitioned: false } })
   await advanceMatch(testDb, match.id, guestOpen)
   expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'scheduled' })
   await Promise.all([advanceMatch(testDb, match.id, lockTime), advanceMatch(testDb, match.id, lockTime)])

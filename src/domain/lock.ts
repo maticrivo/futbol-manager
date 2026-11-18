@@ -12,11 +12,11 @@ export { waiveCharge, restoreCharge } from './charges'
 
 export async function lockMatch(
   db: Db, matchId: number, now: Date,
-): Promise<Result<{ chargesCreated: number }, 'NOT_FOUND'>> {
+): Promise<Result<{ chargesCreated: number; transitioned: boolean }, 'NOT_FOUND'>> {
   return db.transaction(async tx => {
     const match = await lockMatchRow(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    if (match.status !== 'scheduled' || now < match.lockAt) return ok({ chargesCreated: 0 })
+    if (match.status !== 'scheduled' || now < match.lockAt) return ok({ chargesCreated: 0, transitioned: false })
 
     await tx.update(matches).set({ status: 'locked', updatedAt: now }).where(eq(matches.id, matchId))
     await tx.update(entries).set({ status: 'expired', updatedAt: now })
@@ -29,7 +29,7 @@ export async function lockMatch(
     await writeAudit(tx, {
       action: 'match.lock', entity: 'match', entityId: String(matchId), detail: { chargesCreated }, createdAt: now,
     })
-    return ok({ chargesCreated })
+    return ok({ chargesCreated, transitioned: true })
   })
 }
 

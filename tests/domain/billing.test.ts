@@ -228,7 +228,7 @@ it('removes confirmed entries and expires the queue on scheduled cancellation wi
     .toMatchObject({ ok: true, value: { status: 'cancelled' } })
   expect((await testDb.select().from(entries).orderBy(entries.id)).map(row => row.status))
     .toEqual(['removed', 'removed', 'expired', 'expired'])
-  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 0 } })
+  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 0, transitioned: false } })
   expect(await testDb.select().from(charges)).toEqual([])
 })
 
@@ -238,7 +238,7 @@ it('waives charges and reverses guest money without replacing the original payme
     { matchId: match.id, memberId, kind: 'member' },
     { matchId: match.id, memberId: adminId, kind: 'member' },
   ])
-  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 2 } })
+  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 2, transitioned: true } })
   const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
   const input = { actorId: adminId, matchId: match.id, now, reason: '  match cancelled  ' }
   expect(await cancelMatch(testDb, input)).toMatchObject({ ok: true, value: { status: 'cancelled' } })

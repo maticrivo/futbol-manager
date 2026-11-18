@@ -1,4 +1,4 @@
-import { asc, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
+import { asc, desc, DrizzleQueryError, eq, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
 import { matches } from '@/db/schema'
@@ -41,31 +41,45 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
     .where(inArray(matches.status, ['scheduled', 'locked']))
     .orderBy(asc(matches.kickoffAt))
 
-  // Self-heal: when no active week exists at all, schedule the next Tuesday
-  // strictly after `now` (never recreating a cancelled week).
+  // Self-heal: recover the schedule when no active week exists. With no matches at
+  // all, schedule the next Tuesday strictly after `now`. With matches but none
+  // active, cascade forward one week from the latest match date (never recreating
+  // a cancelled week, since createNextMatch checks the target date first).
   if (active.length === 0) {
-    const local = DateTime.fromJSDate(now, { zone: TZ })
-    const days = ((2 - local.weekday + 7) % 7) || 7
-    const nextTuesday = local.plus({ days }).toISODate()
-    if (nextTuesday) {
-      const [existing] = await db
-        .select({ id: matches.id })
-        .from(matches)
-        .where(eq(matches.matchDate, nextTuesday))
-      if (!existing) {
-        await createMatchForDate(db, nextTuesday)
-        matchesCreated++
+    const [latest] = await db
+      .select({ id: matches.id })
+      .from(matches)
+      .orderBy(desc(matches.matchDate))
+      .limit(1)
+
+    if (latest) {
+      const next = await createNextMatch(db, latest.id)
+      if (next) matchesCreated++
+    } else {
+      const local = DateTime.fromJSDate(now, { zone: TZ })
+      const days = ((2 - local.weekday + 7) % 7) || 7
+      const nextTuesday = local.plus({ days }).toISODate()
+      if (nextTuesday) {
+        const [existing] = await db
+          .select({ id: matches.id })
+          .from(matches)
+          .where(eq(matches.matchDate, nextTuesday))
+        if (!existing) {
+          await createMatchForDate(db, nextTuesday)
+          matchesCreated++
+        }
       }
     }
   }
 
   for (const match of active) {
+    let transitioned = false
     if (match.status === 'scheduled' && now >= match.lockAt) {
       const result = await lockMatch(db, match.id, now)
-      // Count a lock only when this tick performed the transition. lockMatch
-      // reports the number of charges it created; a tick that lost a concurrent
-      // race to lock the same match reports zero charges and must not count it.
-      if (result.ok && result.value.chargesCreated > 0) locked++
+      // Count a lock only when this tick performed the scheduled -> locked
+      // transition. A tick that lost a concurrent race reports transitioned false.
+      transitioned = result.ok && result.value.transitioned
+      if (transitioned) locked++
     } else if (match.status === 'scheduled') {
       const expired = await expireOffers(db, match.id, now)
       expiredOffers += expired.expired
@@ -73,14 +87,15 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
 
     await advanceMatch(db, match.id, now)
 
-    // Repair: a match that ended up locked — whether just locked here or already
-    // locked before this tick (e.g. by a page-triggered advance) — needs its
-    // successor week. createNextMatch is idempotent and never recreates a week.
+    // Repair: create the successor when this tick transitioned the match (lock or
+    // play) or when it was already locked before this tick (e.g. a page-triggered
+    // lock). A tick that merely lost the lock race neither recreates nor recounts.
     const [after] = await db
       .select({ status: matches.status })
       .from(matches)
       .where(eq(matches.id, match.id))
-    if (after?.status === 'locked') {
+    const wasLockedAtSelection = match.status === 'locked'
+    if ((after?.status === 'locked' || after?.status === 'played') && (transitioned || wasLockedAtSelection)) {
       // A concurrent tick may create the same successor week; treat that race as
       // "someone else already created it" rather than failing the tick.
       const next = await createNextMatch(db, match.id).catch((error: unknown) => {

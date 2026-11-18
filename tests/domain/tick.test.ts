@@ -2,8 +2,8 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { charges, entries, matches, members, notificationPrefs } from '@/db/schema'
 import { signup } from '@/domain/entries'
-import { lockMatch } from '@/domain/lock'
-import { createMatchForDate } from '@/domain/matches'
+import { advanceMatch, lockMatch } from '@/domain/lock'
+import { createMatchForDate, getMatch } from '@/domain/matches'
 import { NOTIFICATION_CATEGORIES } from '@/domain/notifications'
 import { runTick } from '@/domain/tick'
 import { savePushSubscription } from '@/lib/push'
@@ -104,20 +104,24 @@ it('self-heals by creating the strictly next Tuesday when no match exists', asyn
   expect(rows).toEqual([{ matchDate: '2027-03-30' }])
 })
 
-it('does not recreate a cancelled week', async () => {
+it('does not recreate a cancelled week but cascades to the following week', async () => {
   const cancelled = await createMatchForDate(testDb, '2027-03-30')
   await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, cancelled.id))
 
   const result = await runTick(testDb, new Date('2027-03-25T12:00:00Z'), transport)
 
-  expect(result.matchesCreated).toBe(0)
+  expect(result.matchesCreated).toBe(1)
   const rows = await testDb
     .select({ matchDate: matches.matchDate, status: matches.status })
     .from(matches)
-  expect(rows).toEqual([{ matchDate: '2027-03-30', status: 'cancelled' }])
+    .orderBy(matches.matchDate)
+  expect(rows).toEqual([
+    { matchDate: '2027-03-30', status: 'cancelled' },
+    { matchDate: '2027-04-06', status: 'scheduled' },
+  ])
 })
 
-it('locks at most once and creates one successor under concurrent ticks', async () => {
+it('locks exactly once and creates exactly one successor under concurrent ticks', async () => {
   const match = await createMatchForDate(testDb, '2027-03-30')
   await confirmMembers(match.id, 3)
 
@@ -126,8 +130,42 @@ it('locks at most once and creates one successor under concurrent ticks', async 
     runTick(testDb, lockTime, transport),
   ])
 
-  expect(a.locked + b.locked).toBeLessThanOrEqual(1)
+  expect(a.locked + b.locked).toBe(1)
+  expect(a.matchesCreated + b.matchesCreated).toBe(1)
   expect(await testDb.select().from(charges).where(eq(charges.matchId, match.id))).toHaveLength(3)
+  const dates = await testDb
+    .select({ matchDate: matches.matchDate })
+    .from(matches)
+    .orderBy(matches.matchDate)
+  expect(dates.map((d) => d.matchDate)).toEqual(['2027-03-30', '2027-04-06'])
+})
+
+it('locks a zero-roster match and still counts the lock, then creates its successor', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+
+  const first = await runTick(testDb, lockTime, transport)
+  const second = await runTick(testDb, lockTime, transport)
+
+  expect(first.locked).toBe(1)
+  expect(second.locked).toBe(0)
+  expect(first.matchesCreated).toBe(1)
+  expect(second.matchesCreated).toBe(0)
+  expect(await testDb.select().from(charges).where(eq(charges.matchId, match.id))).toHaveLength(0)
+  expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'locked' })
+})
+
+it('repairs a played-only table by scheduling the week after the latest match', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await lockMatch(testDb, match.id, lockTime)
+  await advanceMatch(testDb, match.id, new Date('2027-03-30T20:30:00Z'))
+  expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'played' })
+
+  const now = new Date('2027-03-31T10:00:00Z')
+  const result = await runTick(testDb, now, transport)
+  const second = await runTick(testDb, now, transport)
+
+  expect(result.matchesCreated).toBe(1)
+  expect(second.matchesCreated).toBe(0)
   const dates = await testDb
     .select({ matchDate: matches.matchDate })
     .from(matches)
