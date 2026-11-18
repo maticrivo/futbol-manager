@@ -1,4 +1,4 @@
-import { and, asc, count, eq, gte, inArray } from 'drizzle-orm'
+import { and, asc, count, DrizzleQueryError, eq, gte, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
 import { entries, matches, members } from '@/db/schema'
@@ -136,10 +136,23 @@ async function getMatchByDate(db: Db, matchDate: string): Promise<Match | null> 
   return match ?? null
 }
 
-export async function createMatchForDate(db: Db, matchDate: string): Promise<Match> {
+function isDuplicateMatchError(error: unknown): boolean {
+  const cause = error instanceof DrizzleQueryError ? error.cause : error
+  return (
+    typeof cause === 'object' &&
+    cause !== null &&
+    (('code' in cause && (cause as { code?: string }).code === 'ER_DUP_ENTRY') ||
+      ('errno' in cause && (cause as { errno?: number }).errno === 1062))
+  )
+}
+
+export async function createMatchForDateIfAbsent(
+  db: Db,
+  matchDate: string,
+): Promise<{ match: Match; created: boolean }> {
   const existing = await getMatchByDate(db, matchDate)
   if (existing) {
-    return existing
+    return { match: existing, created: false }
   }
 
   const currentSettings = await getSettings(db)
@@ -165,20 +178,18 @@ export async function createMatchForDate(db: Db, matchDate: string): Promise<Mat
     if (!created) {
       throw new Error(`Failed to retrieve newly created match for ${matchDate}`)
     }
-    return created
-  } catch (err: unknown) {
-    const isDup =
-      typeof err === 'object' &&
-      err !== null &&
-      (('code' in err && (err as { code: string }).code === 'ER_DUP_ENTRY') ||
-        ('errno' in err && (err as { errno: number }).errno === 1062))
-
-    if (isDup) {
+    return { match: created, created: true }
+  } catch (error: unknown) {
+    if (isDuplicateMatchError(error)) {
       const match = await getMatchByDate(db, matchDate)
-      if (match) return match
+      if (match) return { match, created: false }
     }
-    throw err
+    throw error
   }
+}
+
+export async function createMatchForDate(db: Db, matchDate: string): Promise<Match> {
+  return (await createMatchForDateIfAbsent(db, matchDate)).match
 }
 
 export async function createNextMatch(db: Db, fromMatchId: number): Promise<Match | null> {

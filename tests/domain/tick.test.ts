@@ -104,6 +104,19 @@ it('self-heals by creating the strictly next Tuesday when no match exists', asyn
   expect(rows).toEqual([{ matchDate: '2027-03-30' }])
 })
 
+it('self-heals an empty schedule exactly once under concurrent ticks', async () => {
+  const now = new Date('2027-03-25T12:00:00Z')
+
+  const [a, b] = await Promise.all([
+    runTick(testDb, now, transport),
+    runTick(testDb, now, transport),
+  ])
+
+  expect(a.matchesCreated + b.matchesCreated).toBe(1)
+  const rows = await testDb.select({ matchDate: matches.matchDate }).from(matches)
+  expect(rows).toEqual([{ matchDate: '2027-03-30' }])
+})
+
 it('does not recreate a cancelled week but cascades to the following week', async () => {
   const cancelled = await createMatchForDate(testDb, '2027-03-30')
   await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, cancelled.id))

@@ -55,6 +55,13 @@ it('rejects when TICK_SECRET is unset even with a Bearer undefined header', asyn
   expect(res.status).toBe(401)
 })
 
+it('rejects a whitespace-only TICK_SECRET even when the header matches it', async () => {
+  process.env.TICK_SECRET = '   '
+  const res = await tickRequest(`Bearer ${process.env.TICK_SECRET}`)
+  expect(res.status).toBe(401)
+  expect(mocks.transportSpy).not.toHaveBeenCalled()
+})
+
 it('runs the tick with the correct token and returns all four counts', async () => {
   const res = await tickRequest('Bearer secret')
   expect(res.status).toBe(200)

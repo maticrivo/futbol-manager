@@ -6,6 +6,7 @@ import {
   getSettings,
   updateSettings,
   createMatchForDate,
+  createMatchForDateIfAbsent,
   createNextMatch,
   getUpcomingMatch,
   getMatch,
@@ -35,6 +36,15 @@ it('is idempotent per date', async () => {
   const a = await createMatchForDate(testDb, '2027-03-30')
   const b = await createMatchForDate(testDb, '2027-03-30')
   expect(b.id).toBe(a.id)
+})
+
+it('createMatchForDateIfAbsent reports created once per date', async () => {
+  const first = await createMatchForDateIfAbsent(testDb, '2027-03-30')
+  expect(first.created).toBe(true)
+
+  const second = await createMatchForDateIfAbsent(testDb, '2027-03-30')
+  expect(second.created).toBe(false)
+  expect(second.match.id).toBe(first.match.id)
 })
 
 it('creates the next match once and never recreates a cancelled date', async () => {

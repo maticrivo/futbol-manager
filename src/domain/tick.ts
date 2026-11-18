@@ -5,7 +5,7 @@ import { matches } from '@/db/schema'
 import type { PushTransport } from '@/lib/push'
 import { TZ } from '@/lib/time'
 import { advanceMatch, lockMatch } from './lock'
-import { createMatchForDate, createNextMatch } from './matches'
+import { createMatchForDateIfAbsent, createNextMatch } from './matches'
 import { processDueNotifications } from './notifications'
 import { expireOffers } from './queue'
 
@@ -58,14 +58,8 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
 
     if (!latest) {
       if (nextTuesday) {
-        const [existing] = await db
-          .select({ id: matches.id })
-          .from(matches)
-          .where(eq(matches.matchDate, nextTuesday))
-        if (!existing) {
-          await createMatchForDate(db, nextTuesday)
-          matchesCreated++
-        }
+        const { created } = await createMatchForDateIfAbsent(db, nextTuesday)
+        if (created) matchesCreated++
       }
     } else {
       const afterLatest = DateTime.fromISO(latest.matchDate, { zone: TZ }).plus({ days: 7 }).toISODate()
@@ -77,12 +71,8 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
       }
 
       for (let i = 0; cursor !== null && i < 12; i++) {
-        const [existing] = await db
-          .select({ id: matches.id })
-          .from(matches)
-          .where(eq(matches.matchDate, cursor))
-        if (!existing) {
-          await createMatchForDate(db, cursor)
+        const { created } = await createMatchForDateIfAbsent(db, cursor)
+        if (created) {
           matchesCreated++
           break
         }
