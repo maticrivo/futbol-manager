@@ -1,18 +1,15 @@
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
-import { notificationCategoryEnum, notificationPrefs } from '@/db/schema'
+import { notificationPrefs } from '@/db/schema'
 import { createMember } from '@/domain/members'
 import {
-  listNotificationPrefs, NOTIFICATION_CATEGORIES, setNotificationPref, type NotificationCategory,
+  listNotificationPrefs, NOTIFICATION_CATEGORIES, setNotificationPref,
 } from '@/domain/notifications'
 import { resetDb, testDb } from '../db'
 
 beforeEach(resetDb)
 
-// Drizzle 0.45 keeps the enum tuple on the column config; the builder exposes no public enumValues.
-const schemaCategories = (notificationCategoryEnum as unknown as {
-  config: { enumValues: NotificationCategory[] }
-}).config.enumValues
+const schemaCategories = notificationPrefs.category.enumValues
 
 const allOn = () => Object.fromEntries(NOTIFICATION_CATEGORIES.map(category => [category, true]))
 
