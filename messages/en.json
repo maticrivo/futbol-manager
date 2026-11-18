@@ -61,6 +61,35 @@
     "claim": "Claim spot",
     "expires": "Offer expires: <bidi>{expiration}</bidi>"
   },
+  "bill": {
+    "title": "Your bill",
+    "month": "Billing month: <bidi>{month}</bidi>",
+    "due": "Due this month: <bidi>{amount}</bidi>",
+    "settled": "Nothing due this month.",
+    "balance": "Outstanding balance: <bidi>{amount}</bidi>",
+    "credit": "Credit: <bidi>{amount}</bidi>",
+    "charges": "Charges",
+    "chargesEmpty": "No charges this month.",
+    "waived": "Waived",
+    "payments": "Payments",
+    "paymentsEmpty": "No payments this month.",
+    "method": { "paybox": "PayBox", "cash": "Cash", "other": "Other" }
+  },
+  "notifications": {
+    "title": "Notification settings",
+    "description": "Choose which reminders you want to receive.",
+    "save": "Save settings",
+    "saving": "Saving…",
+    "saved": "Settings saved.",
+    "categories": {
+      "signup_open": "Sign-ups open",
+      "guest_phase": "Guest sign-ups open",
+      "lock_reminder": "Roster lock reminder",
+      "queue_offer": "Waiting-list offer",
+      "bill_ready": "Monthly bill ready",
+      "payment_reminder": "Payment reminder"
+    }
+  },
   "errors": {
     "NOT_OPEN": "Sign-ups aren’t open yet.",
     "FULL": "The match is full.",

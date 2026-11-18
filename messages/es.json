@@ -61,6 +61,35 @@
     "claim": "Aceptar plaza",
     "expires": "La oferta vence: <bidi>{expiration}</bidi>"
   },
+  "bill": {
+    "title": "Mi cuenta",
+    "month": "Mes de facturación: <bidi>{month}</bidi>",
+    "due": "Pendiente este mes: <bidi>{amount}</bidi>",
+    "settled": "No hay nada que pagar este mes.",
+    "balance": "Saldo pendiente: <bidi>{amount}</bidi>",
+    "credit": "Saldo a favor: <bidi>{amount}</bidi>",
+    "charges": "Cargos",
+    "chargesEmpty": "No hay cargos este mes.",
+    "waived": "Anulado",
+    "payments": "Pagos",
+    "paymentsEmpty": "No hay pagos este mes.",
+    "method": { "paybox": "PayBox", "cash": "Efectivo", "other": "Otro" }
+  },
+  "notifications": {
+    "title": "Ajustes de notificaciones",
+    "description": "Elige qué recordatorios quieres recibir.",
+    "save": "Guardar ajustes",
+    "saving": "Guardando…",
+    "saved": "Ajustes guardados.",
+    "categories": {
+      "signup_open": "Apertura de inscripción",
+      "guest_phase": "Apertura de inscripción de invitados",
+      "lock_reminder": "Recordatorio de cierre de lista",
+      "queue_offer": "Oferta de la lista de espera",
+      "bill_ready": "Cuenta mensual lista",
+      "payment_reminder": "Recordatorio de pago"
+    }
+  },
   "errors": {
     "NOT_OPEN": "La inscripción aún no está abierta.",
     "FULL": "No quedan plazas para el partido.",

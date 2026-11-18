@@ -61,6 +61,35 @@
     "claim": "אישור המקום",
     "expires": "המקום שמור עד: <bidi>{expiration}</bidi>"
   },
+  "bill": {
+    "title": "החשבון שלי",
+    "month": "חודש חיוב: <bidi>{month}</bidi>",
+    "due": "לתשלום החודש: <bidi>{amount}</bidi>",
+    "settled": "אין תשלום לחודש הזה.",
+    "balance": "יתרה לתשלום: <bidi>{amount}</bidi>",
+    "credit": "זיכוי: <bidi>{amount}</bidi>",
+    "charges": "חיובים",
+    "chargesEmpty": "אין חיובים החודש.",
+    "waived": "מבוטל",
+    "payments": "תשלומים",
+    "paymentsEmpty": "אין תשלומים החודש.",
+    "method": { "paybox": "פייבוקס", "cash": "מזומן", "other": "אחר" }
+  },
+  "notifications": {
+    "title": "הגדרות התראות",
+    "description": "אפשר לבחור אילו תזכורות לקבל.",
+    "save": "שמירת הגדרות",
+    "saving": "שומר…",
+    "saved": "ההגדרות נשמרו.",
+    "categories": {
+      "signup_open": "פתיחת ההרשמה",
+      "guest_phase": "פתיחת הרשמה לאורחים",
+      "lock_reminder": "תזכורת לסגירת הרשימה",
+      "queue_offer": "הצעת מקום מרשימת ההמתנה",
+      "bill_ready": "חשבון חודשי מוכן",
+      "payment_reminder": "תזכורת לתשלום"
+    }
+  },
   "errors": {
     "NOT_OPEN": "ההרשמה עדיין לא נפתחה.",
     "FULL": "אין עוד מקומות פנויים במשחק.",

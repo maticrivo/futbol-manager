@@ -68,7 +68,7 @@ it('returns a monthly bill with joined payments and due after this month’s all
     actorId: adminId, memberId, amountAgorot: 5000, paidAt: now, method: 'paybox', note: 'split payment',
   }))
   expect(await memberBill(testDb, memberId, '2027-02')).toMatchObject({
-    charges: [{ billingMonth: '2027-02', amountAgorot: 7000 }],
+    charges: [{ billingMonth: '2027-02', amountAgorot: 7000, matchDate: '2027-02-12' }],
     allocations: [{ billingMonth: '2027-02', amountAgorot: 1500, payment }],
     dueAgorot: 5500,
   })

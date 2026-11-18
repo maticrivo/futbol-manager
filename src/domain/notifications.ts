@@ -12,6 +12,34 @@ export { deletePushSubscription, savePushSubscription, sendWebPush } from '@/lib
 export type { NotificationPayload, PushSubscriptionRow, PushTransport } from '@/lib/push'
 export type NotificationCategory = typeof notificationPrefs.$inferSelect.category
 
+export const NOTIFICATION_CATEGORIES = [
+  'signup_open',
+  'guest_phase',
+  'lock_reminder',
+  'queue_offer',
+  'bill_ready',
+  'payment_reminder',
+] as const satisfies readonly NotificationCategory[]
+
+export async function listNotificationPrefs(
+  db: Db, memberId: number,
+): Promise<Record<NotificationCategory, boolean>> {
+  const rows = await db.select({ category: notificationPrefs.category, enabled: notificationPrefs.enabled })
+    .from(notificationPrefs).where(eq(notificationPrefs.memberId, memberId))
+  const prefs = Object.fromEntries(
+    NOTIFICATION_CATEGORIES.map(category => [category, true]),
+  ) as Record<NotificationCategory, boolean>
+  for (const row of rows) prefs[row.category] = row.enabled
+  return prefs
+}
+
+export async function setNotificationPref(
+  db: Db, memberId: number, category: NotificationCategory, enabled: boolean,
+): Promise<void> {
+  await db.insert(notificationPrefs).values({ memberId, category, enabled })
+    .onDuplicateKeyUpdate({ set: { enabled } })
+}
+
 type NotificationData = { matchDate?: string; venue?: string; url: string; month?: string }
 
 export function buildNotification(event: NotificationCategory, locale: string, data: NotificationData): NotificationPayload {
