@@ -43,22 +43,20 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
 
   // Self-heal: recover the schedule when no active week exists. With no matches at
   // all, schedule the next Tuesday strictly after `now`. With matches but none
-  // active, cascade forward one week from the latest match date (never recreating
-  // a cancelled week, since createNextMatch checks the target date first).
+  // active, start from the later of (the next Tuesday after `now`, the latest
+  // match date + 7 days) and walk forward in 7-day steps to the first date with
+  // no row, so runs of cancelled weeks are skipped instead of blocking recovery.
   if (active.length === 0) {
+    const local = DateTime.fromJSDate(now, { zone: TZ })
+    const nextTuesday = local.plus({ days: ((2 - local.weekday + 7) % 7) || 7 }).toISODate()
+
     const [latest] = await db
-      .select({ id: matches.id })
+      .select({ matchDate: matches.matchDate })
       .from(matches)
       .orderBy(desc(matches.matchDate))
       .limit(1)
 
-    if (latest) {
-      const next = await createNextMatch(db, latest.id)
-      if (next) matchesCreated++
-    } else {
-      const local = DateTime.fromJSDate(now, { zone: TZ })
-      const days = ((2 - local.weekday + 7) % 7) || 7
-      const nextTuesday = local.plus({ days }).toISODate()
+    if (!latest) {
       if (nextTuesday) {
         const [existing] = await db
           .select({ id: matches.id })
@@ -68,6 +66,27 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
           await createMatchForDate(db, nextTuesday)
           matchesCreated++
         }
+      }
+    } else {
+      const afterLatest = DateTime.fromISO(latest.matchDate, { zone: TZ }).plus({ days: 7 }).toISODate()
+      let cursor: string | null = null
+      if (nextTuesday !== null && afterLatest !== null) {
+        cursor = afterLatest > nextTuesday ? afterLatest : nextTuesday
+      } else {
+        cursor = nextTuesday ?? afterLatest
+      }
+
+      for (let i = 0; cursor !== null && i < 12; i++) {
+        const [existing] = await db
+          .select({ id: matches.id })
+          .from(matches)
+          .where(eq(matches.matchDate, cursor))
+        if (!existing) {
+          await createMatchForDate(db, cursor)
+          matchesCreated++
+          break
+        }
+        cursor = DateTime.fromISO(cursor, { zone: TZ }).plus({ days: 7 }).toISODate()
       }
     }
   }

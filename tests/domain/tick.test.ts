@@ -121,6 +121,47 @@ it('does not recreate a cancelled week but cascades to the following week', asyn
   ])
 })
 
+it('skips a run of cancelled weeks and schedules the first free Tuesday', async () => {
+  for (const date of ['2027-03-30', '2027-04-06']) {
+    const match = await createMatchForDate(testDb, date)
+    await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, match.id))
+  }
+
+  const now = new Date('2027-03-28T12:00:00Z')
+  const first = await runTick(testDb, now, transport)
+  const second = await runTick(testDb, now, transport)
+
+  expect(first.matchesCreated).toBe(1)
+  expect(second.matchesCreated).toBe(0)
+  const rows = await testDb
+    .select({ matchDate: matches.matchDate, status: matches.status })
+    .from(matches)
+    .orderBy(matches.matchDate)
+  expect(rows).toEqual([
+    { matchDate: '2027-03-30', status: 'cancelled' },
+    { matchDate: '2027-04-06', status: 'cancelled' },
+    { matchDate: '2027-04-13', status: 'scheduled' },
+  ])
+})
+
+it('jumps to the next Tuesday when the latest match is far in the past', async () => {
+  const old = await createMatchForDate(testDb, '2027-01-05')
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, old.id))
+
+  const now = new Date('2027-03-28T12:00:00Z')
+  const result = await runTick(testDb, now, transport)
+
+  expect(result.matchesCreated).toBe(1)
+  const rows = await testDb
+    .select({ matchDate: matches.matchDate, status: matches.status })
+    .from(matches)
+    .orderBy(matches.matchDate)
+  expect(rows).toEqual([
+    { matchDate: '2027-01-05', status: 'cancelled' },
+    { matchDate: '2027-03-30', status: 'scheduled' },
+  ])
+})
+
 it('locks exactly once and creates exactly one successor under concurrent ticks', async () => {
   const match = await createMatchForDate(testDb, '2027-03-30')
   await confirmMembers(match.id, 3)
