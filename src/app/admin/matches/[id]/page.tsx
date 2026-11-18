@@ -1,0 +1,155 @@
+import { notFound } from 'next/navigation'
+import Link from 'next/link'
+import { getLocale, getTranslations } from 'next-intl/server'
+import { and, eq, inArray } from 'drizzle-orm'
+import { DateTime } from 'luxon'
+import AdminNav from '@/components/AdminNav'
+import AdminRoster from '@/components/AdminRoster'
+import AttendanceList from '@/components/AttendanceList'
+import CancelMatchForm from '@/components/CancelMatchForm'
+import EditMatchForm from '@/components/EditMatchForm'
+import GuestPayments from '@/components/GuestPayments'
+import { getDb } from '@/db'
+import { entries } from '@/db/schema'
+import { listGuestPayments, type MatchGuestPayment } from '@/domain/billing'
+import { listMatchCharges } from '@/domain/charges'
+import { advanceMatch } from '@/domain/lock'
+import { listMembers } from '@/domain/members'
+import { getMatch } from '@/domain/matches'
+import { getMatchView } from '@/domain/matchView'
+import { requireAdmin } from '@/lib/auth'
+import { formatMatchDate, formatMoney, TZ } from '@/lib/time'
+
+function localDateTime(date: Date): string {
+  return DateTime.fromJSDate(date, { zone: TZ }).toFormat("yyyy-MM-dd'T'HH:mm")
+}
+
+export default async function AdminMatchPage({ params }: { params: Promise<{ id: string }> }) {
+  const admin = await requireAdmin()
+  const { id } = await params
+  const matchId = /^[0-9]+$/.test(id) ? Number(id) : NaN
+  if (!Number.isSafeInteger(matchId) || matchId <= 0) notFound()
+
+  const db = getDb()
+  const match = await getMatch(db, matchId)
+  if (!match) notFound()
+
+  const now = new Date()
+  await advanceMatch(db, match.id, now)
+
+  const [view, members, charges, guestPayments, locale, t, tm] = await Promise.all([
+    getMatchView(db, { matchId: match.id, memberId: admin.id, now }),
+    listMembers(db),
+    listMatchCharges(db, match.id),
+    listGuestPayments(db, match.id),
+    getLocale(),
+    getTranslations('admin'),
+    getTranslations('match'),
+  ])
+
+  const { match: current, phase, spotsLeft, roster } = view
+  const finished = current.status === 'played' || current.status === 'cancelled'
+  const locked = current.status === 'locked' || now >= current.lockAt
+
+  // Active members not already confirmed, queued or offered on this match.
+  const occupied = await db.select({ memberId: entries.memberId }).from(entries)
+    .where(and(eq(entries.matchId, current.id), inArray(entries.status, ['confirmed', 'queued', 'offered'])))
+  const occupiedIds = new Set(occupied.flatMap(row => (row.memberId === null ? [] : [row.memberId])))
+  const addableMembers = members
+    .filter(member => member.status === 'active' && !occupiedIds.has(member.id))
+    .map(member => ({ id: member.id, name: member.name }))
+
+  const chargeByMember = new Map(charges.map(charge => [charge.memberId, charge]))
+  const rosterRows = roster.map(entry => {
+    const charge = entry.memberId !== null ? chargeByMember.get(entry.memberId) : undefined
+    return {
+      entryId: entry.id,
+      name: entry.kind === 'guest' ? (entry.guestName ?? '') : (entry.memberName ?? ''),
+      hostName: entry.kind === 'guest' ? entry.hostName : null,
+      kind: entry.kind,
+      charge: charge ? {
+        id: charge.id,
+        amount: formatMoney(charge.amountAgorot, locale),
+        status: charge.status,
+      } : null,
+    }
+  })
+
+  const attendees = roster.map(entry => ({
+    entryId: entry.id,
+    name: entry.kind === 'guest' ? (entry.guestName ?? '') : (entry.memberName ?? ''),
+    attended: entry.attended,
+  }))
+
+  const paymentsByEntry = new Map<number, MatchGuestPayment[]>()
+  for (const payment of guestPayments) {
+    const list = paymentsByEntry.get(payment.entryId) ?? []
+    list.push(payment)
+    paymentsByEntry.set(payment.entryId, list)
+  }
+  const refundedIds = new Set(
+    guestPayments.filter(p => p.kind === 'refund' && p.refundOfId !== null).map(p => p.refundOfId),
+  )
+  const guestRows = roster
+    .filter(entry => entry.kind === 'guest')
+    .map(entry => ({
+      entryId: entry.id,
+      name: entry.guestName ?? '',
+      hostName: entry.hostName,
+      payments: (paymentsByEntry.get(entry.id) ?? []).map(p => ({
+        id: p.id,
+        kind: p.kind,
+        amount: formatMoney(p.amountAgorot, locale),
+        note: p.note,
+        refunded: p.kind === 'payment' && refundedIds.has(p.id),
+      })),
+    }))
+
+  return (
+    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+      <AdminNav />
+
+      <section className="space-y-2 rounded-xl border p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <h1 className="text-2xl font-semibold">{t('match.title')}</h1>
+          <span className="rounded-full border px-3 py-1 text-sm font-medium">{tm(`phase.${phase}`)}</span>
+        </div>
+        <p className="text-lg font-medium">
+          <time dateTime={current.kickoffAt.toISOString()}>{formatMatchDate(current.kickoffAt, locale)}</time>
+        </p>
+        <p>{tm('spotsLeft', { count: spotsLeft })}</p>
+        <p>{t('match.confirmed', { count: roster.length })}</p>
+        <p className="text-sm">
+          <Link href="/admin">{t('match.back')}</Link>
+        </p>
+      </section>
+
+      <EditMatchForm
+        matchId={current.id}
+        venue={current.venue}
+        notes={current.notes ?? ''}
+        capacity={current.capacity}
+        costShekels={(current.costAgorot / 100).toFixed(2)}
+        kickoffAt={localDateTime(current.kickoffAt)}
+        signupOpensAt={localDateTime(current.signupOpensAt)}
+        guestPhaseAt={localDateTime(current.guestPhaseAt)}
+        lockAt={localDateTime(current.lockAt)}
+        locked={locked}
+        finished={finished}
+      />
+
+      <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} />
+
+      <AttendanceList matchId={current.id} attendees={attendees} disabled={finished} />
+
+      <GuestPayments
+        matchId={current.id}
+        costShekels={(current.costAgorot / 100).toFixed(2)}
+        guests={guestRows}
+        disabled={finished}
+      />
+
+      <CancelMatchForm matchId={current.id} disabled={current.status === 'cancelled'} />
+    </main>
+  )
+}

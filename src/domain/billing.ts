@@ -1,4 +1,5 @@
 import { and, eq, inArray, sum } from 'drizzle-orm'
+import { alias } from 'drizzle-orm/mysql-core'
 import type { Db, Executor, Tx } from '@/db'
 import { charges, entries, expenses, guestPayments, matches, members, paymentAllocations, payments } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
@@ -206,6 +207,27 @@ export async function refundGuestPayment(
     await tx.select({ id: entries.id }).from(entries).where(eq(entries.id, original.entryId)).for('update')
     return insertGuestRefund(tx, original, input)
   }, { isolationLevel: 'read committed' })
+}
+
+export type MatchGuestPayment = GuestPayment & {
+  guestName: string | null
+  hostMemberId: number | null
+  hostName: string | null
+}
+
+export async function listGuestPayments(db: Db, matchId: number): Promise<MatchGuestPayment[]> {
+  const hosts = alias(members, 'hosts')
+  const rows = await db.select({
+    payment: guestPayments,
+    guestName: entries.guestName,
+    hostMemberId: entries.hostMemberId,
+    hostName: hosts.name,
+  }).from(guestPayments)
+    .innerJoin(entries, eq(entries.id, guestPayments.entryId))
+    .leftJoin(hosts, eq(hosts.id, entries.hostMemberId))
+    .where(eq(entries.matchId, matchId))
+    .orderBy(guestPayments.paidAt, guestPayments.id)
+  return rows.map(({ payment, guestName, hostMemberId, hostName }) => ({ ...payment, guestName, hostMemberId, hostName }))
 }
 
 export async function cancelMatch(

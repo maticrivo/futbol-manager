@@ -101,6 +101,17 @@ export async function waiveCharge(
   })
 }
 
+export type MatchCharge = Charge & { memberName: string }
+
+export async function listMatchCharges(db: Db, matchId: number): Promise<MatchCharge[]> {
+  const rows = await db.select({ charge: charges, memberName: members.name })
+    .from(charges)
+    .innerJoin(members, eq(members.id, charges.memberId))
+    .where(eq(charges.matchId, matchId))
+    .orderBy(charges.memberId, charges.id)
+  return rows.map(({ charge, memberName }) => ({ ...charge, memberName }))
+}
+
 export async function restoreCharge(
   db: Db,
   { actorId, chargeId }: ChargeInput,

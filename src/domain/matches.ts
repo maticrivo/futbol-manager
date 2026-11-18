@@ -1,12 +1,130 @@
-import { and, asc, eq, gte, inArray } from 'drizzle-orm'
+import { and, asc, count, eq, gte, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
-import { matches } from '@/db/schema'
+import { entries, matches, members } from '@/db/schema'
+import { err, ok, type Result } from '@/lib/result'
 import { TZ, weekSchedule } from '@/lib/time'
+import { writeAudit } from './audit'
+import { lockMatch } from './entries'
 import { getSettings, updateSettings, type Settings } from './settings'
 
 export type Match = typeof matches.$inferSelect
 export { getSettings, updateSettings, type Settings }
+
+export type UpdateMatchPatch = {
+  kickoffAt?: Date
+  venue?: string
+  capacity?: number
+  costAgorot?: number
+  signupOpensAt?: Date
+  guestPhaseAt?: Date
+  lockAt?: Date
+  notes?: string
+}
+
+const PATCH_KEYS = new Set([
+  'kickoffAt', 'venue', 'capacity', 'costAgorot', 'signupOpensAt', 'guestPhaseAt', 'lockAt', 'notes',
+])
+const MONEY_KEYS = new Set(['costAgorot', 'capacity', 'signupOpensAt', 'guestPhaseAt', 'lockAt'])
+
+export async function updateMatch(
+  db: Db,
+  input: {
+    actorId: number
+    matchId: number
+    now: Date
+    patch: UpdateMatchPatch
+  },
+): Promise<Result<Match,
+  'FORBIDDEN' | 'NOT_FOUND' | 'INVALID_PATCH' | 'CAPACITY_BELOW_CONFIRMED' | 'MONEY_FIELDS_FROZEN' | 'MATCH_FINISHED'
+>> {
+  const { actorId, matchId, now, patch } = input
+  const keys = Object.keys(patch)
+
+  return db.transaction(async tx => {
+    // Lock order: match row first, then the actor member row.
+    const match = await lockMatch(tx, matchId)
+    if (!match) return err('NOT_FOUND')
+    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
+
+    if (match.status === 'played' || match.status === 'cancelled') return err('MATCH_FINISHED')
+
+    if (keys.length === 0) return ok(match)
+
+    for (const key of keys) {
+      if (!PATCH_KEYS.has(key)) return err('INVALID_PATCH')
+    }
+
+    // "Locked" for freezing means locked status or a lazily-unapplied lock time.
+    const locked = match.status === 'locked' || now >= match.lockAt
+    if (locked) {
+      for (const key of keys) {
+        if (MONEY_KEYS.has(key)) return err('MONEY_FIELDS_FROZEN')
+      }
+    }
+
+    const venue = patch.venue !== undefined ? patch.venue.trim() : undefined
+    const notes = patch.notes !== undefined ? patch.notes.trim() : undefined
+
+    if (venue !== undefined && venue.length > 120) return err('INVALID_PATCH')
+    if (notes !== undefined && [...notes].length > 2000) return err('INVALID_PATCH')
+
+    if (patch.costAgorot !== undefined && (!Number.isInteger(patch.costAgorot) || patch.costAgorot <= 0)) {
+      return err('INVALID_PATCH')
+    }
+
+    if (patch.capacity !== undefined) {
+      if (!Number.isInteger(patch.capacity) || patch.capacity < 1 || patch.capacity > 40) return err('INVALID_PATCH')
+      const [row] = await tx.select({ total: count() }).from(entries)
+        .where(and(eq(entries.matchId, matchId), eq(entries.status, 'confirmed')))
+      if (patch.capacity < row.total) return err('CAPACITY_BELOW_CONFIRMED')
+    }
+
+    for (const key of ['kickoffAt', 'signupOpensAt', 'guestPhaseAt', 'lockAt'] as const) {
+      const value = patch[key]
+      if (value !== undefined && !(value instanceof Date && !Number.isNaN(value.getTime()))) {
+        return err('INVALID_PATCH')
+      }
+    }
+
+    if (patch.kickoffAt !== undefined) {
+      const date = DateTime.fromJSDate(patch.kickoffAt, { zone: TZ }).toISODate()
+      if (date !== match.matchDate) return err('INVALID_PATCH')
+    }
+
+    const signupOpensAt = patch.signupOpensAt ?? match.signupOpensAt
+    const guestPhaseAt = patch.guestPhaseAt ?? match.guestPhaseAt
+    const lockAt = patch.lockAt ?? match.lockAt
+    const kickoffAt = patch.kickoffAt ?? match.kickoffAt
+    if (!(signupOpensAt.getTime() < guestPhaseAt.getTime()
+      && guestPhaseAt.getTime() < lockAt.getTime()
+      && lockAt.getTime() < kickoffAt.getTime())) {
+      return err('INVALID_PATCH')
+    }
+
+    const updates: Partial<typeof matches.$inferInsert> = { updatedAt: now }
+    if (venue !== undefined) updates.venue = venue
+    if (notes !== undefined) updates.notes = notes
+    if (patch.capacity !== undefined) updates.capacity = patch.capacity
+    if (patch.costAgorot !== undefined) updates.costAgorot = patch.costAgorot
+    if (patch.signupOpensAt !== undefined) updates.signupOpensAt = patch.signupOpensAt
+    if (patch.guestPhaseAt !== undefined) updates.guestPhaseAt = patch.guestPhaseAt
+    if (patch.lockAt !== undefined) updates.lockAt = patch.lockAt
+    if (patch.kickoffAt !== undefined) updates.kickoffAt = patch.kickoffAt
+
+    await tx.update(matches).set(updates).where(eq(matches.id, matchId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'match.update',
+      entity: 'match',
+      entityId: String(matchId),
+      detail: { keys: [...keys].sort() },
+      createdAt: now,
+    })
+    return ok({ ...match, ...updates } as Match)
+  })
+}
 
 export async function getMatch(db: Db, matchId: number): Promise<Match | null> {
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId))

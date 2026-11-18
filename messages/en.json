@@ -153,6 +153,74 @@
       "detail": "Detail",
       "empty": "No activity yet.",
       "system": "System"
+    },
+    "match": {
+      "title": "Match",
+      "back": "Back to admin",
+      "confirmed": "{count, plural, one {# confirmed player} other {# confirmed players}}",
+      "edit": {
+        "title": "Edit match",
+        "venue": "Venue",
+        "kickoffAt": "Kickoff",
+        "costShekels": "Cost per player (₪)",
+        "capacity": "Capacity",
+        "signupOpensAt": "Sign-ups open",
+        "guestPhaseAt": "Guest sign-ups open",
+        "lockAt": "Roster lock",
+        "notes": "Notes",
+        "save": "Save changes",
+        "saving": "Saving…",
+        "saved": "Saved.",
+        "locked": "Money, capacity and the schedule are frozen after the roster locks.",
+        "finished": "This match has already been played or cancelled."
+      },
+      "roster": {
+        "title": "Roster",
+        "empty": "No confirmed players yet.",
+        "addMember": "Member",
+        "choose": "Choose a member…",
+        "noAddable": "No active members left to add.",
+        "reason": "Reason",
+        "add": "Add member",
+        "adding": "Adding…",
+        "remove": "Remove",
+        "removing": "Removing…",
+        "waive": "Waive",
+        "restore": "Restore",
+        "waived": "Waived",
+        "guestOfLabel": "Guest of",
+        "working": "Working…"
+      },
+      "attendance": {
+        "title": "Attendance",
+        "empty": "No confirmed players yet.",
+        "present": "Present",
+        "absent": "No-show",
+        "unset": "Not set",
+        "disabled": "Attendance can no longer be changed for this match."
+      },
+      "guests": {
+        "title": "Guest payments",
+        "empty": "No guests on this match.",
+        "amount": "Amount (₪)",
+        "note": "Note",
+        "record": "Record payment",
+        "recording": "Recording…",
+        "refund": "Refund",
+        "refunding": "Refunding…",
+        "history": "Payment history",
+        "noPayments": "No payments recorded.",
+        "refunded": "Refunded",
+        "disabled": "Guest payments can no longer be recorded or refunded."
+      },
+      "cancel": {
+        "title": "Cancel match",
+        "reason": "Reason",
+        "confirm": "I understand this cancels the match and reverses charges and guest payments.",
+        "submit": "Cancel match",
+        "submitting": "Cancelling…",
+        "disabled": "This match has already been cancelled."
+      }
     }
   },
   "errors": {
@@ -177,6 +245,16 @@
     "NOT_QUEUED": "You’re no longer on the waiting list.",
     "NOT_OFFERED": "This offer is no longer available.",
     "OFFER_EXPIRED": "The offer has expired.",
+    "MONEY_FIELDS_FROZEN": "Money and capacity are frozen after the roster locks.",
+    "CAPACITY_BELOW_CONFIRMED": "Capacity can’t be lower than the number of confirmed players.",
+    "MATCH_FINISHED": "This match has already been played or cancelled.",
+    "INVALID_PATCH": "That change isn’t valid.",
+    "NOT_CONFIRMED": "That entry is no longer confirmed.",
+    "ALREADY_WAIVED": "That charge is already waived.",
+    "NOT_WAIVED": "That charge isn’t waived.",
+    "INVALID_AMOUNT": "That amount isn’t valid.",
+    "ALREADY_REFUNDED": "That payment was already refunded.",
+    "ALREADY_CANCELLED": "This match was already cancelled.",
     "UNKNOWN": "Something went wrong. Please try again."
   }
 }

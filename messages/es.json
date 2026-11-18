@@ -153,6 +153,74 @@
       "detail": "Detalle",
       "empty": "Sin actividad todavía.",
       "system": "Sistema"
+    },
+    "match": {
+      "title": "Partido",
+      "back": "Volver a administración",
+      "confirmed": "{count, plural, one {# jugador confirmado} other {# jugadores confirmados}}",
+      "edit": {
+        "title": "Editar partido",
+        "venue": "Lugar",
+        "kickoffAt": "Inicio del partido",
+        "costShekels": "Precio por persona (₪)",
+        "capacity": "Capacidad",
+        "signupOpensAt": "Apertura de inscripción",
+        "guestPhaseAt": "Apertura de invitados",
+        "lockAt": "Cierre de lista",
+        "notes": "Notas",
+        "save": "Guardar cambios",
+        "saving": "Guardando…",
+        "saved": "Guardado.",
+        "locked": "El precio, la capacidad y el calendario se bloquean al cerrar la lista.",
+        "finished": "Este partido ya se jugó o se canceló."
+      },
+      "roster": {
+        "title": "Participantes",
+        "empty": "Aún no hay participantes confirmados.",
+        "addMember": "Miembro",
+        "choose": "Elige un miembro…",
+        "noAddable": "No quedan miembros activos para añadir.",
+        "reason": "Motivo",
+        "add": "Añadir miembro",
+        "adding": "Añadiendo…",
+        "remove": "Quitar",
+        "removing": "Quitando…",
+        "waive": "Anular",
+        "restore": "Restaurar",
+        "waived": "Anulado",
+        "guestOfLabel": "Invitación de",
+        "working": "Procesando…"
+      },
+      "attendance": {
+        "title": "Asistencia",
+        "empty": "Aún no hay participantes confirmados.",
+        "present": "Asistió",
+        "absent": "No asistió",
+        "unset": "Sin definir",
+        "disabled": "La asistencia ya no se puede cambiar en este partido."
+      },
+      "guests": {
+        "title": "Pagos de invitados",
+        "empty": "No hay invitados en este partido.",
+        "amount": "Importe (₪)",
+        "note": "Nota",
+        "record": "Registrar pago",
+        "recording": "Registrando…",
+        "refund": "Reembolsar",
+        "refunding": "Reembolsando…",
+        "history": "Historial de pagos",
+        "noPayments": "No hay pagos registrados.",
+        "refunded": "Reembolsado",
+        "disabled": "Ya no se pueden registrar ni reembolsar pagos de invitados."
+      },
+      "cancel": {
+        "title": "Cancelar partido",
+        "reason": "Motivo",
+        "confirm": "Entiendo que esto cancela el partido y revierte cargos y pagos de invitados.",
+        "submit": "Cancelar partido",
+        "submitting": "Cancelando…",
+        "disabled": "Este partido ya ha sido cancelado."
+      }
     }
   },
   "errors": {
@@ -177,6 +245,16 @@
     "NOT_QUEUED": "Ya no estás en la lista de espera.",
     "NOT_OFFERED": "Esta oferta ya no está disponible.",
     "OFFER_EXPIRED": "La oferta ha caducado.",
+    "MONEY_FIELDS_FROZEN": "El precio y la capacidad se bloquean al cerrar la lista.",
+    "CAPACITY_BELOW_CONFIRMED": "La capacidad no puede ser menor que el número de jugadores confirmados.",
+    "MATCH_FINISHED": "Este partido ya se jugó o se canceló.",
+    "INVALID_PATCH": "Ese cambio no es válido.",
+    "NOT_CONFIRMED": "Esa inscripción ya no está confirmada.",
+    "ALREADY_WAIVED": "Ese cargo ya está anulado.",
+    "NOT_WAIVED": "Ese cargo no está anulado.",
+    "INVALID_AMOUNT": "Ese importe no es válido.",
+    "ALREADY_REFUNDED": "Ese pago ya fue reembolsado.",
+    "ALREADY_CANCELLED": "Este partido ya fue cancelado.",
     "UNKNOWN": "Algo salió mal. Inténtalo de nuevo."
   }
 }
