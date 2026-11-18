@@ -209,7 +209,7 @@ it('serializes login against concurrent invite revocation, proving login blocks 
     // Allow txA to perform update and commit
     releaseGate()
 
-    const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+    const [, loginResult] = await Promise.all([txPromise, loginPromise])
 
     expect(loginResult).toEqual({ ok: false, code: 'INVALID_TOKEN' })
 
@@ -284,7 +284,7 @@ it('serializes login against concurrent member status disabling, proving login b
 
     releaseGate()
 
-    const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+    const [, loginResult] = await Promise.all([txPromise, loginPromise])
 
     expect(loginResult).toEqual({ ok: false, code: 'DISABLED' })
 
@@ -348,10 +348,9 @@ it('does not deadlock when admin logs in while rotating invite for another membe
       regenerateInvite(testDb, adminA.member.id, memberB.member.id, now),
     ])
 
-    for (const r of results) {
-      if (r.status === 'rejected') throw r.reason
-    }
-    const [loginRes, regenRes] = results as [PromiseFulfilledResult<any>, PromiseFulfilledResult<any>]
+    const [loginRes, regenRes] = results
+    if (loginRes.status === 'rejected') throw loginRes.reason
+    if (regenRes.status === 'rejected') throw regenRes.reason
     expect(regenRes.value.ok).toBe(true)
     expect(['ok', 'INVALID_TOKEN'].includes(loginRes.value.ok ? 'ok' : loginRes.value.code)).toBe(true)
   }
