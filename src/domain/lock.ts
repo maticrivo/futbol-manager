@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Db, Tx } from '@/db'
-import { entries, matches } from '@/db/schema'
+import { entries, matches, members } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { writeAudit } from './audit'
 import { chargeAddedMember, createMatchCharges, isValidReason, lockAdminActor, waiveRemovedMember } from './charges'
@@ -70,10 +70,17 @@ export async function adminAddEntry(
   const { actorId, matchId, memberId, now } = input
   return db.transaction(async tx => {
     const match = await lockMatchRow(tx, matchId)
-    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
+    // Reciprocal additions on different matches must take member locks in the same order.
+    const memberIds = [...new Set([actorId, memberId])].sort((a, b) => a - b)
+    let actorRole: (typeof members.$inferSelect)['role'] | undefined
+    for (const id of memberIds) {
+      const [member] = await tx.select({ role: members.role }).from(members).where(eq(members.id, id)).for('update')
+      if (id === actorId) actorRole = member?.role
+    }
+    if (actorRole !== 'admin') return err('FORBIDDEN')
     if (!match || (match.status !== 'scheduled' && match.status !== 'locked')) return err('MATCH_CANCELLED')
     const reason = input.reason.trim()
-    if (match.status === 'locked' && !isValidReason(reason)) return err('INVALID_REASON')
+    if ((reason !== '' || match.status === 'locked') && !isValidReason(reason)) return err('INVALID_REASON')
 
     const [existing] = await tx.select().from(entries)
       .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId))).for('update')

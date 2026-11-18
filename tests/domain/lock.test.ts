@@ -179,6 +179,19 @@ it('rejects reasons longer than 255 characters after trimming', async () => {
     .toMatchObject({ ok: true, value: { waiveReason: allowed } })
 })
 
+it('bounds an optional scheduled-add reason without requiring one', async () => {
+  const { match, people } = await setup()
+  const input = { actorId: people.admin.id, matchId: match.id, memberId: people.extra.id, now: guestOpen }
+  expect(await adminAddEntry(testDb, { ...input, reason: ` ${'x'.repeat(256)} ` }))
+    .toEqual({ ok: false, code: 'INVALID_REASON' })
+  expect(await logs('entry.admin_add')).toEqual([])
+
+  const maxReason = 'x'.repeat(255)
+  expect(await adminAddEntry(testDb, { ...input, reason: ` ${maxReason} ` })).toMatchObject({ ok: true })
+  expect(await adminAddEntry(testDb, { ...input, memberId: people.next.id, reason: '  ' })).toMatchObject({ ok: true })
+  expect((await logs('entry.admin_add')).map(row => row.detail)).toEqual([{ reason: maxReason }, { reason: '' }])
+})
+
 it('bills the kickoff month when processed in the following month', async () => {
   const { match } = await setup()
   const now = new Date('2027-04-01T00:00:00Z')
@@ -292,6 +305,41 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
     } finally {
       holder.release()
       await Promise.allSettled([billing, removal])
+    }
+  }
+}, 10_000)
+
+it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different matches (run %i)', async () => {
+  const first = await createMatchForDate(testDb, '2027-03-30')
+  const second = await createMatchForDate(testDb, '2027-04-06')
+  const [a, b] = await testDb.insert(members)
+    .values([{ name: 'Admin A', role: 'admin' }, { name: 'Admin B', role: 'admin' }]).$returningId()
+  const holder = await testDb.$client.getConnection()
+  let aAddsB: ReturnType<typeof adminAddEntry> | undefined
+  let bAddsA: ReturnType<typeof adminAddEntry> | undefined
+  try {
+    await holder.beginTransaction()
+    await holder.execute('SELECT id FROM members WHERE id = ? FOR UPDATE', [b.id])
+    // B must take lower-ID A before waiting for higher-ID B. A's own add then waits for A.
+    bAddsA = adminAddEntry(testDb, { actorId: b.id, matchId: second.id, memberId: a.id, now: guestOpen, reason: '' })
+    void bAddsA.catch(() => {})
+    await waitForLockWait(`from \`members\` where \`members\`.\`id\` = ${b.id} for update`)
+    aAddsB = adminAddEntry(testDb, { actorId: a.id, matchId: first.id, memberId: b.id, now: guestOpen, reason: '' })
+    void aAddsB.catch(() => {})
+    await waitForLockWait(`from \`members\` where \`members\`.\`id\` = ${a.id} for update`)
+    await holder.commit()
+
+    const [addedB, addedA] = await Promise.allSettled([aAddsB, bAddsA])
+    if (addedB.status === 'rejected') throw addedB.reason
+    if (addedA.status === 'rejected') throw addedA.reason
+    expect(addedB.value).toMatchObject({ ok: true, value: { matchId: first.id, memberId: b.id, status: 'confirmed' } })
+    expect(addedA.value).toMatchObject({ ok: true, value: { matchId: second.id, memberId: a.id, status: 'confirmed' } })
+  } finally {
+    try {
+      await holder.rollback()
+    } finally {
+      holder.release()
+      await Promise.allSettled([aAddsB, bAddsA])
     }
   }
 }, 10_000)
