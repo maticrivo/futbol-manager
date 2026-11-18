@@ -26,7 +26,7 @@ export async function remainingSpots(executor: Executor, match: Match): Promise<
   const rows = await executor.select({ id: entries.id }).from(entries)
     .where(and(eq(entries.matchId, match.id), inArray(entries.status, ['confirmed', 'offered'])))
     .for('update')
-  return match.capacity - rows.length
+  return Math.max(0, match.capacity - rows.length)
 }
 
 export async function freeSpots(db: Db, matchId: number, executor?: Executor): Promise<number> {
@@ -40,7 +40,7 @@ export async function freeSpots(db: Db, matchId: number, executor?: Executor): P
     .leftJoin(entries, and(eq(entries.matchId, matches.id), inArray(entries.status, ['confirmed', 'offered'])))
     .where(eq(matches.id, matchId))
     .groupBy(matches.id, matches.capacity)
-  return roster ? roster.capacity - roster.occupied : 0
+  return roster ? Math.max(0, roster.capacity - roster.occupied) : 0
 }
 
 export async function lockMatch(executor: Executor, matchId: number): Promise<Match | undefined> {
@@ -101,7 +101,7 @@ export async function withdraw(
   db: Db,
   { entryId, actorMemberId, now }: { entryId: number; actorMemberId: number; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_WITHDRAWABLE'>> {
-  const result = await db.transaction(async tx => {
+  return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await tx.select().from(entries)
@@ -112,13 +112,10 @@ export async function withdraw(
     if (isLocked(match, now)) return err('LOCKED')
 
     await tx.update(entries).set({ status: 'withdrawn', updatedAt: now }).where(eq(entries.id, entryId))
+    const { offerNext } = await import('./queue')
+    await offerNext(db, match.id, now, tx)
     return ok(await readEntry(tx, entryId))
   })
-  if (result.ok) {
-    const { offerNext } = await import('./queue')
-    await offerNext(db, result.value.matchId, now)
-  }
-  return result
 }
 
 export async function addGuest(
@@ -148,7 +145,7 @@ export async function removeGuest(
   db: Db,
   { entryId, actorMemberId, asAdmin, now }: { entryId: number; actorMemberId: number; asAdmin?: boolean; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_GUEST'>> {
-  const result = await db.transaction(async tx => {
+  return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await tx.select().from(entries)
@@ -159,11 +156,8 @@ export async function removeGuest(
     if (isLocked(match, now)) return err('LOCKED')
 
     await tx.update(entries).set({ status: 'removed', updatedAt: now }).where(eq(entries.id, entryId))
+    const { offerNext } = await import('./queue')
+    await offerNext(db, match.id, now, tx)
     return ok(await readEntry(tx, entryId))
   })
-  if (result.ok) {
-    const { offerNext } = await import('./queue')
-    await offerNext(db, result.value.matchId, now)
-  }
-  return result
 }

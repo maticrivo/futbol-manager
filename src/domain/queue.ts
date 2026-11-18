@@ -1,5 +1,5 @@
 import { and, eq, lte } from 'drizzle-orm'
-import type { Db, Tx } from '@/db'
+import type { Db, Executor, Tx } from '@/db'
 import { entries } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { isLocked, lockMatch, lockMatchForEntry, remainingSpots, type Entry } from './entries'
@@ -25,7 +25,7 @@ export async function joinQueue(
     const [existing] = await memberEntries(tx, matchId, memberId)
     if (existing?.status === 'confirmed') return err('ALREADY_IN_MATCH')
     if (existing?.status === 'queued' || existing?.status === 'offered') return err('ALREADY_QUEUED')
-    if (await remainingSpots(tx, match) > 0) return err('SPOT_AVAILABLE')
+    if (await remainingSpots(tx, match) !== 0) return err('SPOT_AVAILABLE')
 
     // A rejoin takes a new place in line, not the row's original position.
     const queued = { status: 'queued', createdAt: now, updatedAt: now, offeredAt: null, offerExpiresAt: null } as const
@@ -57,8 +57,9 @@ export async function leaveQueue(
   })
 }
 
-export async function offerNext(db: Db, matchId: number, now: Date): Promise<Entry | null> {
-  return db.transaction(async tx => {
+// Pass the caller's transaction when freeing and reserving a spot together.
+export async function offerNext(db: Db, matchId: number, now: Date, executor?: Executor): Promise<Entry | null> {
+  const promote = async (tx: Executor): Promise<Entry | null> => {
     const match = await lockMatch(tx, matchId)
     if (!match || isLocked(match, now)) return null
     const free = await remainingSpots(tx, match)
@@ -84,7 +85,8 @@ export async function offerNext(db: Db, matchId: number, now: Date): Promise<Ent
       first ??= { ...next, ...offer }
     }
     return first
-  })
+  }
+  return executor ? promote(executor) : db.transaction(promote)
 }
 
 export async function expireOffers(
@@ -92,14 +94,13 @@ export async function expireOffers(
   matchId: number,
   now: Date,
 ): Promise<{ expired: number; offered: Entry | null }> {
-  const expired = await db.transaction(async tx => {
-    if (!await lockMatch(tx, matchId)) return 0
+  return db.transaction(async tx => {
+    if (!await lockMatch(tx, matchId)) return { expired: 0, offered: null }
     const [result] = await tx.update(entries).set({ status: 'withdrawn', updatedAt: now })
       .where(and(eq(entries.matchId, matchId), eq(entries.status, 'offered'), lte(entries.offerExpiresAt, now)))
-    return result.affectedRows
+    const offered = await offerNext(db, matchId, now, tx)
+    return { expired: result.affectedRows, offered }
   })
-
-  return { expired, offered: await offerNext(db, matchId, now) }
 }
 
 export async function claimOffer(

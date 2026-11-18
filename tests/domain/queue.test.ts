@@ -1,10 +1,11 @@
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
 import { testDb, resetDb } from '../db'
-import { entries, members as memberRows } from '@/db/schema'
+import { waitForLockWait } from '../lock-wait'
+import { entries, matches, members as memberRows } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
-import { claimOffer, joinQueue, leaveQueue, expireOffers } from '@/domain/queue'
-import { addGuest, removeGuest, signup, withdraw } from '@/domain/entries'
+import { claimOffer, joinQueue, leaveQueue, expireOffers, offerNext } from '@/domain/queue'
+import { addGuest, freeSpots, removeGuest, signup, withdraw } from '@/domain/entries'
 
 const now = new Date('2027-03-27T10:00:00Z')
 const guestOpen = new Date('2027-03-29T11:00:00Z')
@@ -115,4 +116,70 @@ it('blocks guest signup during the guest phase when an offer reserves the spot',
   })).ok).toBe(true)
   expect((await pendingOffer(match.id))?.memberId).toBe(members[14].id)
   expect(await addGuest(testDb, { ...guestInput, name: 'Eli' })).toEqual({ ok: false, code: 'FULL' })
+})
+
+it('reserves a vacancy before a signup waiting behind the withdrawal can take it', async () => {
+  const { match, members } = await fullMatch()
+  const departingEntryId = await entryId(match.id, members[0].id)
+  const holder = await testDb.$client.getConnection()
+  let withdrawal: ReturnType<typeof withdraw> | undefined
+  let admission: ReturnType<typeof signup> | undefined
+  try {
+    await holder.beginTransaction()
+    await holder.execute('SELECT id FROM matches WHERE id = ? FOR UPDATE', [match.id])
+
+    withdrawal = withdraw(testDb, { entryId: departingEntryId, actorMemberId: members[0].id, now })
+    void withdrawal.catch(() => {})
+    await waitForLockWait(`\`matches\`.\`id\` = (select \`matchId\` from \`entries\` where \`entries\`.\`id\` = ${departingEntryId})`)
+
+    admission = signup(testDb, { memberId: members[17].id, matchId: match.id, now })
+    void admission.catch(() => {})
+    await waitForLockWait(`\`matches\`.\`id\` = ${match.id} for update`)
+
+    await holder.commit()
+
+    const [withdrawn, signedUp] = await Promise.all([withdrawal, admission])
+    expect(withdrawn).toMatchObject({ ok: true, value: { status: 'withdrawn' } })
+    expect(signedUp).toEqual({ ok: false, code: 'FULL' })
+    expect(await pendingOffer(match.id)).toMatchObject({ memberId: members[14].id, status: 'offered' })
+  } finally {
+    try {
+      await holder.rollback()
+    } finally {
+      holder.release()
+      await Promise.allSettled([withdrawal, admission])
+    }
+  }
+}, 10_000)
+
+it('reports zero free spots and allows queueing even when the roster is over capacity', async () => {
+  const { match, members } = await setup(14)
+  await testDb.update(matches).set({ capacity: 13 }).where(eq(matches.id, match.id))
+
+  expect(await freeSpots(testDb, match.id)).toBe(0)
+  await testDb.transaction(async tx => {
+    expect(await freeSpots(testDb, match.id, tx)).toBe(0)
+  })
+  expect(await joinQueue(testDb, { memberId: members[14].id, matchId: match.id, now }))
+    .toMatchObject({ ok: true, value: { status: 'queued' } })
+})
+
+it('rejects a claim at exactly the offer expiry', async () => {
+  const { match, members } = await fullMatch()
+  await withdraw(testDb, { entryId: await entryId(match.id, members[0].id), actorMemberId: members[0].id, now })
+  const offer = await pendingOffer(match.id)
+  if (!offer?.offerExpiresAt) throw new Error('Expected an offer with an expiry')
+
+  expect(await claimOffer(testDb, { entryId: offer.id, memberId: members[14].id, now: offer.offerExpiresAt }))
+    .toEqual({ ok: false, code: 'OFFER_EXPIRED' })
+})
+
+it('fills two vacancies in one offerNext call and returns the first promotion', async () => {
+  const { match, members } = await fullMatch()
+  await testDb.update(matches).set({ capacity: 16 }).where(eq(matches.id, match.id))
+
+  expect(await offerNext(testDb, match.id, now))
+    .toMatchObject({ memberId: members[14].id, status: 'offered' })
+  expect((await pendingOffers(match.id)).map(offer => offer.memberId))
+    .toEqual([members[14].id, members[15].id])
 })
