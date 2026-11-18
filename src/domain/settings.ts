@@ -1,0 +1,153 @@
+import { eq } from 'drizzle-orm'
+import type { Db, Executor } from '@/db'
+import { members, settings } from '@/db/schema'
+import { err, ok, type Result } from '@/lib/result'
+import { writeAudit } from './audit'
+
+export type Settings = {
+  capacity: number
+  costAgorot: number
+  venue: string
+  kickoffTime: string
+  queueWindowMinutes: number
+}
+
+export const DEFAULT_SETTINGS: Settings = {
+  capacity: 14,
+  costAgorot: 3500,
+  venue: '',
+  kickoffTime: '20:30',
+  queueWindowMinutes: 30,
+}
+
+const VALID_SETTING_KEYS: Set<string> = new Set([
+  'capacity',
+  'costAgorot',
+  'venue',
+  'kickoffTime',
+  'queueWindowMinutes',
+])
+
+const KICKOFF_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/
+
+export async function getSettings(db: Executor): Promise<Settings> {
+  const rows = await db.select().from(settings)
+  const map = new Map(rows.map((r) => [r.key, r.value]))
+
+  const capacityVal = map.get('capacity')
+  const costVal = map.get('costAgorot')
+  const venueVal = map.get('venue')
+  const kickoffVal = map.get('kickoffTime')
+  const queueVal = map.get('queueWindowMinutes')
+
+  return {
+    capacity:
+      capacityVal !== undefined && !Number.isNaN(Number(capacityVal))
+        ? Number(capacityVal)
+        : DEFAULT_SETTINGS.capacity,
+    costAgorot:
+      costVal !== undefined && !Number.isNaN(Number(costVal))
+        ? Number(costVal)
+        : DEFAULT_SETTINGS.costAgorot,
+    venue: venueVal !== undefined ? venueVal : DEFAULT_SETTINGS.venue,
+    kickoffTime: kickoffVal !== undefined ? kickoffVal : DEFAULT_SETTINGS.kickoffTime,
+    queueWindowMinutes:
+      queueVal !== undefined && !Number.isNaN(Number(queueVal))
+        ? Number(queueVal)
+        : DEFAULT_SETTINGS.queueWindowMinutes,
+  }
+}
+
+export async function updateSettings(
+  db: Db,
+  actorId: number,
+  patch: Partial<Settings>
+): Promise<Result<Settings, 'FORBIDDEN' | 'INVALID_SETTING'>> {
+  const [actor] = await db
+    .select({ role: members.role })
+    .from(members)
+    .where(eq(members.id, actorId))
+
+  if (!actor || actor.role !== 'admin') {
+    return err('FORBIDDEN')
+  }
+
+  const patchKeys = Object.keys(patch)
+  for (const key of patchKeys) {
+    if (!VALID_SETTING_KEYS.has(key)) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  if (patch.capacity !== undefined) {
+    if (
+      typeof patch.capacity !== 'number' ||
+      !Number.isInteger(patch.capacity) ||
+      patch.capacity < 1 ||
+      patch.capacity > 40
+    ) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  if (patch.costAgorot !== undefined) {
+    if (
+      typeof patch.costAgorot !== 'number' ||
+      !Number.isInteger(patch.costAgorot) ||
+      patch.costAgorot <= 0
+    ) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  if (patch.kickoffTime !== undefined) {
+    if (typeof patch.kickoffTime !== 'string' || !KICKOFF_REGEX.test(patch.kickoffTime)) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  if (patch.queueWindowMinutes !== undefined) {
+    if (
+      typeof patch.queueWindowMinutes !== 'number' ||
+      !Number.isInteger(patch.queueWindowMinutes) ||
+      patch.queueWindowMinutes < 5 ||
+      patch.queueWindowMinutes > 1440
+    ) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  if (patch.venue !== undefined) {
+    if (typeof patch.venue !== 'string' || patch.venue.length > 160) {
+      return err('INVALID_SETTING')
+    }
+  }
+
+  await db.transaction(async (tx) => {
+    for (const [key, value] of Object.entries(patch)) {
+      if (value !== undefined) {
+        await tx
+          .insert(settings)
+          .values({
+            key,
+            value: String(value),
+          })
+          .onDuplicateKeyUpdate({
+            set: {
+              value: String(value),
+            },
+          })
+      }
+    }
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'settings.update',
+      entity: 'settings',
+      detail: patch,
+    })
+  })
+
+  const updated = await getSettings(db)
+  return ok(updated)
+}

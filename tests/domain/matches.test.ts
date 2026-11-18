@@ -1,0 +1,147 @@
+import { beforeEach, describe, expect, it } from 'vitest'
+import { eq } from 'drizzle-orm'
+import { testDb, resetDb } from '../db'
+import { auditLog, matches, members } from '@/db/schema'
+import {
+  getSettings,
+  updateSettings,
+  createMatchForDate,
+  createNextMatch,
+  getUpcomingMatch,
+  getMatch,
+} from '@/domain/matches'
+
+beforeEach(resetDb)
+
+it('returns the documented defaults', async () => {
+  expect(await getSettings(testDb)).toEqual({
+    capacity: 14,
+    costAgorot: 3500,
+    venue: '',
+    kickoffTime: '20:30',
+    queueWindowMinutes: 30,
+  })
+})
+
+it('creates a Tuesday match with all phase times', async () => {
+  const m = await createMatchForDate(testDb, '2027-03-30')
+  expect(m.matchDate).toBe('2027-03-30')
+  expect(m.capacity).toBe(14)
+  expect(m.costAgorot).toBe(3500)
+  expect(m.lockAt.toISOString()).toBe('2027-03-30T11:00:00.000Z')
+})
+
+it('is idempotent per date', async () => {
+  const a = await createMatchForDate(testDb, '2027-03-30')
+  const b = await createMatchForDate(testDb, '2027-03-30')
+  expect(b.id).toBe(a.id)
+})
+
+it('creates the next match once and never recreates a cancelled date', async () => {
+  const m = await createMatchForDate(testDb, '2027-03-30')
+  const next = await createNextMatch(testDb, m.id)
+  expect(next?.matchDate).toBe('2027-04-06')
+  expect(await createNextMatch(testDb, m.id)).toBeNull()
+
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, next!.id))
+  const m2 = await createMatchForDate(testDb, '2027-04-13')
+  await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, m2.id))
+  const after = await createNextMatch(testDb, m.id)
+  expect(after).toBeNull()
+})
+
+describe('settings management', () => {
+  it('updates settings when called by admin and writes audit log', async () => {
+    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).$returningId()
+
+    const res = await updateSettings(testDb, admin.id, {
+      capacity: 16,
+      venue: 'Kraft Stadium',
+      kickoffTime: '21:00',
+    })
+
+    expect(res.ok).toBe(true)
+    if (!res.ok) return
+    expect(res.value).toEqual({
+      capacity: 16,
+      costAgorot: 3500,
+      venue: 'Kraft Stadium',
+      kickoffTime: '21:00',
+      queueWindowMinutes: 30,
+    })
+
+    const persisted = await getSettings(testDb)
+    expect(persisted).toEqual(res.value)
+
+    const audits = await testDb.select().from(auditLog).where(eq(auditLog.action, 'settings.update'))
+    expect(audits).toHaveLength(1)
+    expect(audits[0].actorId).toBe(admin.id)
+    expect(audits[0].entity).toBe('settings')
+    expect(audits[0].detail).toEqual({
+      capacity: 16,
+      venue: 'Kraft Stadium',
+      kickoffTime: '21:00',
+    })
+  })
+
+  it('rejects updates from non-admin or nonexistent members with FORBIDDEN', async () => {
+    const [user] = await testDb.insert(members).values({ name: 'Player', role: 'member' }).$returningId()
+
+    const forbiddenRes = await updateSettings(testDb, user.id, { capacity: 16 })
+    expect(forbiddenRes).toEqual({ ok: false, code: 'FORBIDDEN' })
+
+    const nonexistentRes = await updateSettings(testDb, 99999, { capacity: 16 })
+    expect(nonexistentRes).toEqual({ ok: false, code: 'FORBIDDEN' })
+  })
+
+  it('validates settings boundaries and types with INVALID_SETTING', async () => {
+    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).$returningId()
+
+    expect(await updateSettings(testDb, admin.id, { capacity: 0 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { capacity: 41 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { costAgorot: 0 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { costAgorot: -100 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { kickoffTime: '25:00' })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { kickoffTime: 'invalid' })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { queueWindowMinutes: 4 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+    expect(await updateSettings(testDb, admin.id, { queueWindowMinutes: 1441 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+  })
+})
+
+describe('getUpcomingMatch and getMatch', () => {
+  it('finds match by id', async () => {
+    const created = await createMatchForDate(testDb, '2027-03-30')
+    const found = await getMatch(testDb, created.id)
+    expect(found?.id).toBe(created.id)
+
+    expect(await getMatch(testDb, 999999)).toBeNull()
+  })
+
+  it('returns the earliest scheduled or locked match within kickoff >= now - 6h', async () => {
+    const m = await createMatchForDate(testDb, '2027-03-30')
+    const kickoff = m.kickoffAt.getTime()
+
+    // 5 hours after kickoff -> still upcoming
+    const fiveHoursAfter = new Date(kickoff + 5 * 3600 * 1000)
+    expect((await getUpcomingMatch(testDb, fiveHoursAfter))?.id).toBe(m.id)
+
+    // exactly 6 hours after kickoff -> still upcoming
+    const sixHoursAfter = new Date(kickoff + 6 * 3600 * 1000)
+    expect((await getUpcomingMatch(testDb, sixHoursAfter))?.id).toBe(m.id)
+
+    // 6 hours and 1 minute after kickoff -> rolls past
+    const pastThreshold = new Date(kickoff + (6 * 3600 + 60) * 1000)
+    expect(await getUpcomingMatch(testDb, pastThreshold)).toBeNull()
+
+    // Status 'locked' is also considered upcoming
+    await testDb.update(matches).set({ status: 'locked' }).where(eq(matches.id, m.id))
+    expect((await getUpcomingMatch(testDb, fiveHoursAfter))?.id).toBe(m.id)
+
+    // Status 'played' or 'cancelled' is ignored
+    await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, m.id))
+    expect(await getUpcomingMatch(testDb, fiveHoursAfter)).toBeNull()
+
+    await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, m.id))
+    expect(await getUpcomingMatch(testDb, fiveHoursAfter)).toBeNull()
+  })
+})
