@@ -8,7 +8,7 @@ import type { Match } from './matches'
 
 export type Charge = typeof charges.$inferSelect
 
-// Take the actor lock before the match lock so a role change cannot race the write.
+// Lock the match first: billing can hold it while checking member foreign keys.
 export async function lockAdminActor(tx: Tx, actorId: number): Promise<boolean> {
   const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
   return actor?.role === 'admin'
@@ -66,13 +66,15 @@ export async function waiveRemovedMember(
   if (charge?.status === 'charged') await applyWaiver(tx, charge, actorId, reason, now, entryId)
 }
 
-async function lockCharge(tx: Tx, chargeId: number): Promise<Charge | undefined> {
+async function lockMatchForCharge(tx: Tx, chargeId: number) {
   const matchId = tx.select({ matchId: charges.matchId }).from(charges).where(eq(charges.id, chargeId))
   const [match] = await tx.select({ id: matches.id }).from(matches).where(eq(matches.id, matchId)).for('update')
-  if (!match) return
+  return match
+}
 
+async function lockCharge(tx: Tx, chargeId: number, matchId: number): Promise<Charge | undefined> {
   const [charge] = await tx.select().from(charges)
-    .where(and(eq(charges.id, chargeId), eq(charges.matchId, match.id))).for('update')
+    .where(and(eq(charges.id, chargeId), eq(charges.matchId, matchId))).for('update')
   return charge
 }
 
@@ -85,11 +87,13 @@ export async function waiveCharge(
 ): Promise<Result<Charge, 'FORBIDDEN' | 'NOT_FOUND' | 'INVALID_REASON' | 'ALREADY_WAIVED'>> {
   const { actorId, chargeId } = input
   return db.transaction(async tx => {
+    const match = await lockMatchForCharge(tx, chargeId)
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const reason = input.reason.trim()
     if (!isValidReason(reason)) return err('INVALID_REASON')
 
-    const charge = await lockCharge(tx, chargeId)
+    if (!match) return err('NOT_FOUND')
+    const charge = await lockCharge(tx, chargeId, match.id)
     if (!charge) return err('NOT_FOUND')
     if (charge.status === 'waived') return err('ALREADY_WAIVED')
 
@@ -103,8 +107,10 @@ export async function restoreCharge(
   now = new Date(),
 ): Promise<Result<Charge, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_WAIVED'>> {
   return db.transaction(async tx => {
+    const match = await lockMatchForCharge(tx, chargeId)
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
-    const charge = await lockCharge(tx, chargeId)
+    if (!match) return err('NOT_FOUND')
+    const charge = await lockCharge(tx, chargeId, match.id)
     if (!charge) return err('NOT_FOUND')
     if (charge.status !== 'waived') return err('NOT_WAIVED')
 

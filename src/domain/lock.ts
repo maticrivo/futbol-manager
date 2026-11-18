@@ -69,8 +69,8 @@ export async function adminAddEntry(
 ): Promise<Result<Entry, 'FORBIDDEN' | 'MATCH_CANCELLED' | 'FULL' | 'ALREADY_IN_MATCH' | 'INVALID_REASON'>> {
   const { actorId, matchId, memberId, now } = input
   return db.transaction(async tx => {
-    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchRow(tx, matchId)
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     if (!match || (match.status !== 'scheduled' && match.status !== 'locked')) return err('MATCH_CANCELLED')
     const reason = input.reason.trim()
     if (match.status === 'locked' && !isValidReason(reason)) return err('INVALID_REASON')
@@ -109,8 +109,8 @@ export async function adminRemoveEntry(
 ): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'INVALID_REASON'>> {
   const { actorId, entryId, now } = input
   return db.transaction(async tx => {
-    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchForEntry(tx, entryId)
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     if (!match) return err('NOT_FOUND')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')
@@ -138,8 +138,8 @@ export async function setAttendance(
   now = new Date(),
 ): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED'>> {
   return db.transaction(async tx => {
-    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchForEntry(tx, entryId)
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     if (!match) return err('NOT_FOUND')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')

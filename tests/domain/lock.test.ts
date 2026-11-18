@@ -249,6 +249,53 @@ it('refuses an admin mutation after waiting for a concurrent demotion to commit'
   }
 }, 10_000)
 
+it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run %i)', async () => {
+  const { match, people, roster } = await setup()
+  const actorId = people.admin.id
+  const target = roster[0]
+  expect(await signup(testDb, { memberId: actorId, matchId: match.id, now: guestOpen }))
+    .toMatchObject({ ok: true, value: { status: 'confirmed', memberId: actorId } })
+
+  const holder = await testDb.$client.getConnection()
+  let billing: ReturnType<typeof lockMatch> | undefined
+  let removal: ReturnType<typeof adminRemoveEntry> | undefined
+  try {
+    await holder.beginTransaction()
+    await holder.execute('SELECT id FROM matches WHERE id = ? FOR UPDATE', [match.id])
+    // Queue billing first, then removal. Both must reach the match row before release.
+    billing = lockMatch(testDb, match.id, lockTime)
+    void billing.catch(() => {})
+    await waitForLockWait(`\`matches\`.\`id\` = ${match.id} for update`)
+    removal = adminRemoveEntry(testDb, { actorId, entryId: target.id, now: lockTime, reason: 'test' })
+    void removal.catch(() => {})
+    await waitForLockWait(`\`matches\`.\`id\` = (select \`matchId\` from \`entries\` where \`entries\`.\`id\` = ${target.id})`)
+    await holder.commit()
+
+    const [locked, removed] = await Promise.allSettled([billing, removal])
+    // Report the original MySQL cause if either transaction rejects, including a deadlock.
+    if (locked.status === 'rejected') throw locked.reason
+    if (removed.status === 'rejected') throw removed.reason
+    expect(removed.value).toMatchObject({ ok: true, value: { id: target.id, status: 'removed' } })
+    expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'locked' })
+    const rows = await matchCharges(match.id)
+    const targetCharge = rows.find(charge => charge.memberId === target.memberId)
+    expect(locked.value).toEqual({ ok: true, value: { chargesCreated: targetCharge ? 4 : 3 } })
+    expect(rows).toHaveLength(targetCharge ? 4 : 3)
+    expect(rows.filter(charge => charge.status === 'charged').map(charge => charge.memberId))
+      .toEqual([actorId, ...roster.slice(1).map(entry => entry.memberId)])
+    if (targetCharge) {
+      expect(targetCharge).toMatchObject({ status: 'waived', waivedBy: actorId, waiveReason: 'test' })
+    }
+  } finally {
+    try {
+      await holder.rollback()
+    } finally {
+      holder.release()
+      await Promise.allSettled([billing, removal])
+    }
+  }
+}, 10_000)
+
 it('advances matches repeatedly and concurrently without duplicate charges or premature play', async () => {
   const { match } = await setup()
   expect(await lockMatch(testDb, match.id, guestOpen)).toEqual({ ok: true, value: { chargesCreated: 0 } })
