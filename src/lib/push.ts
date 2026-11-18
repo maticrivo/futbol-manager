@@ -23,20 +23,35 @@ export async function deletePushSubscription(db: Db, endpoint: string): Promise<
   await db.delete(pushSubscriptions).where(eq(pushSubscriptions.endpoint, endpoint))
 }
 
+/**
+ * Counts accepted 2xx deliveries as `sent` and 404/410 deletions as `removed`.
+ * Other HTTP statuses count as neither. Rethrows the first transport rejection
+ * after attempting every subscription.
+ */
 export async function sendWebPush(
   db: Db, memberId: number, payload: NotificationPayload, transport: PushTransport,
 ): Promise<{ sent: number; removed: number }> {
-  const subscriptions = await db.select().from(pushSubscriptions).where(eq(pushSubscriptions.memberId, memberId))
+  const subscriptions = await db.select().from(pushSubscriptions)
+    .where(eq(pushSubscriptions.memberId, memberId)).orderBy(pushSubscriptions.id)
   let sent = 0
   let removed = 0
+  let firstFailure: { error: unknown } | undefined
   for (const subscription of subscriptions) {
-    const { statusCode } = await transport(subscription, payload)
-    sent++
-    if (statusCode === 404 || statusCode === 410) {
+    let statusCode: number
+    try {
+      ({ statusCode } = await transport(subscription, payload))
+    } catch (error) {
+      firstFailure ??= { error }
+      continue
+    }
+    if (statusCode >= 200 && statusCode < 300) {
+      sent++
+    } else if (statusCode === 404 || statusCode === 410) {
       const [result] = await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
       removed += result.affectedRows
     }
   }
+  if (firstFailure) throw firstFailure.error
   return { sent, removed }
 }
 

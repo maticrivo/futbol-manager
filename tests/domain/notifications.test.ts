@@ -49,6 +49,25 @@ it('does not send or log an opted-out category', async () => {
   expect(await testDb.select().from(notificationLog)).toEqual([])
 })
 
+it('does not send or log for a disabled member even with a valid subscription', async () => {
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  await testDb.update(members).set({ status: 'disabled' }).where(eq(members.id, member.id))
+  const transport = transportOk()
+
+  expect(await sendMemberNotification(testDb, lockReminder(member.id), transport)).toBe(false)
+  expect(transport).not.toHaveBeenCalled()
+  expect(await testDb.select().from(notificationLog)).toEqual([])
+})
+
+it('does not send or log for a missing member', async () => {
+  const transport = transportOk()
+
+  expect(await sendMemberNotification(testDb, lockReminder(1), transport)).toBe(false)
+  expect(transport).not.toHaveBeenCalled()
+  expect(await testDb.select().from(notificationLog)).toEqual([])
+})
+
 it('keeps the dedupe marker without subscriptions even if the member later subscribes', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   const transport = transportOk()
@@ -61,6 +80,18 @@ it('keeps the dedupe marker without subscriptions even if the member later subsc
   await savePushSubscription(testDb, { memberId: member.id, ...subscription })
   expect(await sendMemberNotification(testDb, input, transport)).toBe(false)
   expect(transport).not.toHaveBeenCalled()
+})
+
+it('returns false but keeps the dedupe marker if no delivery is accepted', async () => {
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  const transport = vi.fn().mockResolvedValue({ statusCode: 500 })
+  const input = lockReminder(member.id)
+
+  expect(await sendMemberNotification(testDb, input, transport)).toBe(false)
+  expect(await sendMemberNotification(testDb, input, transport)).toBe(false)
+  expect(transport).toHaveBeenCalledTimes(1)
+  expect(await testDb.select().from(notificationLog)).toMatchObject([{ eventKey: input.eventKey, memberId: member.id }])
 })
 
 it('reassigns a resubscribed endpoint, replaces its keys, and can delete it twice', async () => {
@@ -76,27 +107,35 @@ it('reassigns a resubscribed endpoint, replaces its keys, and can delete it twic
   expect(await testDb.select().from(pushSubscriptions)).toEqual([])
 })
 
-it('counts all responses but removes only 404 and 410 subscriptions', async () => {
+it('counts only 2xx deliveries and removes only 404 and 410 subscriptions', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
-  for (const statusCode of [201, 404, 410, 500]) {
+  for (const statusCode of [199, 200, 299, 300, 404, 410, 500]) {
     await savePushSubscription(testDb, { ...subscription, memberId: member.id, endpoint: `https://push/${statusCode}` })
   }
   const transport = vi.fn(async ({ endpoint }: { endpoint: string }) => ({
     statusCode: Number(new URL(endpoint).pathname.slice(1)),
   }))
 
-  expect(await sendWebPush(testDb, member.id, lockReminder(member.id).payload, transport)).toEqual({ sent: 4, removed: 2 })
+  expect(await sendWebPush(testDb, member.id, lockReminder(member.id).payload, transport)).toEqual({ sent: 2, removed: 2 })
   const remaining = await testDb.select({ endpoint: pushSubscriptions.endpoint }).from(pushSubscriptions)
-  expect(remaining.map(row => row.endpoint).sort()).toEqual(['https://push/201', 'https://push/500'])
+  expect(remaining.map(row => row.endpoint).sort()).toEqual([199, 200, 299, 300, 500].map(code => `https://push/${code}`))
 })
 
-it('propagates a transport rejection', async () => {
+it('tries both devices and removes the stale second endpoint before rethrowing the first rejection', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  const staleEndpoint = 'https://push/2'
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription, endpoint: staleEndpoint })
   const error = new Error('network failure')
-  const transport = vi.fn().mockRejectedValue(error)
+  const transport = vi.fn(async ({ endpoint }: { endpoint: string }) => {
+    if (endpoint === subscription.endpoint) throw error
+    return { statusCode: 410 }
+  })
+
   await expect(sendWebPush(testDb, member.id, lockReminder(member.id).payload, transport)).rejects.toBe(error)
-  expect(await testDb.select().from(pushSubscriptions)).toHaveLength(1)
+  expect(transport.mock.calls.map(([row]) => row.endpoint)).toEqual([subscription.endpoint, staleEndpoint])
+  expect(await testDb.select({ endpoint: pushSubscriptions.endpoint }).from(pushSubscriptions))
+    .toEqual([{ endpoint: subscription.endpoint }])
 })
 
 it.each(['he', 'en', 'es'])('builds all %s payloads with non-empty localized copy and the supplied URL', locale => {
@@ -182,6 +221,21 @@ it.each([
   expect(await testDb.select().from(notificationLog).orderBy(notificationLog.memberId)).toMatchObject(
     [ana, ben].map(({ id }) => ({ memberId: id, eventKey: `${category}:match:${match.id}`, sentAt: closing })),
   )
+})
+
+it('sends the later scheduled match notification when only its window is due', async () => {
+  await matchFixture()
+  const later = await createMatchForDate(testDb, '2027-03-31')
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  const transport = transportOk()
+  const laterSignupWindow = new Date('2027-03-27T06:00:00.000Z')
+
+  expect(await processDueNotifications(testDb, laterSignupWindow, transport)).toEqual({ sent: 1 })
+  expect(transport).toHaveBeenCalledTimes(1)
+  expect(await testDb.select().from(notificationLog)).toMatchObject([
+    { eventKey: `signup_open:match:${later.id}`, memberId: member.id, sentAt: laterSignupWindow },
+  ])
 })
 
 it('scans every live offer, skipping expired offers and disabled members', async () => {

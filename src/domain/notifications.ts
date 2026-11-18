@@ -1,4 +1,4 @@
-import { and, asc, DrizzleQueryError, eq, gt, gte } from 'drizzle-orm'
+import { and, asc, DrizzleQueryError, eq, gt } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
 import { entries, matches, members, notificationLog, notificationPrefs } from '@/db/schema'
@@ -37,11 +37,15 @@ type MemberNotification = {
 export async function sendMemberNotification(
   db: Db, { memberId, category, eventKey, payload, now }: MemberNotification, transport: PushTransport,
 ): Promise<boolean> {
+  const [member] = await db.select({ status: members.status }).from(members)
+    .where(eq(members.id, memberId))
+  if (member?.status !== 'active') return false
+
   const [pref] = await db.select({ enabled: notificationPrefs.enabled }).from(notificationPrefs)
     .where(and(eq(notificationPrefs.memberId, memberId), eq(notificationPrefs.category, category)))
   if (pref?.enabled === false) return false
 
-  // Claim the event before sending. Even members without subscriptions must not retry it.
+  // Claim the event before sending. Keep the claim even if no delivery is accepted.
   try {
     await db.insert(notificationLog).values({ eventKey, memberId, sentAt: now })
   } catch (error) {
@@ -86,10 +90,10 @@ const MINUTE = 60_000
 
 export async function processDueNotifications(db: Db, now: Date, transport: PushTransport): Promise<{ sent: number }> {
   const due: { category: NotificationCategory; eventKey: string; data: NotificationData }[] = []
-  const [match] = await db.select().from(matches)
-    .where(and(eq(matches.status, 'scheduled'), gte(matches.kickoffAt, now)))
-    .orderBy(asc(matches.kickoffAt)).limit(1)
-  if (match) {
+  const scheduled = await db.select().from(matches)
+    .where(eq(matches.status, 'scheduled'))
+    .orderBy(asc(matches.kickoffAt))
+  for (const match of scheduled) {
     const windows = [
       ['signup_open', match.signupOpensAt.getTime() + 9 * 60 * MINUTE],
       ['guest_phase', match.guestPhaseAt.getTime()],
