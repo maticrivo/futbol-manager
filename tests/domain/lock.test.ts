@@ -6,6 +6,7 @@ import { adminAddEntry, adminRemoveEntry, advanceMatch, lockMatch, restoreCharge
 import { createMatchForDate, getMatch } from '@/domain/matches'
 import { joinQueue } from '@/domain/queue'
 import { resetDb, testDb } from '../db'
+import { waitForLockWait } from '../lock-wait'
 
 const lockTime = new Date('2027-03-30T11:00:00Z')
 const guestOpen = new Date('2027-03-29T11:00:00Z')
@@ -47,7 +48,7 @@ it('charges confirmed members once, including no-shows, and never guests', async
   for (const row of rows) {
     expect(row).toMatchObject({ billingMonth: '2027-03', amountAgorot: 3500, status: 'charged' })
   }
-  expect(await logs('match.lock')).toHaveLength(1)
+  expect(await logs('match.lock')).toMatchObject([{ createdAt: lockTime }])
 })
 
 it('expires both a queued entry and an unexpired offer at lock, without charging either', async () => {
@@ -85,11 +86,12 @@ it('requires a reason and an admin to waive, and audits it', async () => {
   const empty = await waiveCharge(testDb, { actorId: people.admin.id, chargeId: charge.id, reason: '  ' })
   expect(empty).toEqual({ ok: false, code: 'INVALID_REASON' })
   const input = { actorId: people.admin.id, chargeId: charge.id, reason: '  substitute found  ' }
-  const waived = await waiveCharge(testDb, input)
+  const waived = await waiveCharge(testDb, input, lockTime)
   expect(waived).toMatchObject({ ok: true, value: { status: 'waived', waivedBy: people.admin.id, waiveReason: 'substitute found' } })
   expect(await waiveCharge(testDb, input)).toEqual({ ok: false, code: 'ALREADY_WAIVED' })
   expect(await logs('charge.waive')).toMatchObject([{
-    actorId: people.admin.id, entityId: String(charge.id), detail: { reason: 'substitute found' }, createdAt: expect.any(Date),
+    actorId: people.admin.id, entity: 'charge', entityId: String(charge.id),
+    detail: { reason: 'substitute found' }, createdAt: lockTime,
   }])
 })
 
@@ -109,14 +111,79 @@ it('charges added members and waives removed members after lock even if the rost
   expect(removed).toMatchObject({ ok: true, value: { status: 'removed' } })
   const [charge] = await testDb.select().from(charges).where(eq(charges.memberId, people.extra.id))
   expect(charge).toMatchObject({ status: 'waived', waivedBy: people.admin.id, waiveReason: 'dropped' })
-  expect(await logs('entry.admin_add')).toMatchObject([{ detail: { reason: 'replacement' } }])
-  expect(await logs('entry.admin_remove')).toMatchObject([{ detail: { reason: 'dropped' } }])
+  expect(await logs('charge.waive')).toMatchObject([{
+    actorId: people.admin.id, entity: 'charge', entityId: String(charge.id), createdAt: lockTime,
+    detail: { reason: 'dropped', source: 'entry.admin_remove', entryId: added.value.id },
+  }])
+  expect(await logs('entry.admin_add')).toMatchObject([{ detail: { reason: 'replacement' }, createdAt: lockTime }])
+  expect(await logs('entry.admin_remove')).toMatchObject([{ detail: { reason: 'dropped' }, createdAt: lockTime }])
 
-  const readded = await adminAddEntry(testDb, { ...input, now: lockTime, reason: 'returned' })
+  // A recharge preserves the saved snapshot even if the match details change.
+  const readdTime = new Date('2027-04-01T00:00:00Z')
+  await testDb.update(matches).set({ costAgorot: 9000, kickoffAt: readdTime }).where(eq(matches.id, match.id))
+  const readded = await adminAddEntry(testDb, { ...input, now: readdTime, reason: 'returned' })
   expect(readded).toMatchObject({ ok: true, value: { id: added.value.id, status: 'confirmed' } })
   expect(await testDb.select().from(charges).where(eq(charges.memberId, people.extra.id))).toMatchObject([{
-    id: charge.id, status: 'charged', waivedBy: null, waiveReason: null,
+    id: charge.id, status: 'charged', waivedBy: null, waiveReason: null, amountAgorot: 3500, billingMonth: '2027-03',
   }])
+})
+
+it('preserves an existing waiver when another admin removes that member', async () => {
+  const { match, people, roster } = await setup()
+  const [otherAdmin] = await testDb.insert(members).values({ name: 'Other admin', role: 'admin' }).$returningId()
+  await lockMatch(testDb, match.id, lockTime)
+  const [charge] = await matchCharges(match.id)
+  const waiverTime = new Date('2027-03-30T12:00:00Z')
+  const removalTime = new Date('2027-03-30T12:01:00Z')
+  expect((await waiveCharge(testDb, { actorId: people.admin.id, chargeId: charge.id, reason: 'original' }, waiverTime)).ok).toBe(true)
+  expect(await adminRemoveEntry(testDb, {
+    actorId: otherAdmin.id, entryId: roster[0].id, reason: 'removed later', now: removalTime,
+  })).toMatchObject({ ok: true, value: { status: 'removed' } })
+  expect((await matchCharges(match.id))[0]).toMatchObject({
+    status: 'waived', waivedBy: people.admin.id, waiveReason: 'original',
+  })
+  expect(await logs('charge.waive')).toMatchObject([{
+    actorId: people.admin.id, entityId: String(charge.id), createdAt: waiverTime,
+  }])
+  expect(await logs('entry.admin_remove')).toMatchObject([{
+    actorId: otherAdmin.id, detail: { reason: 'removed later' }, createdAt: removalTime,
+  }])
+})
+
+it('waives a confirmed member charge when removed at the played boundary', async () => {
+  const { match, people, roster } = await setup()
+  await lockMatch(testDb, match.id, lockTime)
+  const now = new Date(match.kickoffAt.getTime() + 3 * 60 * 60_000)
+  await advanceMatch(testDb, match.id, now)
+  expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'played' })
+  expect(await adminRemoveEntry(testDb, {
+    actorId: people.admin.id, entryId: roster[0].id, now, reason: 'post-match correction',
+  })).toMatchObject({ ok: true, value: { status: 'removed' } })
+  const [charge] = await matchCharges(match.id)
+  expect(charge).toMatchObject({ status: 'waived', waivedBy: people.admin.id, waiveReason: 'post-match correction' })
+  expect(await logs('charge.waive')).toMatchObject([{ entityId: String(charge.id), createdAt: now }])
+})
+
+it('rejects reasons longer than 255 characters after trimming', async () => {
+  const { match, people, roster } = await setup()
+  await lockMatch(testDb, match.id, lockTime)
+  const [charge] = await matchCharges(match.id)
+  const actorId = people.admin.id
+  const reason = ` ${'x'.repeat(256)} `
+  const invalid = { ok: false, code: 'INVALID_REASON' }
+  expect(await waiveCharge(testDb, { actorId, chargeId: charge.id, reason }, lockTime)).toEqual(invalid)
+  expect(await adminAddEntry(testDb, { actorId, matchId: match.id, memberId: people.extra.id, now: lockTime, reason })).toEqual(invalid)
+  expect(await adminRemoveEntry(testDb, { actorId, entryId: roster[0].id, now: lockTime, reason })).toEqual(invalid)
+  const allowed = 'x'.repeat(255)
+  expect(await waiveCharge(testDb, { actorId, chargeId: charge.id, reason: ` ${allowed} ` }, lockTime))
+    .toMatchObject({ ok: true, value: { waiveReason: allowed } })
+})
+
+it('bills the kickoff month when processed in the following month', async () => {
+  const { match } = await setup()
+  const now = new Date('2027-04-01T00:00:00Z')
+  expect(await lockMatch(testDb, match.id, now)).toEqual({ ok: true, value: { chargesCreated: 3 } })
+  expect((await matchCharges(match.id)).map(charge => charge.billingMonth)).toEqual(['2027-03', '2027-03', '2027-03'])
 })
 
 it('restores only waived charges and clears the waiver metadata', async () => {
@@ -127,11 +194,14 @@ it('restores only waived charges and clears the waiver metadata', async () => {
   expect(await restoreCharge(testDb, input)).toEqual({ ok: false, code: 'NOT_WAIVED' })
   expect((await waiveCharge(testDb, { ...input, reason: 'sub' }, lockTime)).ok).toBe(true)
   expect(await restoreCharge(testDb, { ...input, actorId: people.member.id })).toEqual({ ok: false, code: 'FORBIDDEN' })
-  expect(await restoreCharge(testDb, input)).toMatchObject({
+  const restoreTime = new Date('2027-03-30T12:00:00Z')
+  expect(await restoreCharge(testDb, input, restoreTime)).toMatchObject({
     ok: true, value: { status: 'charged', waivedBy: null, waiveReason: null },
   })
   expect((await matchCharges(match.id))[0]).toMatchObject({ status: 'charged', waivedBy: null, waiveReason: null })
-  expect(await logs('charge.restore')).toMatchObject([{ actorId: people.admin.id, entityId: String(charge.id) }])
+  expect(await logs('charge.restore')).toMatchObject([{
+    actorId: people.admin.id, entityId: String(charge.id), createdAt: restoreTime,
+  }])
 })
 
 it('sets attendance only for a confirmed entry as admin, without changing the charge', async () => {
@@ -144,11 +214,40 @@ it('sets attendance only for a confirmed entry as admin, without changing the ch
   expect(await setAttendance(testDb, { ...input, actorId: people.member.id })).toEqual({ ok: false, code: 'FORBIDDEN' })
   expect(await setAttendance(testDb, { ...input, entryId: 999 })).toEqual({ ok: false, code: 'NOT_FOUND' })
   expect(await setAttendance(testDb, { ...input, entryId: other.id })).toEqual({ ok: false, code: 'NOT_CONFIRMED' })
-  expect(await setAttendance(testDb, input)).toMatchObject({ ok: true, value: { attended: false } })
+  expect(await setAttendance(testDb, input, lockTime)).toMatchObject({ ok: true, value: { attended: false } })
   expect(await testDb.select().from(entries).where(eq(entries.id, entry.id))).toMatchObject([{ attended: false }])
   expect(await matchCharges(match.id)).toEqual(before)
-  expect(await logs('entry.attendance')).toMatchObject([{ entityId: String(entry.id), detail: { attended: false } }])
+  expect(await logs('entry.attendance')).toMatchObject([{
+    entityId: String(entry.id), detail: { attended: false }, createdAt: lockTime,
+  }])
 })
+
+it('refuses an admin mutation after waiting for a concurrent demotion to commit', async () => {
+  const { people, roster } = await setup()
+  const actorId = people.admin.id
+  const entryId = roster[0].id
+  const holder = await testDb.$client.getConnection()
+  let attendance: ReturnType<typeof setAttendance> | undefined
+  try {
+    await holder.beginTransaction()
+    await holder.execute('UPDATE members SET role = ? WHERE id = ?', ['member', actorId])
+    attendance = setAttendance(testDb, { actorId, entryId, attended: true }, lockTime)
+    void attendance.catch(() => {})
+    await waitForLockWait(`select \`role\` from \`members\` where \`members\`.\`id\` = ${actorId}`)
+    await holder.commit()
+
+    expect(await attendance).toEqual({ ok: false, code: 'FORBIDDEN' })
+    expect(await testDb.select().from(entries).where(eq(entries.id, entryId))).toMatchObject([{ attended: null }])
+    expect(await logs('entry.attendance')).toEqual([])
+  } finally {
+    try {
+      await holder.rollback()
+    } finally {
+      holder.release()
+      await Promise.allSettled([attendance])
+    }
+  }
+}, 10_000)
 
 it('advances matches repeatedly and concurrently without duplicate charges or premature play', async () => {
   const { match } = await setup()

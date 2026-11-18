@@ -7,6 +7,7 @@ export type WriteAuditInput = {
   entity: string
   entityId?: string
   detail?: unknown
+  createdAt?: Date
 }
 
 export async function writeAudit(executor: Executor, input: WriteAuditInput): Promise<void> {
@@ -16,5 +17,6 @@ export async function writeAudit(executor: Executor, input: WriteAuditInput): Pr
     entity: input.entity,
     entityId: input.entityId,
     detail: input.detail,
+    createdAt: input.createdAt,
   })
 }

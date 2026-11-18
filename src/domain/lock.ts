@@ -3,7 +3,7 @@ import type { Db, Tx } from '@/db'
 import { entries, matches } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { writeAudit } from './audit'
-import { chargeAddedMember, createMatchCharges, isAdmin, waiveRemovedMember } from './charges'
+import { chargeAddedMember, createMatchCharges, isValidReason, lockAdminActor, waiveRemovedMember } from './charges'
 import { lockMatch as lockMatchRow, lockMatchForEntry, remainingSpots, type Entry } from './entries'
 import { getMatch, type Match } from './matches'
 import { expireOffers, offerNext } from './queue'
@@ -26,7 +26,9 @@ export async function lockMatch(
       .for('update')
     const memberIds = confirmed.flatMap(({ memberId }) => memberId === null ? [] : [memberId])
     const chargesCreated = await createMatchCharges(tx, match, memberIds, now)
-    await writeAudit(tx, { action: 'match.lock', entity: 'match', entityId: String(matchId), detail: { chargesCreated } })
+    await writeAudit(tx, {
+      action: 'match.lock', entity: 'match', entityId: String(matchId), detail: { chargesCreated }, createdAt: now,
+    })
     return ok({ chargesCreated })
   })
 }
@@ -66,13 +68,12 @@ export async function adminAddEntry(
   input: { actorId: number; matchId: number; memberId: number; now: Date; reason: string },
 ): Promise<Result<Entry, 'FORBIDDEN' | 'MATCH_CANCELLED' | 'FULL' | 'ALREADY_IN_MATCH' | 'INVALID_REASON'>> {
   const { actorId, matchId, memberId, now } = input
-  if (!await isAdmin(db, actorId)) return err('FORBIDDEN')
-
   return db.transaction(async tx => {
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchRow(tx, matchId)
     if (!match || (match.status !== 'scheduled' && match.status !== 'locked')) return err('MATCH_CANCELLED')
     const reason = input.reason.trim()
-    if (match.status === 'locked' && !reason) return err('INVALID_REASON')
+    if (match.status === 'locked' && !isValidReason(reason)) return err('INVALID_REASON')
 
     const [existing] = await tx.select().from(entries)
       .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId))).for('update')
@@ -92,7 +93,9 @@ export async function adminAddEntry(
     }
 
     if (match.status === 'locked') await chargeAddedMember(tx, match, memberId, now)
-    await writeAudit(tx, { actorId, action: 'entry.admin_add', entity: 'entry', entityId: String(entryId), detail: { reason } })
+    await writeAudit(tx, {
+      actorId, action: 'entry.admin_add', entity: 'entry', entityId: String(entryId), detail: { reason }, createdAt: now,
+    })
     const [entry] = await rosterEntry(tx, match, entryId)
     return ok(entry)
   })
@@ -105,25 +108,26 @@ export async function adminRemoveEntry(
   input: EditEntry & { now: Date; reason: string },
 ): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED' | 'INVALID_REASON'>> {
   const { actorId, entryId, now } = input
-  if (!await isAdmin(db, actorId)) return err('FORBIDDEN')
-
   return db.transaction(async tx => {
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')
     if (entry.status !== 'confirmed') return err('NOT_CONFIRMED')
     const reason = input.reason.trim()
-    if (!reason) return err('INVALID_REASON')
+    if (!isValidReason(reason)) return err('INVALID_REASON')
 
     const removed = { status: 'removed', updatedAt: now } as const
     await tx.update(entries).set(removed).where(eq(entries.id, entryId))
-    if (match.status === 'locked' && entry.kind === 'member' && entry.memberId !== null) {
-      await waiveRemovedMember(tx, match.id, entry.memberId, actorId, reason, now)
-    } else if (match.status === 'scheduled') {
+    if (match.status === 'scheduled') {
       await offerNext(db, match.id, now, tx)
+    } else if (entry.kind === 'member' && entry.memberId !== null) {
+      await waiveRemovedMember(tx, { matchId: match.id, memberId: entry.memberId, actorId, reason, now, entryId })
     }
-    await writeAudit(tx, { actorId, action: 'entry.admin_remove', entity: 'entry', entityId: String(entryId), detail: { reason } })
+    await writeAudit(tx, {
+      actorId, action: 'entry.admin_remove', entity: 'entry', entityId: String(entryId), detail: { reason }, createdAt: now,
+    })
     return ok({ ...entry, ...removed })
   })
 }
@@ -131,19 +135,21 @@ export async function adminRemoveEntry(
 export async function setAttendance(
   db: Db,
   { actorId, entryId, attended }: EditEntry & { attended: boolean },
+  now = new Date(),
 ): Promise<Result<Entry, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_CONFIRMED'>> {
-  if (!await isAdmin(db, actorId)) return err('FORBIDDEN')
-
   return db.transaction(async tx => {
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
     const match = await lockMatchForEntry(tx, entryId)
     if (!match) return err('NOT_FOUND')
     const [entry] = await rosterEntry(tx, match, entryId)
     if (!entry) return err('NOT_FOUND')
     if (entry.status !== 'confirmed') return err('NOT_CONFIRMED')
 
-    await tx.update(entries).set({ attended }).where(eq(entries.id, entryId))
-    await writeAudit(tx, { actorId, action: 'entry.attendance', entity: 'entry', entityId: String(entryId), detail: { attended } })
-    const [updated] = await rosterEntry(tx, match, entryId)
-    return ok(updated)
+    const update = { attended, updatedAt: now }
+    await tx.update(entries).set(update).where(eq(entries.id, entryId))
+    await writeAudit(tx, {
+      actorId, action: 'entry.attendance', entity: 'entry', entityId: String(entryId), detail: { attended }, createdAt: now,
+    })
+    return ok({ ...entry, ...update })
   })
 }
