@@ -2,7 +2,7 @@ import { and, count, eq, inArray } from 'drizzle-orm'
 import type { Db, Executor, Tx } from '@/db'
 import { entries, matches } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
-import { getMatch, type Match } from './matches'
+import type { Match } from './matches'
 
 export type Entry = typeof entries.$inferSelect
 export type EntryView = Entry & { memberName: string | null }
@@ -21,19 +21,26 @@ export function pendingOfferCount(db: Db, matchId: number): Promise<number> {
   return countByStatus(db, matchId, 'offered')
 }
 
-async function remainingSpots(executor: Executor, match: Match, lock: boolean): Promise<number> {
-  const occupied = executor.select({ id: entries.id }).from(entries)
-    .where(and(eq(entries.matchId, match.id), inArray(entries.status, ['confirmed', 'offered'])))
+async function remainingSpots(executor: Executor, match: Match): Promise<number> {
   // A locking read sees commits made while this transaction waited for the match.
-  const rows = await (lock ? occupied.for('update') : occupied)
+  const rows = await executor.select({ id: entries.id }).from(entries)
+    .where(and(eq(entries.matchId, match.id), inArray(entries.status, ['confirmed', 'offered'])))
+    .for('update')
   return match.capacity - rows.length
 }
 
 export async function freeSpots(db: Db, matchId: number, executor?: Executor): Promise<number> {
-  const match = executor
-    ? await lockMatch(executor, matchId)
-    : await getMatch(db, matchId)
-  return match ? remainingSpots(executor ?? db, match, executor !== undefined) : 0
+  if (executor) {
+    const match = await lockMatch(executor, matchId)
+    return match ? remainingSpots(executor, match) : 0
+  }
+
+  const [roster] = await db.select({ capacity: matches.capacity, occupied: count(entries.id) })
+    .from(matches)
+    .leftJoin(entries, and(eq(entries.matchId, matches.id), inArray(entries.status, ['confirmed', 'offered'])))
+    .where(eq(matches.id, matchId))
+    .groupBy(matches.id, matches.capacity)
+  return roster ? roster.capacity - roster.occupied : 0
 }
 
 async function lockMatch(executor: Executor, matchId: number): Promise<Match | undefined> {
@@ -74,7 +81,7 @@ export async function signup(
     if (existing && ['confirmed', 'queued', 'offered'].includes(existing.status)) {
       return err('ALREADY_SIGNED_UP')
     }
-    if (await remainingSpots(tx, match, true) <= 0) return err('FULL')
+    if (await remainingSpots(tx, match) <= 0) return err('FULL')
 
     if (existing) {
       await tx.update(entries)
@@ -121,7 +128,7 @@ export async function addGuest(
     if (now < match.guestPhaseAt) return err('GUEST_PHASE_CLOSED')
     const guestName = name.trim()
     if (!guestName) return err('INVALID_NAME')
-    if (await remainingSpots(tx, match, true) <= 0) return err('FULL')
+    if (await remainingSpots(tx, match) <= 0) return err('FULL')
 
     const [inserted] = await tx.insert(entries)
       .values({

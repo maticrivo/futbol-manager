@@ -1,6 +1,8 @@
 import { eq } from 'drizzle-orm'
+import { drizzle } from 'drizzle-orm/mysql2'
 import { beforeEach, expect, it } from 'vitest'
 import type { Db } from '@/db'
+import * as schema from '@/db/schema'
 import { entries, matches, members } from '@/db/schema'
 import { addGuest, confirmedCount, freeSpots, pendingOfferCount, removeGuest, signup, withdraw } from '@/domain/entries'
 import { createMatchForDate } from '@/domain/matches'
@@ -109,4 +111,23 @@ it('reserves spots for offered entries against the match capacity snapshot', asy
   expect(await signup(testDb, { memberId: made[2].id, matchId: match.id, now })).toEqual({ ok: false, code: 'FULL' })
   expect(await addGuest(testDb, { hostMemberId: made[0].id, matchId: match.id, name: 'Dani', now: guestOpen }))
     .toEqual({ ok: false, code: 'FULL' })
+})
+
+it('reads standalone free spots in one statement per call', async () => {
+  const { match, made } = await setup(1)
+  await testDb.update(matches).set({ capacity: 3 }).where(eq(matches.id, match.id))
+  await testDb.insert(entries).values({ matchId: match.id, memberId: made[1].id, kind: 'member', status: 'offered' })
+
+  // Observe the statement count against real MySQL without a timing-dependent race.
+  let statements = 0
+  const observedDb = drizzle(testDb.$client, {
+    schema, mode: 'default', logger: { logQuery: () => { statements++ } },
+  })
+  expect(await freeSpots(observedDb, match.id)).toBe(1)
+  expect(statements).toBe(1)
+
+  await testDb.insert(entries).values({ matchId: match.id, memberId: made[2].id, kind: 'member', status: 'confirmed' })
+  expect(await freeSpots(observedDb, match.id)).toBe(0)
+  expect(statements).toBe(2)
+  expect(await freeSpots(testDb, match.id + 1)).toBe(0)
 })
