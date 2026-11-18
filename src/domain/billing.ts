@@ -39,16 +39,16 @@ export async function memberBalance(db: Db, memberId: number): Promise<{
   }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
 }
 
-export type BillCharge = Charge & { matchDate: string }
+export type BillCharge = Charge & { matchDate: string; kickoffAt: Date }
 
 export async function memberBill(db: Db, memberId: number, month: string): Promise<{
   charges: BillCharge[]; allocations: BillAllocation[]; dueAgorot: number
 }> {
   return db.transaction(async tx => {
-    const rows = await tx.select({ charge: charges, matchDate: matches.matchDate })
+    const rows = await tx.select({ charge: charges, matchDate: matches.matchDate, kickoffAt: matches.kickoffAt })
       .from(charges).innerJoin(matches, eq(matches.id, charges.matchId))
       .where(and(eq(charges.memberId, memberId), eq(charges.billingMonth, month))).orderBy(charges.id)
-    const billCharges = rows.map(({ charge, matchDate }) => ({ ...charge, matchDate }))
+    const billCharges = rows.map(({ charge, matchDate, kickoffAt }) => ({ ...charge, matchDate, kickoffAt }))
     const allocations = await tx.select({
       billingMonth: paymentAllocations.billingMonth, amountAgorot: paymentAllocations.amountAgorot, payment: payments,
     }).from(paymentAllocations).innerJoin(payments, eq(payments.id, paymentAllocations.paymentId))

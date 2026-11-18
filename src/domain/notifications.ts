@@ -1,6 +1,6 @@
 import { and, asc, DrizzleQueryError, eq, gt } from 'drizzle-orm'
 import { DateTime } from 'luxon'
-import type { Db } from '@/db'
+import type { Db, Executor } from '@/db'
 import { entries, matches, members, notificationLog, notificationPrefs } from '@/db/schema'
 import { notificationCopy } from '@/lib/notificationCopy'
 import { sendWebPush, type NotificationPayload, type PushTransport } from '@/lib/push'
@@ -12,29 +12,29 @@ export { deletePushSubscription, savePushSubscription, sendWebPush } from '@/lib
 export type { NotificationPayload, PushSubscriptionRow, PushTransport } from '@/lib/push'
 export type NotificationCategory = typeof notificationPrefs.$inferSelect.category
 
-export const NOTIFICATION_CATEGORIES = [
-  'signup_open',
-  'guest_phase',
-  'lock_reminder',
-  'queue_offer',
-  'bill_ready',
-  'payment_reminder',
-] as const satisfies readonly NotificationCategory[]
+const CATEGORY_DEFAULTS = {
+  signup_open: true,
+  guest_phase: true,
+  lock_reminder: true,
+  queue_offer: true,
+  bill_ready: true,
+  payment_reminder: true,
+} satisfies Record<NotificationCategory, true>
+
+export const NOTIFICATION_CATEGORIES = Object.keys(CATEGORY_DEFAULTS) as NotificationCategory[]
 
 export async function listNotificationPrefs(
   db: Db, memberId: number,
 ): Promise<Record<NotificationCategory, boolean>> {
   const rows = await db.select({ category: notificationPrefs.category, enabled: notificationPrefs.enabled })
     .from(notificationPrefs).where(eq(notificationPrefs.memberId, memberId))
-  const prefs = Object.fromEntries(
-    NOTIFICATION_CATEGORIES.map(category => [category, true]),
-  ) as Record<NotificationCategory, boolean>
+  const prefs: Record<NotificationCategory, boolean> = { ...CATEGORY_DEFAULTS }
   for (const row of rows) prefs[row.category] = row.enabled
   return prefs
 }
 
 export async function setNotificationPref(
-  db: Db, memberId: number, category: NotificationCategory, enabled: boolean,
+  db: Executor, memberId: number, category: NotificationCategory, enabled: boolean,
 ): Promise<void> {
   await db.insert(notificationPrefs).values({ memberId, category, enabled })
     .onDuplicateKeyUpdate({ set: { enabled } })

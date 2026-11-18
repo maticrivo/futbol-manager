@@ -9,6 +9,12 @@ beforeEach(resetDb)
 
 const allOn = () => Object.fromEntries(NOTIFICATION_CATEGORIES.map(category => [category, true]))
 
+it('contains exactly the six schema categories with no duplicates', () => {
+  const expected = ['signup_open', 'guest_phase', 'lock_reminder', 'queue_offer', 'bill_ready', 'payment_reminder']
+  expect(NOTIFICATION_CATEGORIES).toHaveLength(expected.length)
+  expect(new Set(NOTIFICATION_CATEGORIES)).toEqual(new Set(expected))
+})
+
 it('defaults every category on and persists a switch-off', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   expect(await listNotificationPrefs(testDb, member.id)).toEqual(allOn())

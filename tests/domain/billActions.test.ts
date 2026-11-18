@@ -54,3 +54,12 @@ it('stays at six rows when the same form is submitted twice', async () => {
   expect(rows).toHaveLength(NOTIFICATION_CATEGORIES.length)
   expect(rows.map(row => row.category).sort()).toEqual([...NOTIFICATION_CATEGORIES].sort())
 })
+
+it('rolls back a failed save, returns UNKNOWN, and does not revalidate', async () => {
+  const { member } = await createMember(testDb, { name: 'Ghost' })
+  vi.mocked(requireMember).mockResolvedValue({ ...member, id: 999999 })
+
+  expect(await savePrefsAction(null, form(checked))).toEqual({ ok: false, code: 'UNKNOWN' })
+  expect(await testDb.select().from(notificationPrefs)).toEqual([])
+  expect(revalidatePath).not.toHaveBeenCalled()
+})

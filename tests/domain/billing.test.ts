@@ -21,6 +21,7 @@ async function setupMember() {
 async function addCharge(memberId: number, month: string, amountAgorot: number, day = '12') {
   const match = await createMatchForDate(testDb, `${month}-${day}`)
   await testDb.insert(charges).values({ matchId: match.id, memberId, billingMonth: month, amountAgorot })
+  return match
 }
 
 function valueOf<T>(result: Result<T>): T {
@@ -63,12 +64,14 @@ it('honours a target month before older debt', async () => {
 it('returns a monthly bill with joined payments and due after this month’s allocations', async () => {
   const { adminId, memberId } = await setupMember()
   await addCharge(memberId, '2027-01', 3500)
-  await addCharge(memberId, '2027-02', 7000)
+  const februaryMatch = await addCharge(memberId, '2027-02', 7000)
   const payment = valueOf(await recordPayment(testDb, {
     actorId: adminId, memberId, amountAgorot: 5000, paidAt: now, method: 'paybox', note: 'split payment',
   }))
   expect(await memberBill(testDb, memberId, '2027-02')).toMatchObject({
-    charges: [{ billingMonth: '2027-02', amountAgorot: 7000, matchDate: '2027-02-12' }],
+    charges: [{
+      billingMonth: '2027-02', amountAgorot: 7000, matchDate: '2027-02-12', kickoffAt: februaryMatch.kickoffAt,
+    }],
     allocations: [{ billingMonth: '2027-02', amountAgorot: 1500, payment }],
     dueAgorot: 5500,
   })

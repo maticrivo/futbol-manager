@@ -1,4 +1,4 @@
-import { getLocale, getTranslations } from 'next-intl/server'
+import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import BillTable, { type BillChargeRow, type BillPaymentRow } from '@/components/BillTable'
 import NotificationPrefs from '@/components/NotificationPrefs'
@@ -13,16 +13,15 @@ export default async function BillPage() {
   const db = getDb()
   const now = new Date()
   const month = billingMonthOf(now)
-  const [bill, balance, prefs, locale, t] = await Promise.all([
+  const [bill, balance, prefs, t] = await Promise.all([
     memberBill(db, member.id, month),
     memberBalance(db, member.id),
     listNotificationPrefs(db, member.id),
-    getLocale(),
     getTranslations('bill'),
   ])
 
-  const chargeRows: BillChargeRow[] = bill.charges.map(({ id, matchDate, amountAgorot, status }) => ({
-    id, matchDate, amountAgorot, waived: status !== 'charged',
+  const chargeRows: BillChargeRow[] = bill.charges.map(({ id, matchDate, kickoffAt, amountAgorot, status }) => ({
+    id, matchDate, kickoffAt: kickoffAt.toISOString(), amountAgorot, waived: status !== 'charged',
   }))
   const paymentRows: BillPaymentRow[] = bill.allocations.map(({ payment, amountAgorot }) => ({
     id: payment.id, paidAt: payment.paidAt.toISOString(), method: payment.method, amountAgorot, note: payment.note,
@@ -37,17 +36,17 @@ export default async function BillPage() {
           {t.rich('month', { month, bidi })}
         </p>
         <p className="text-lg font-medium">
-          {bill.dueAgorot === 0
+          {bill.dueAgorot <= 0
             ? t('settled')
-            : t.rich('due', { amount: formatMoney(bill.dueAgorot, locale), bidi })}
+            : t.rich('due', { amount: formatMoney(bill.dueAgorot, member.locale), bidi })}
         </p>
         <p>
           {balance.balanceAgorot < 0
-            ? t.rich('credit', { amount: formatMoney(Math.abs(balance.balanceAgorot), locale), bidi })
-            : t.rich('balance', { amount: formatMoney(balance.balanceAgorot, locale), bidi })}
+            ? t.rich('credit', { amount: formatMoney(Math.abs(balance.balanceAgorot), member.locale), bidi })
+            : t.rich('balance', { amount: formatMoney(balance.balanceAgorot, member.locale), bidi })}
         </p>
       </section>
-      <BillTable charges={chargeRows} payments={paymentRows} />
+      <BillTable charges={chargeRows} payments={paymentRows} moneyLocale={member.locale} />
       <NotificationPrefs categories={NOTIFICATION_CATEGORIES} prefs={prefs} />
     </main>
   )

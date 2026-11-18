@@ -10,8 +10,14 @@ export async function savePrefsAction(_prev: ActionResult | null, formData: Form
   const member = await requireMember()
   const db = getDb()
 
-  for (const category of NOTIFICATION_CATEGORIES) {
-    await setNotificationPref(db, member.id, category, formData.get(category) !== null)
+  try {
+    await db.transaction(async tx => {
+      for (const category of NOTIFICATION_CATEGORIES) {
+        await setNotificationPref(tx, member.id, category, formData.get(category) !== null)
+      }
+    })
+  } catch {
+    return { ok: false, code: 'UNKNOWN' }
   }
 
   revalidatePath('/bill')
