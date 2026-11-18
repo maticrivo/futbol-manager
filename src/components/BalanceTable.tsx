@@ -55,6 +55,11 @@ function MemberRow({ row }: { row: BalanceRow }) {
         </div>
         <ActionError code={markState?.ok === false ? markState.code : null} />
         <ActionError code={reminderState?.ok === false ? reminderState.code : null} />
+        {reminderState?.ok === true && (
+          <div aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
+            {t('admin.money.reminderSent')}
+          </div>
+        )}
       </td>
     </tr>
   )

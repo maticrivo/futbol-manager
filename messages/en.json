@@ -137,6 +137,7 @@
       "saving": "Recording…",
       "sendReminder": "Send reminder",
       "sending": "Sending…",
+      "reminderSent": "Reminder sent.",
       "working": "Working…",
       "empty": "No active members."
     },
@@ -287,6 +288,7 @@
     "ALREADY_WAIVED": "That charge is already waived.",
     "NOT_WAIVED": "That charge isn’t waived.",
     "INVALID_AMOUNT": "That amount isn’t valid.",
+    "INVALID_MONTH": "That billing month isn’t valid.",
     "ALREADY_REFUNDED": "That payment was already refunded.",
     "ALREADY_CANCELLED": "This match was already cancelled.",
     "MEMBER_NOT_FOUND": "That member could not be found.",

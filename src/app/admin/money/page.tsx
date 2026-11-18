@@ -24,7 +24,7 @@ export default async function MoneyPage({
   const month = monthParam && MONTH_RE.test(monthParam) ? monthParam : billingMonthOf(now)
 
   const members = await listMembers(db)
-  const active = members.filter(m => m.status === 'active').slice(0, 40)
+  const active = members.filter(m => m.status === 'active')
 
   const [summary, locale, t, balances] = await Promise.all([
     monthSummary(db, month),

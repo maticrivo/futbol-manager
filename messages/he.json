@@ -137,6 +137,7 @@
       "saving": "רושם…",
       "sendReminder": "שליחת תזכורת",
       "sending": "שולח…",
+      "reminderSent": "התזכורת נשלחה.",
       "working": "מבצע…",
       "empty": "אין חברים פעילים."
     },
@@ -287,6 +288,7 @@
     "ALREADY_WAIVED": "החיוב הזה כבר בוטל.",
     "NOT_WAIVED": "החיוב הזה אינו מבוטל.",
     "INVALID_AMOUNT": "הסכום שהוזן אינו תקין.",
+    "INVALID_MONTH": "חודש החיוב אינו תקין.",
     "ALREADY_REFUNDED": "התשלום הזה כבר הוחזר.",
     "ALREADY_CANCELLED": "המשחק כבר בוטל.",
     "MEMBER_NOT_FOUND": "החבר לא נמצא.",

@@ -95,6 +95,38 @@ it('respects a target month over older debt', async () => {
   expect(await allocations()).toEqual([{ billingMonth: '2027-02', amountAgorot: 3500 }])
 })
 
+it('allocates oldest-first when the target month is blank', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const member = (await createMember(testDb, { name: 'Ana' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+  await addCharge(member.id, '2027-01', 3500)
+  await addCharge(member.id, '2027-02', 7000)
+
+  expect(await recordPaymentAction(null, paymentForm(member.id, { amountShekels: '35.5', targetMonth: '' })))
+    .toEqual({ ok: true })
+
+  expect(await allocations()).toEqual([
+    { billingMonth: '2027-01', amountAgorot: 3500 },
+    { billingMonth: '2027-02', amountAgorot: 50 },
+  ])
+})
+
+it('rejects an invalid target month and records nothing', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const member = (await createMember(testDb, { name: 'Ana' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+  await addCharge(member.id, '2027-01', 3500)
+  await addCharge(member.id, '2027-02', 3500)
+
+  expect(await recordPaymentAction(null, paymentForm(member.id, { amountShekels: '35', targetMonth: '2027-13' })))
+    .toEqual({ ok: false, code: 'INVALID_MONTH' })
+  expect(await recordPaymentAction(null, paymentForm(member.id, { amountShekels: '35', targetMonth: '2027-2' })))
+    .toEqual({ ok: false, code: 'INVALID_MONTH' })
+
+  expect(await testDb.select().from(payments)).toEqual([])
+  expect(revalidatePath).not.toHaveBeenCalled()
+})
+
 it('persists the field rent and rejects malformed values', async () => {
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   vi.mocked(requireAdmin).mockResolvedValue(admin)
@@ -113,7 +145,7 @@ it('persists the field rent and rejects malformed values', async () => {
   expect(revalidatePath).toHaveBeenCalledWith('/admin')
 
   const before = await monthSummary(testDb, '2027-03')
-  expect(await setExpenseAction(null, form({ month: '2027-13' }))).toEqual({ ok: false, code: 'INVALID_AMOUNT' })
+  expect(await setExpenseAction(null, form({ month: '2027-13' }))).toEqual({ ok: false, code: 'INVALID_MONTH' })
   expect(await setExpenseAction(null, form({ fieldCostShekels: 'abc' }))).toEqual({ ok: false, code: 'INVALID_AMOUNT' })
   expect(await monthSummary(testDb, '2027-03')).toEqual(before)
 })

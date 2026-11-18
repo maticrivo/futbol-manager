@@ -137,6 +137,7 @@
       "saving": "Registrando…",
       "sendReminder": "Enviar recordatorio",
       "sending": "Enviando…",
+      "reminderSent": "Recordatorio enviado.",
       "working": "Procesando…",
       "empty": "No hay miembros activos."
     },
@@ -287,6 +288,7 @@
     "ALREADY_WAIVED": "Ese cargo ya está anulado.",
     "NOT_WAIVED": "Ese cargo no está anulado.",
     "INVALID_AMOUNT": "Ese importe no es válido.",
+    "INVALID_MONTH": "Ese mes de facturación no es válido.",
     "ALREADY_REFUNDED": "Ese pago ya fue reembolsado.",
     "ALREADY_CANCELLED": "Este partido ya fue cancelado.",
     "MEMBER_NOT_FOUND": "No se encontró a ese miembro.",

@@ -419,7 +419,10 @@ export async function recordPaymentAction(_prev: ActionResult | null, formData: 
   const method = methodValue === 'paybox' || methodValue === 'cash' || methodValue === 'other' ? methodValue : 'cash'
 
   const targetMonthValue = stringField(formData, 'targetMonth').trim()
-  const targetMonth = MONTH_REGEX.test(targetMonthValue) ? targetMonthValue : undefined
+  if (targetMonthValue.length > 0 && !MONTH_REGEX.test(targetMonthValue)) {
+    return { ok: false, code: 'INVALID_MONTH' }
+  }
+  const targetMonth = targetMonthValue || undefined
 
   const note = stringField(formData, 'note').trim().slice(0, 255)
 
@@ -439,7 +442,7 @@ export async function setExpenseAction(_prev: ActionResult | null, formData: For
   const db = getDb()
 
   const month = stringField(formData, 'month').trim()
-  if (!MONTH_REGEX.test(month)) return { ok: false, code: 'INVALID_AMOUNT' }
+  if (!MONTH_REGEX.test(month)) return { ok: false, code: 'INVALID_MONTH' }
 
   const fieldCostValue = stringField(formData, 'fieldCostShekels').trim()
   if (!COST_REGEX.test(fieldCostValue)) return { ok: false, code: 'INVALID_AMOUNT' }
