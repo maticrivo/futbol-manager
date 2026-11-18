@@ -6,15 +6,17 @@ import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { getDb } from '@/db'
 import { charges, entries, guestPayments } from '@/db/schema'
-import { cancelMatch, recordGuestPayment, refundGuestPayment } from '@/domain/billing'
+import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
 import { createMember, regenerateInvite, setMemberStatus } from '@/domain/members'
+import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, getUpcomingMatch, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
 import type { ActionResult, InviteActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
+import { defaultTransport } from '@/lib/push'
 import { requestOrigin } from '@/lib/request-origin'
 import { TZ } from '@/lib/time'
 
@@ -396,5 +398,71 @@ export async function refundGuestPaymentAction(_prev: ActionResult | null, formD
   if (!result.ok) return { ok: false, code: result.code }
 
   revalidateMatch(matchId)
+  return { ok: true }
+}
+
+const MONTH_REGEX = /^\d{4}-(0[1-9]|1[0-2])$/
+
+export async function recordPaymentAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const memberId = positiveId(formData.get('memberId'))
+  if (memberId === null) return { ok: false, code: 'NOT_FOUND' }
+
+  const amountValue = stringField(formData, 'amountShekels').trim()
+  if (!COST_REGEX.test(amountValue)) return { ok: false, code: 'INVALID_AMOUNT' }
+  const amountAgorot = Math.round(Number(amountValue) * 100)
+  if (amountAgorot <= 0) return { ok: false, code: 'INVALID_AMOUNT' }
+
+  const methodValue = formData.get('method')
+  const method = methodValue === 'paybox' || methodValue === 'cash' || methodValue === 'other' ? methodValue : 'cash'
+
+  const targetMonthValue = stringField(formData, 'targetMonth').trim()
+  const targetMonth = MONTH_REGEX.test(targetMonthValue) ? targetMonthValue : undefined
+
+  const note = stringField(formData, 'note').trim().slice(0, 255)
+
+  const result = await recordPayment(db, {
+    actorId: admin.id, memberId, amountAgorot, paidAt: new Date(), method,
+    note: note || undefined, targetMonth,
+  })
+  if (!result.ok) return { ok: false, code: result.code }
+
+  revalidatePath('/admin/money')
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
+export async function setExpenseAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const month = stringField(formData, 'month').trim()
+  if (!MONTH_REGEX.test(month)) return { ok: false, code: 'INVALID_AMOUNT' }
+
+  const fieldCostValue = stringField(formData, 'fieldCostShekels').trim()
+  if (!COST_REGEX.test(fieldCostValue)) return { ok: false, code: 'INVALID_AMOUNT' }
+  const fieldCostAgorot = Math.round(Number(fieldCostValue) * 100)
+
+  const result = await setMonthlyExpense(db, { actorId: admin.id, month, fieldCostAgorot })
+  if (!result.ok) return { ok: false, code: result.code }
+
+  revalidatePath('/admin/money')
+  revalidatePath('/admin')
+  return { ok: true }
+}
+
+export async function sendReminderAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const memberId = positiveId(formData.get('memberId'))
+  if (memberId === null) return { ok: false, code: 'NOT_FOUND' }
+
+  const result = await sendPaymentReminder(db, { actorId: admin.id, memberId, now: new Date() }, defaultTransport)
+  if (!result.ok) return { ok: false, code: result.code }
+
+  revalidatePath('/admin/money')
   return { ok: true }
 }

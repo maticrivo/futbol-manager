@@ -7,6 +7,7 @@ export default async function AdminNav() {
     <nav className="flex flex-wrap gap-3 text-sm font-medium">
       <Link href="/admin">{t('nav.dashboard')}</Link>
       <Link href="/admin/members">{t('nav.members')}</Link>
+      <Link href="/admin/money">{t('nav.money')}</Link>
       <Link href="/admin/settings">{t('nav.settings')}</Link>
       <Link href="/admin/audit">{t('nav.audit')}</Link>
     </nav>

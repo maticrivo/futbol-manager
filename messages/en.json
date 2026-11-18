@@ -94,6 +94,7 @@
     "nav": {
       "dashboard": "Dashboard",
       "members": "Members",
+      "money": "Money",
       "settings": "Settings",
       "audit": "Audit log"
     },
@@ -107,6 +108,37 @@
       "activeMembers": "Active members",
       "outstandingBalance": "Outstanding balance",
       "pot": "This month’s pot"
+    },
+    "money": {
+      "title": "Money",
+      "month": "Billing month",
+      "show": "Show",
+      "charges": "Charges",
+      "memberCollected": "Member payments",
+      "guestCollected": "Guest payments",
+      "expense": "Field rent",
+      "pot": "This month’s pot",
+      "outstanding": "Outstanding",
+      "expenseLabel": "Field rent (₪)",
+      "expenseSave": "Save rent",
+      "expenseSaving": "Saving…",
+      "expenseSaved": "Rent saved.",
+      "member": "Member",
+      "balance": "Balance",
+      "credit": "Credit",
+      "actions": "Actions",
+      "markPaid": "Mark paid",
+      "amount": "Amount (₪)",
+      "methodLabel": "Method",
+      "method": { "paybox": "PayBox", "cash": "Cash", "other": "Other" },
+      "note": "Note",
+      "targetMonth": "Target month",
+      "submit": "Record payment",
+      "saving": "Recording…",
+      "sendReminder": "Send reminder",
+      "sending": "Sending…",
+      "working": "Working…",
+      "empty": "No active members."
     },
     "members": {
       "title": "Members",
@@ -257,6 +289,8 @@
     "INVALID_AMOUNT": "That amount isn’t valid.",
     "ALREADY_REFUNDED": "That payment was already refunded.",
     "ALREADY_CANCELLED": "This match was already cancelled.",
+    "MEMBER_NOT_FOUND": "That member could not be found.",
+    "TARGET_MONTH_REQUIRED": "A target month is required.",
     "UNKNOWN": "Something went wrong. Please try again."
   }
 }

@@ -4,7 +4,8 @@ import type { Db, Executor } from '@/db'
 import { entries, matches, members, notificationLog, notificationPrefs } from '@/db/schema'
 import { notificationCopy } from '@/lib/notificationCopy'
 import { sendWebPush, type NotificationPayload, type PushTransport } from '@/lib/push'
-import { TZ } from '@/lib/time'
+import { err, ok, type Result } from '@/lib/result'
+import { billingMonthOf, TZ } from '@/lib/time'
 import type { Entry } from './entries'
 import type { Match } from './matches'
 
@@ -89,6 +90,27 @@ export async function sendMemberNotification(
 
 function matchData(match: Match): NotificationData {
   return { matchDate: match.matchDate, venue: match.venue, url: '/' }
+}
+
+export async function sendPaymentReminder(
+  db: Db,
+  input: { actorId: number; memberId: number; now: Date },
+  transport: PushTransport,
+): Promise<Result<{ sent: boolean }, 'FORBIDDEN' | 'NOT_FOUND'>> {
+  const { actorId, memberId, now } = input
+
+  const [actor] = await db.select({ role: members.role }).from(members).where(eq(members.id, actorId))
+  if (actor?.role !== 'admin') return err('FORBIDDEN')
+
+  const [member] = await db.select({ locale: members.locale }).from(members).where(eq(members.id, memberId))
+  if (!member) return err('NOT_FOUND')
+
+  const eventKey = `payment_reminder:${memberId}:${DateTime.fromJSDate(now, { zone: TZ }).toFormat("yyyy-MM-dd'T'HH:mm")}`
+  const payload = buildNotification('payment_reminder', member.locale, { month: billingMonthOf(now), url: '/bill' })
+  const sent = await sendMemberNotification(db, {
+    memberId, category: 'payment_reminder', eventKey, payload, now,
+  }, transport)
+  return ok({ sent })
 }
 
 export function notifyOffer(db: Db, entry: Entry, match: Match, transport: PushTransport): Promise<void>

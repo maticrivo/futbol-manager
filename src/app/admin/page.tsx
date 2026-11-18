@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
 import AdminNav from '@/components/AdminNav'
 import CreateNextMatchForm from '@/components/CreateNextMatchForm'
@@ -31,6 +32,9 @@ export default async function AdminDashboard() {
     <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
       <AdminNav />
       <h1 className="text-2xl font-semibold">{t('dashboard.title')}</h1>
+      <p className="text-sm">
+        <Link href="/admin/money">{t('nav.money')}</Link>
+      </p>
 
       <section className="space-y-3 rounded-xl border p-5">
         <h2 className="text-lg font-semibold">{t('dashboard.upcomingMatch')}</h2>

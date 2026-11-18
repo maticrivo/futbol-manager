@@ -94,6 +94,7 @@
     "nav": {
       "dashboard": "לוח בקרה",
       "members": "חברים",
+      "money": "כספים",
       "settings": "הגדרות",
       "audit": "יומן פעולות"
     },
@@ -107,6 +108,37 @@
       "activeMembers": "חברים פעילים",
       "outstandingBalance": "יתרה לתשלום",
       "pot": "קופת החודש"
+    },
+    "money": {
+      "title": "כספים",
+      "month": "חודש חיוב",
+      "show": "הצגה",
+      "charges": "חיובים",
+      "memberCollected": "תשלומי חברים",
+      "guestCollected": "תשלומי אורחים",
+      "expense": "שכירות מגרש",
+      "pot": "קופת החודש",
+      "outstanding": "יתרה לתשלום",
+      "expenseLabel": "שכירות מגרש (₪)",
+      "expenseSave": "שמירת שכירות",
+      "expenseSaving": "שומר…",
+      "expenseSaved": "השכירות נשמרה.",
+      "member": "חבר",
+      "balance": "יתרה",
+      "credit": "זיכוי",
+      "actions": "פעולות",
+      "markPaid": "סימון כשולם",
+      "amount": "סכום (₪)",
+      "methodLabel": "אמצעי תשלום",
+      "method": { "paybox": "פייבוקס", "cash": "מזומן", "other": "אחר" },
+      "note": "הערה",
+      "targetMonth": "חודש יעד",
+      "submit": "רישום תשלום",
+      "saving": "רושם…",
+      "sendReminder": "שליחת תזכורת",
+      "sending": "שולח…",
+      "working": "מבצע…",
+      "empty": "אין חברים פעילים."
     },
     "members": {
       "title": "חברים",
@@ -257,6 +289,8 @@
     "INVALID_AMOUNT": "הסכום שהוזן אינו תקין.",
     "ALREADY_REFUNDED": "התשלום הזה כבר הוחזר.",
     "ALREADY_CANCELLED": "המשחק כבר בוטל.",
+    "MEMBER_NOT_FOUND": "החבר לא נמצא.",
+    "TARGET_MONTH_REQUIRED": "יש לבחור חודש יעד.",
     "UNKNOWN": "משהו השתבש. אפשר לנסות שוב."
   }
 }
