@@ -18,6 +18,49 @@
     "askAdmin": "Pide un enlace nuevo al equipo de administración"
   },
   "home": { "placeholder": "Aquí aparecerán los detalles del partido." },
+  "match": {
+    "title": "Partido de esta semana",
+    "empty": "No hay ningún partido programado.",
+    "venueTbd": "Lugar por confirmar",
+    "cost": "Precio por persona: <bidi>{amount}</bidi>",
+    "spotsLeft": "{count, plural, =0 {No quedan plazas} one {Queda # plaza} other {Quedan # plazas}}",
+    "phase": {
+      "before": "Inscripción aún no disponible",
+      "open": "Inscripción abierta",
+      "guest": "Inscripción de invitados abierta",
+      "locked": "Lista cerrada",
+      "played": "Partido jugado",
+      "cancelled": "Partido cancelado"
+    },
+    "roster": "Participantes",
+    "rosterEmpty": "Aún no hay participantes confirmados.",
+    "you": "(tú)",
+    "guest": "(invitado)",
+    "guestOf": "(Invitación de <bidi>{host}</bidi>)",
+    "signup": "Inscribirme",
+    "withdraw": "Cancelar mi inscripción",
+    "guests": "Invitados",
+    "guestName": "Nombre de la persona invitada",
+    "addGuest": "Añadir invitado",
+    "removeGuest": "Quitar invitado",
+    "submitting": "Enviando…",
+    "countdown": {
+      "signup": "La inscripción abre en",
+      "guest": "La inscripción de invitados abre en",
+      "lock": "La lista se cierra en",
+      "kickoff": "El partido empieza en"
+    }
+  },
+  "queue": {
+    "title": "Lista de espera",
+    "empty": "No hay nadie en la lista de espera.",
+    "position": "Tu puesto: {position}",
+    "join": "Apuntarme a la lista de espera",
+    "leave": "Salir de la lista de espera",
+    "offered": "Hay una plaza reservada para ti.",
+    "claim": "Aceptar plaza",
+    "expires": "La oferta vence: <bidi>{expiration}</bidi>"
+  },
   "errors": {
     "NOT_OPEN": "La inscripción aún no está abierta.",
     "FULL": "No quedan plazas para el partido.",
@@ -25,6 +68,20 @@
     "ALREADY_SIGNED_UP": "Ya te inscribiste en el partido.",
     "GUEST_PHASE_CLOSED": "La inscripción de invitados no está abierta.",
     "FORBIDDEN": "No tienes permiso para hacer eso.",
-    "INVALID_REASON": "Indica un motivo válido."
+    "INVALID_REASON": "Indica un motivo válido.",
+    "MATCH_CANCELLED": "El partido se ha cancelado.",
+    "NOT_FOUND": "No se encontró el partido o la inscripción.",
+    "NOT_OWNER": "No puedes cambiar la inscripción de otra persona.",
+    "LOCKED": "La lista ya está cerrada.",
+    "NOT_WITHDRAWABLE": "Solo puedes cancelar inscripciones confirmadas.",
+    "INVALID_NAME": "Indica el nombre de la persona invitada.",
+    "NOT_GUEST": "Esta inscripción no corresponde a un invitado.",
+    "SPOT_AVAILABLE": "Hay una plaza libre. Inscríbete directamente.",
+    "ALREADY_IN_MATCH": "Ya tienes una plaza en este partido.",
+    "ALREADY_QUEUED": "Ya estás en la lista de espera o tienes una plaza ofrecida.",
+    "NOT_QUEUED": "Ya no estás en la lista de espera.",
+    "NOT_OFFERED": "Esta oferta ya no está disponible.",
+    "OFFER_EXPIRED": "La oferta ha caducado.",
+    "UNKNOWN": "Algo salió mal. Inténtalo de nuevo."
   }
 }

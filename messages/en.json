@@ -18,6 +18,49 @@
     "askAdmin": "Ask an admin for a new link"
   },
   "home": { "placeholder": "Match details will appear here." },
+  "match": {
+    "title": "This week’s match",
+    "empty": "No upcoming match has been scheduled.",
+    "venueTbd": "Venue to be confirmed",
+    "cost": "Cost per player: <bidi>{amount}</bidi>",
+    "spotsLeft": "{count, plural, =0 {No spots left} one {# spot left} other {# spots left}}",
+    "phase": {
+      "before": "Sign-ups not open yet",
+      "open": "Sign-ups open",
+      "guest": "Guest sign-ups open",
+      "locked": "Roster locked",
+      "played": "Match played",
+      "cancelled": "Match cancelled"
+    },
+    "roster": "Roster",
+    "rosterEmpty": "No confirmed players yet.",
+    "you": "(you)",
+    "guest": "(guest)",
+    "guestOf": "(Guest of <bidi>{host}</bidi>)",
+    "signup": "Sign up",
+    "withdraw": "Withdraw",
+    "guests": "Guests",
+    "guestName": "Guest name",
+    "addGuest": "Add guest",
+    "removeGuest": "Remove guest",
+    "submitting": "Submitting…",
+    "countdown": {
+      "signup": "Sign-ups open in",
+      "guest": "Guest sign-ups open in",
+      "lock": "Roster locks in",
+      "kickoff": "Kickoff in"
+    }
+  },
+  "queue": {
+    "title": "Waiting list",
+    "empty": "No one is on the waiting list.",
+    "position": "Your position: {position}",
+    "join": "Join the waiting list",
+    "leave": "Leave the waiting list",
+    "offered": "A spot is reserved for you.",
+    "claim": "Claim spot",
+    "expires": "Offer expires: <bidi>{expiration}</bidi>"
+  },
   "errors": {
     "NOT_OPEN": "Sign-ups aren’t open yet.",
     "FULL": "The match is full.",
@@ -25,6 +68,20 @@
     "ALREADY_SIGNED_UP": "You’ve already signed up.",
     "GUEST_PHASE_CLOSED": "Guest sign-ups aren’t open.",
     "FORBIDDEN": "You don’t have permission to do that.",
-    "INVALID_REASON": "Enter a valid reason."
+    "INVALID_REASON": "Enter a valid reason.",
+    "MATCH_CANCELLED": "This match was cancelled.",
+    "NOT_FOUND": "The match or entry could not be found.",
+    "NOT_OWNER": "You can’t change someone else’s entry.",
+    "LOCKED": "The roster is locked.",
+    "NOT_WITHDRAWABLE": "Only confirmed entries can be withdrawn.",
+    "INVALID_NAME": "Enter a guest name.",
+    "NOT_GUEST": "This entry is not a guest.",
+    "SPOT_AVAILABLE": "A spot is available. Sign up instead.",
+    "ALREADY_IN_MATCH": "You already have a spot in this match.",
+    "ALREADY_QUEUED": "You’re already on the waiting list or have an offer.",
+    "NOT_QUEUED": "You’re no longer on the waiting list.",
+    "NOT_OFFERED": "This offer is no longer available.",
+    "OFFER_EXPIRED": "The offer has expired.",
+    "UNKNOWN": "Something went wrong. Please try again."
   }
 }
