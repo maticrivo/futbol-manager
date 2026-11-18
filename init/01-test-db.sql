@@ -1,4 +1,3 @@
 CREATE DATABASE IF NOT EXISTS futbol_test;
 GRANT ALL PRIVILEGES ON futbol_test.* TO 'futbol'@'%';
-GRANT PROCESS ON *.* TO 'futbol'@'%';
 FLUSH PRIVILEGES;

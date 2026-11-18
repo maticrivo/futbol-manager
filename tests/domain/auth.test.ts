@@ -1,5 +1,6 @@
 import { beforeEach, expect, it } from 'vitest'
 import { testDb, resetDb } from '../db'
+import { waitForLockWait } from '../lock-wait'
 import {
   createMember,
   loginWithInvite,
@@ -10,33 +11,10 @@ import {
 import { getSessionMember } from '@/domain/sessions'
 import { auditLog, loginTokens, members, sessions } from '@/db/schema'
 import { hashToken } from '@/lib/tokens'
-import { eq, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 const now = new Date('2027-03-27T10:00:00Z')
 beforeEach(resetDb)
-
-async function waitForLockWait(
-  expectedQueryPattern?: RegExp,
-  timeoutMs = 2000
-): Promise<{ trx_id: string; trx_state: string; trx_query: string | null }> {
-  const start = Date.now()
-  while (Date.now() - start < timeoutMs) {
-    await new Promise((r) => setTimeout(r, 20))
-    const [rows]: any = await testDb.execute(
-      sql`SELECT trx_id, trx_state, trx_query FROM information_schema.innodb_trx`
-    )
-    if (rows && rows.length > 0) {
-      const waitRow = rows.find((r: any) => r.trx_state === 'LOCK WAIT')
-      if (waitRow) {
-        if (expectedQueryPattern && waitRow.trx_query) {
-          expect(waitRow.trx_query.toLowerCase()).toMatch(expectedQueryPattern)
-        }
-        return waitRow
-      }
-    }
-  }
-  throw new Error(`Timed out after ${timeoutMs}ms waiting for transaction to enter LOCK WAIT in innodb_trx`)
-}
 
 it('logs in with a personal link, storing only a hash', async () => {
   const { member, inviteToken } = await createMember(testDb, { name: 'Ana' })
@@ -195,7 +173,7 @@ it('serializes login against concurrent invite revocation, proving login blocks 
   }
 
   let txPromise: Promise<void> | null = null
-  let loginPromise: Promise<any> | null = null
+  let loginPromise: ReturnType<typeof loginWithInvite> | null = null
 
   try {
     txPromise = testDb.transaction(async (txA) => {
@@ -224,10 +202,9 @@ it('serializes login against concurrent invite revocation, proving login blocks 
 
     // Start loginWithInvite; it will attempt to lock loginTokens and block on txA's lock
     loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+    void loginPromise.catch(() => {})
 
-    // Poll information_schema.innodb_trx to observe login in LOCK WAIT
-    const waitInfo = await waitForLockWait(/logintokens.*for update/i)
-    expect(waitInfo.trx_state).toBe('LOCK WAIT')
+    await waitForLockWait(hashToken(target.inviteToken))
 
     // Allow txA to perform update and commit
     releaseGate()
@@ -276,7 +253,7 @@ it('serializes login against concurrent member status disabling, proving login b
   }
 
   let txPromise: Promise<void> | null = null
-  let loginPromise: Promise<any> | null = null
+  let loginPromise: ReturnType<typeof loginWithInvite> | null = null
 
   try {
     txPromise = testDb.transaction(async (txA) => {
@@ -300,10 +277,10 @@ it('serializes login against concurrent member status disabling, proving login b
 
     // loginWithInvite locks the member row first with .for('update'), so it blocks on txA's lock
     loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+    void loginPromise.catch(() => {})
 
-    // Poll information_schema.innodb_trx to observe login in LOCK WAIT
-    const waitInfo = await waitForLockWait(/members.*for update/i)
-    expect(waitInfo.trx_state).toBe('LOCK WAIT')
+    // Include the space after the id so e.g. 1 cannot match 10.
+    await waitForLockWait(`\`members\`.\`id\` = ${target.member.id} `)
 
     releaseGate()
 
