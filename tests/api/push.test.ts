@@ -71,6 +71,32 @@ it('POST returns 400 for missing keys or a non-https endpoint', async () => {
   expect((await POST(jsonRequest('POST', { endpoint, keys: { p256dh: validBody.keys.p256dh, auth: '' } }))).status).toBe(400)
 })
 
+it('POST returns 400 and saves nothing for an oversized p256dh (256 chars)', async () => {
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  mocks.member = member
+
+  const res = await POST(jsonRequest('POST', {
+    endpoint,
+    keys: { p256dh: 'p'.repeat(256), auth: validBody.keys.auth },
+  }))
+  expect(res.status).toBe(400)
+
+  const rows = await testDb.select().from(pushSubscriptions)
+  expect(rows).toHaveLength(0)
+})
+
+it('POST returns 400 and saves nothing for an oversized endpoint (501 chars)', async () => {
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  mocks.member = member
+
+  const longEndpoint = 'https://push.example.com/' + 'a'.repeat(501 - 'https://push.example.com/'.length)
+  const res = await POST(jsonRequest('POST', { endpoint: longEndpoint, keys: validBody.keys }))
+  expect(res.status).toBe(400)
+
+  const rows = await testDb.select().from(pushSubscriptions)
+  expect(rows).toHaveLength(0)
+})
+
 it('POST saves a row and returns 204 for a valid subscription', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   mocks.member = member

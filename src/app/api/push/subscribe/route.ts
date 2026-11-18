@@ -5,15 +5,15 @@ import { deletePushSubscriptionForMember, savePushSubscription } from '@/lib/pus
 
 export const runtime = 'nodejs'
 
-const endpoint = z.string().url().refine((value) => new URL(value).protocol === 'https:', {
+const endpoint = z.string().url().max(500).refine((value) => new URL(value).protocol === 'https:', {
   message: 'endpoint must be an https URL',
 })
 
 const subscribeSchema = z.object({
   endpoint,
   keys: z.object({
-    p256dh: z.string().min(1).max(512),
-    auth: z.string().min(1).max(512),
+    p256dh: z.string().min(1).max(255),
+    auth: z.string().min(1).max(255),
   }),
 })
 

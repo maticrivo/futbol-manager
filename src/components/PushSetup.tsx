@@ -38,7 +38,7 @@ export default function PushSetup() {
     let cancelled = false
 
     async function init() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window)) {
+      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
         if (!cancelled) setStatus('unsupported')
         return
       }
@@ -75,7 +75,10 @@ export default function PushSetup() {
   }, [publicKey])
 
   async function enable() {
-    if (!publicKey) return
+    if (!publicKey || !('Notification' in window)) {
+      if (!('Notification' in window)) setStatus('unsupported')
+      return
+    }
     setBusy(true)
     try {
       const permission = await Notification.requestPermission()
