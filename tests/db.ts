@@ -2,7 +2,7 @@ import dotenv from 'dotenv'
 import { sql } from 'drizzle-orm'
 import { createDb } from '../src/db'
 
-dotenv.config({ path: '.env.test' })
+dotenv.config({ path: '.env.test', quiet: true })
 
 export const testDb = createDb(process.env.TEST_DATABASE_URL!)
 

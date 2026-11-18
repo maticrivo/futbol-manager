@@ -119,29 +119,30 @@ export async function loginWithInvite(
 ): Promise<Result<{ member: Member; sessionToken: string }, 'INVALID_TOKEN' | 'DISABLED'>> {
   const tokenHash = hashToken(rawToken)
 
-  const [row] = await db
-    .select({
-      token: loginTokens,
-      member: members,
-    })
-    .from(loginTokens)
-    .innerJoin(members, eq(loginTokens.memberId, members.id))
-    .where(and(eq(loginTokens.tokenHash, tokenHash), isNull(loginTokens.revokedAt)))
-    .limit(1)
+  return await db.transaction(async (tx) => {
+    const [row] = await tx
+      .select({
+        token: loginTokens,
+        member: members,
+      })
+      .from(loginTokens)
+      .innerJoin(members, eq(loginTokens.memberId, members.id))
+      .where(eq(loginTokens.tokenHash, tokenHash))
+      .for('update')
+      .limit(1)
 
-  if (!row) {
-    return err('INVALID_TOKEN')
-  }
+    if (!row || row.token.revokedAt !== null) {
+      return err('INVALID_TOKEN')
+    }
 
-  if (row.member.status !== 'active') {
-    return err('DISABLED')
-  }
+    if (row.member.status !== 'active') {
+      return err('DISABLED')
+    }
 
-  const sessionToken = generateToken()
-  const sessionTokenHash = hashToken(sessionToken)
-  const expiresAt = new Date(now.getTime() + SESSION_LIFETIME_MS)
+    const sessionToken = generateToken()
+    const sessionTokenHash = hashToken(sessionToken)
+    const expiresAt = new Date(now.getTime() + SESSION_LIFETIME_MS)
 
-  await db.transaction(async (tx) => {
     await tx
       .update(loginTokens)
       .set({ lastUsedAt: now })
@@ -159,9 +160,9 @@ export async function loginWithInvite(
       entity: 'member',
       entityId: String(row.member.id),
     })
-  })
 
-  return ok({ member: row.member, sessionToken })
+    return ok({ member: row.member, sessionToken })
+  })
 }
 
 export async function setMemberStatus(
@@ -190,7 +191,7 @@ export async function setMemberStatus(
     return err('NOT_FOUND')
   }
 
-  await db.transaction(async (tx) => {
+  const updated = await db.transaction(async (tx) => {
     await tx
       .update(members)
       .set({ status })
@@ -203,13 +204,15 @@ export async function setMemberStatus(
       entityId: String(memberId),
       detail: { status },
     })
+
+    const [row] = await tx
+      .select()
+      .from(members)
+      .where(eq(members.id, memberId))
+      .limit(1)
+
+    return row!
   })
 
-  const [updated] = await db
-    .select()
-    .from(members)
-    .where(eq(members.id, memberId))
-    .limit(1)
-
-  return ok(updated!)
+  return ok(updated)
 }

@@ -8,7 +8,8 @@ import {
   setMemberStatus,
 } from '@/domain/members'
 import { getSessionMember } from '@/domain/sessions'
-import { auditLog, loginTokens, sessions } from '@/db/schema'
+import { auditLog, loginTokens, members, sessions } from '@/db/schema'
+import { hashToken } from '@/lib/tokens'
 import { eq } from 'drizzle-orm'
 
 const now = new Date('2027-03-27T10:00:00Z')
@@ -21,6 +22,13 @@ it('logs in with a personal link, storing only a hash', async () => {
   const login = await loginWithInvite(testDb, inviteToken, now)
   if (!login.ok) throw new Error(login.code)
   expect(login.value.member.id).toBe(member.id)
+
+  // Verify stored session hash differs from the raw session token and matches hashToken
+  const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, member.id))
+  expect(sessionRows).toHaveLength(1)
+  expect(sessionRows[0].tokenHash).not.toBe(login.value.sessionToken)
+  expect(sessionRows[0].tokenHash).toBe(hashToken(login.value.sessionToken))
+
   expect((await getSessionMember(testDb, login.value.sessionToken, now))?.id).toBe(member.id)
 })
 
@@ -37,6 +45,14 @@ it('rejects a regenerated-away link, a disabled member and an expired session', 
   const active = await createMember(testDb, { name: 'Di' })
   const login = await loginWithInvite(testDb, active.inviteToken, now)
   if (!login.ok) throw new Error(login.code)
+
+  // Accepted immediately before 365-day cutoff and rejected exactly at it
+  const sessionLifetimeMs = 365 * 24 * 3600_000
+  const cutoff = new Date(now.getTime() + sessionLifetimeMs)
+  const justBeforeCutoff = new Date(cutoff.getTime() - 1)
+  expect((await getSessionMember(testDb, login.value.sessionToken, justBeforeCutoff))?.id).toBe(active.member.id)
+  expect(await getSessionMember(testDb, login.value.sessionToken, cutoff)).toBeNull()
+
   const later = new Date(now.getTime() + 366 * 24 * 3600_000)
   expect(await getSessionMember(testDb, login.value.sessionToken, later)).toBeNull()
 })
@@ -89,12 +105,16 @@ it('regenerateInvite requires admin, revokes old tokens, deletes active sessions
   const oldLogin = await loginWithInvite(testDb, target.inviteToken, regenTime)
   expect(oldLogin).toEqual({ ok: false, code: 'INVALID_TOKEN' })
 
+  // Old invite token was logged in at `now`, so its lastUsedAt remains `now` and is not updated to `regenTime`
+  const oldTokens = await testDb.select().from(loginTokens).where(eq(loginTokens.tokenHash, hashToken(target.inviteToken)))
+  expect(oldTokens[0].lastUsedAt).toEqual(now)
+
   // New invite token works
   const newLogin = await loginWithInvite(testDb, regen.value.inviteToken, regenTime)
   expect(newLogin.ok).toBe(true)
 })
 
-it('loginWithInvite returns INVALID_TOKEN for non-existent token and DISABLED for disabled member', async () => {
+it('loginWithInvite returns INVALID_TOKEN for non-existent token and DISABLED for disabled member without stamping lastUsedAt', async () => {
   const invalid = await loginWithInvite(testDb, 'nonexistent-token', now)
   expect(invalid).toEqual({ ok: false, code: 'INVALID_TOKEN' })
 
@@ -104,6 +124,10 @@ it('loginWithInvite returns INVALID_TOKEN for non-existent token and DISABLED fo
 
   const disabledLogin = await loginWithInvite(testDb, disabled.inviteToken, now)
   expect(disabledLogin).toEqual({ ok: false, code: 'DISABLED' })
+
+  // Verify lastUsedAt is not stamped on rejected login
+  const tokenRows = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, disabled.member.id))
+  expect(tokenRows[0].lastUsedAt).toBeNull()
 
   // Verify no audit logged for failed login
   const audits = await testDb.select().from(auditLog).where(eq(auditLog.action, 'auth.login'))
@@ -124,6 +148,115 @@ it('loginWithInvite stamps lastUsedAt and audits auth.login on success', async (
   expect(audits[0].entityId).toBe(String(member.id))
   expect(JSON.stringify(audits[0])).not.toContain(inviteToken)
   expect(JSON.stringify(audits[0])).not.toContain(login.value.sessionToken)
+})
+
+it('serializes login against concurrent invite revocation, rejecting with INVALID_TOKEN and creating no session', async () => {
+  const target = await createMember(testDb, { name: 'ConcurrentRevoke' })
+
+  let signalLocked!: () => void
+  const lockedPromise = new Promise<void>((resolve) => {
+    signalLocked = resolve
+  })
+
+  let signalProceedWithRevoke!: () => void
+  const proceedPromise = new Promise<void>((resolve) => {
+    signalProceedWithRevoke = resolve
+  })
+
+  const txPromise = testDb.transaction(async (txA) => {
+    // 1. Lock the token row with FOR UPDATE
+    await txA
+      .select()
+      .from(loginTokens)
+      .where(eq(loginTokens.memberId, target.member.id))
+      .for('update')
+
+    // Signal that lock is acquired
+    signalLocked()
+
+    // Wait until test has initiated loginWithInvite
+    await proceedPromise
+
+    // Small delay to ensure loginWithInvite has reached and is waiting on the row lock
+    await new Promise((r) => setTimeout(r, 60))
+
+    // Revoke the token while holding the lock
+    await txA
+      .update(loginTokens)
+      .set({ revokedAt: now })
+      .where(eq(loginTokens.memberId, target.member.id))
+  })
+
+  // Wait until txA has locked the row
+  await lockedPromise
+
+  // Start loginWithInvite; it will attempt SELECT ... FOR UPDATE and block on txA's lock
+  const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+
+  // Allow txA to perform update and commit
+  signalProceedWithRevoke()
+
+  const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+
+  expect(loginResult).toEqual({ ok: false, code: 'INVALID_TOKEN' })
+
+  // Verify no session was created
+  const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+  expect(sessionRows).toHaveLength(0)
+
+  // Verify lastUsedAt was not stamped
+  const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
+  expect(tokenRow.lastUsedAt).toBeNull()
+})
+
+it('serializes login against concurrent member status disabling, rejecting with DISABLED and creating no session', async () => {
+  const target = await createMember(testDb, { name: 'ConcurrentStatus' })
+
+  let signalLocked!: () => void
+  const lockedPromise = new Promise<void>((resolve) => {
+    signalLocked = resolve
+  })
+
+  let signalProceed!: () => void
+  const proceedPromise = new Promise<void>((resolve) => {
+    signalProceed = resolve
+  })
+
+  const txPromise = testDb.transaction(async (txA) => {
+    // Lock the member row with FOR UPDATE
+    await txA
+      .select()
+      .from(members)
+      .where(eq(members.id, target.member.id))
+      .for('update')
+
+    signalLocked()
+    await proceedPromise
+    await new Promise((r) => setTimeout(r, 60))
+
+    await txA
+      .update(members)
+      .set({ status: 'disabled' })
+      .where(eq(members.id, target.member.id))
+  })
+
+  await lockedPromise
+
+  // loginWithInvite joins members with .for('update'), so it blocks on the member lock
+  const loginPromise = loginWithInvite(testDb, target.inviteToken, now)
+
+  signalProceed()
+
+  const [_, loginResult] = await Promise.all([txPromise, loginPromise])
+
+  expect(loginResult).toEqual({ ok: false, code: 'DISABLED' })
+
+  const sessionRows = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+  expect(sessionRows).toHaveLength(0)
+
+  // Verify lastUsedAt was not stamped
+  const [tokenRow] = await testDb.select().from(loginTokens).where(eq(loginTokens.memberId, target.member.id))
+  expect(tokenRow.lastUsedAt).toBeNull()
 })
 
 it('getSessionMember rejects session if member is disabled later', async () => {
