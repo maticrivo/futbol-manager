@@ -90,6 +90,70 @@
       "payment_reminder": "תזכורת לתשלום"
     }
   },
+  "admin": {
+    "nav": {
+      "dashboard": "לוח בקרה",
+      "members": "חברים",
+      "settings": "הגדרות",
+      "audit": "יומן פעולות"
+    },
+    "dashboard": {
+      "title": "ניהול",
+      "upcomingMatch": "המשחק הבא",
+      "noMatch": "אין משחק קרוב.",
+      "createNextMatch": "יצירת המשחק הבא",
+      "creating": "יוצר…",
+      "totalMembers": "סך החברים",
+      "activeMembers": "חברים פעילים",
+      "outstandingBalance": "יתרה לתשלום",
+      "pot": "קופת החודש"
+    },
+    "members": {
+      "title": "חברים",
+      "addTitle": "הוספת חבר",
+      "name": "שם",
+      "role": "תפקיד",
+      "status": "סטטוס",
+      "locale": "שפה",
+      "created": "נוצר",
+      "regenerate": "החלפת קישור",
+      "disable": "השבתה",
+      "enable": "הפעלה",
+      "selfNote": "לא ניתן להשבית את עצמך",
+      "roleMember": "חבר",
+      "roleAdmin": "מנהל",
+      "statusActive": "פעיל",
+      "statusDisabled": "מושבת",
+      "add": "הוספת חבר",
+      "adding": "מוסיף…"
+    },
+    "invite": {
+      "heading": "קישור הזמנה",
+      "copy": "העתקה",
+      "copied": "הועתק!"
+    },
+    "settings": {
+      "title": "הגדרות",
+      "capacity": "מספר משתתפים",
+      "costShekels": "עלות למשתתף (₪)",
+      "venue": "מגרש",
+      "kickoffTime": "שעת תחילת המשחק",
+      "queueWindowMinutes": "חלון רשימת המתנה (דקות)",
+      "save": "שמירת הגדרות",
+      "saving": "שומר…",
+      "saved": "ההגדרות נשמרו."
+    },
+    "audit": {
+      "title": "יומן פעולות",
+      "time": "שעה",
+      "actor": "מבצע",
+      "action": "פעולה",
+      "entity": "ישות",
+      "detail": "פרטים",
+      "empty": "אין עדיין פעילות.",
+      "system": "מערכת"
+    }
+  },
   "errors": {
     "NOT_OPEN": "ההרשמה עדיין לא נפתחה.",
     "FULL": "אין עוד מקומות פנויים במשחק.",
@@ -98,12 +162,13 @@
     "GUEST_PHASE_CLOSED": "ההרשמה לאורחים אינה פתוחה.",
     "FORBIDDEN": "אין לך הרשאה לבצע את הפעולה הזו.",
     "INVALID_REASON": "יש להזין סיבה תקינה.",
+    "INVALID_SETTING": "הערך שהוזן אינו תקין.",
     "MATCH_CANCELLED": "המשחק בוטל.",
     "NOT_FOUND": "המשחק או ההרשמה לא נמצאו.",
     "NOT_OWNER": "אין לך הרשאה לשנות הרשמה של מישהו אחר.",
     "LOCKED": "רשימת המשתתפים סגורה לשינויים.",
     "NOT_WITHDRAWABLE": "אפשר לבטל רק הרשמה מאושרת.",
-    "INVALID_NAME": "יש להזין את שם האורח.",
+    "INVALID_NAME": "יש להזין שם תקין.",
     "NOT_GUEST": "הרשומה הזו אינה של אורח.",
     "SPOT_AVAILABLE": "יש מקום פנוי. אפשר להירשם ישירות למשחק.",
     "ALREADY_IN_MATCH": "כבר יש לך מקום במשחק.",

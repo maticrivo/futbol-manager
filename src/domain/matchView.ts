@@ -20,7 +20,7 @@ export type MatchView = {
   myOffer: Entry | null
 }
 
-function phaseAt(match: Match, now: Date): MatchPhase {
+export function phaseAt(match: Match, now: Date): MatchPhase {
   if (match.status === 'cancelled') return 'cancelled'
   if (match.status === 'played') return 'played'
   if (match.status === 'locked' || now >= match.lockAt) return 'locked'

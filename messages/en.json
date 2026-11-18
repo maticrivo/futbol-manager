@@ -90,6 +90,70 @@
       "payment_reminder": "Payment reminder"
     }
   },
+  "admin": {
+    "nav": {
+      "dashboard": "Dashboard",
+      "members": "Members",
+      "settings": "Settings",
+      "audit": "Audit log"
+    },
+    "dashboard": {
+      "title": "Admin",
+      "upcomingMatch": "Next match",
+      "noMatch": "No upcoming match.",
+      "createNextMatch": "Create next match",
+      "creating": "Creating…",
+      "totalMembers": "Total members",
+      "activeMembers": "Active members",
+      "outstandingBalance": "Outstanding balance",
+      "pot": "This month’s pot"
+    },
+    "members": {
+      "title": "Members",
+      "addTitle": "Add member",
+      "name": "Name",
+      "role": "Role",
+      "status": "Status",
+      "locale": "Language",
+      "created": "Created",
+      "regenerate": "Regenerate link",
+      "disable": "Disable",
+      "enable": "Enable",
+      "selfNote": "You can’t disable yourself",
+      "roleMember": "Member",
+      "roleAdmin": "Admin",
+      "statusActive": "Active",
+      "statusDisabled": "Disabled",
+      "add": "Add member",
+      "adding": "Adding…"
+    },
+    "invite": {
+      "heading": "Invite link",
+      "copy": "Copy",
+      "copied": "Copied!"
+    },
+    "settings": {
+      "title": "Settings",
+      "capacity": "Capacity",
+      "costShekels": "Cost per player (₪)",
+      "venue": "Venue",
+      "kickoffTime": "Kickoff time",
+      "queueWindowMinutes": "Queue window (minutes)",
+      "save": "Save settings",
+      "saving": "Saving…",
+      "saved": "Settings saved."
+    },
+    "audit": {
+      "title": "Audit log",
+      "time": "Time",
+      "actor": "Actor",
+      "action": "Action",
+      "entity": "Entity",
+      "detail": "Detail",
+      "empty": "No activity yet.",
+      "system": "System"
+    }
+  },
   "errors": {
     "NOT_OPEN": "Sign-ups aren’t open yet.",
     "FULL": "The match is full.",
@@ -98,12 +162,13 @@
     "GUEST_PHASE_CLOSED": "Guest sign-ups aren’t open.",
     "FORBIDDEN": "You don’t have permission to do that.",
     "INVALID_REASON": "Enter a valid reason.",
+    "INVALID_SETTING": "That value isn’t valid.",
     "MATCH_CANCELLED": "This match was cancelled.",
     "NOT_FOUND": "The match or entry could not be found.",
     "NOT_OWNER": "You can’t change someone else’s entry.",
     "LOCKED": "The roster is locked.",
     "NOT_WITHDRAWABLE": "Only confirmed entries can be withdrawn.",
-    "INVALID_NAME": "Enter a guest name.",
+    "INVALID_NAME": "Enter a valid name.",
     "NOT_GUEST": "This entry is not a guest.",
     "SPOT_AVAILABLE": "A spot is available. Sign up instead.",
     "ALREADY_IN_MATCH": "You already have a spot in this match.",

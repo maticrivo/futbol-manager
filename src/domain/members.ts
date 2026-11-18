@@ -10,6 +10,10 @@ export type Member = typeof members.$inferSelect
 
 export { revokeSessions } from './sessions'
 
+export async function listMembers(db: Db): Promise<Member[]> {
+  return db.select().from(members).orderBy(asc(members.name), asc(members.id))
+}
+
 export async function createMember(
   db: Db,
   input: { name: string; role?: 'member' | 'admin'; locale?: string }
@@ -216,6 +220,11 @@ export async function setMemberStatus(
     const target = lockedMembers.find((m) => m.id === memberId)
     if (!target) {
       return err('NOT_FOUND')
+    }
+
+    // An admin cannot disable their own account.
+    if (actorId === memberId && status === 'disabled') {
+      return err('FORBIDDEN')
     }
 
     await tx
