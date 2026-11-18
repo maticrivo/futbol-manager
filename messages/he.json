@@ -1,5 +1,11 @@
 {
-  "common": { "appName": "כדורגל שבועי", "loading": "בטעינה…" },
+  "common": {
+    "appName": "כדורגל שבועי",
+    "save": "שמירה",
+    "cancel": "ביטול",
+    "copy": "העתקה",
+    "loading": "בטעינה…"
+  },
   "nav": {
     "home": "בית",
     "bill": "חשבון",

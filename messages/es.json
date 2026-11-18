@@ -1,5 +1,11 @@
 {
-  "common": { "appName": "Fútbol semanal", "loading": "Cargando…" },
+  "common": {
+    "appName": "Fútbol semanal",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "copy": "Copiar",
+    "loading": "Cargando…"
+  },
   "nav": {
     "home": "Inicio",
     "bill": "Cuenta",

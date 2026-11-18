@@ -1,5 +1,11 @@
 {
-  "common": { "appName": "Weekly Football", "loading": "Loading…" },
+  "common": {
+    "appName": "Weekly Football",
+    "save": "Save",
+    "cancel": "Cancel",
+    "copy": "Copy",
+    "loading": "Loading…"
+  },
   "nav": {
     "home": "Home",
     "bill": "Bill",

@@ -16,7 +16,14 @@ export function resolveLocale(cookie?: string, acceptLanguage?: string): Locale 
   if (isLocale(preferred)) return preferred
 
   for (const range of acceptLanguage?.split(',') ?? []) {
-    const language = range.split(';')[0].trim().split('-')[0].toLowerCase()
+    const [tag, ...params] = range.split(';')
+    const trimmedTag = tag.trim()
+    if (!/^[a-z]{2,3}(-[a-z0-9]+)*$/i.test(trimmedTag)) continue
+
+    const quality = params.map((param) => /^q\s*=\s*(\S+)\s*$/i.exec(param.trim())).find(Boolean)
+    if (quality && Number(quality[1]) === 0) continue
+
+    const language = trimmedTag.split('-')[0].toLowerCase()
     if (isLocale(language)) return language
   }
 
