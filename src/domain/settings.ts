@@ -15,8 +15,8 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   capacity: 14,
   costAgorot: 3500,
-  venue: '',
-  kickoffTime: '20:30',
+  venue: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+  kickoffTime: '20:00',
   queueWindowMinutes: 30,
 }
 

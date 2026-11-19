@@ -16,6 +16,11 @@ describe('weekSchedule', () => {
     expect(s.guestPhaseAt.toISOString()).toBe('2027-11-01T12:00:00.000Z') // Mon 14:00 +02
     expect(s.lockAt.toISOString()).toBe('2027-11-02T12:00:00.000Z') // Tue 14:00 +02
   })
+
+  it('defaults to 20:00 kickoff when kickoffTime is omitted', () => {
+    const s = weekSchedule('2027-03-30')
+    expect(s.kickoffAt.toISOString()).toBe('2027-03-30T17:00:00.000Z')
+  })
 })
 
 it('derives the billing month in Jerusalem time', () => {

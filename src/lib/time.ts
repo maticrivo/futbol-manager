@@ -2,7 +2,7 @@ import { DateTime } from 'luxon'
 
 export const TZ = 'Asia/Jerusalem'
 
-export function weekSchedule(matchDate: string, kickoffTime: string): {
+export function weekSchedule(matchDate: string, kickoffTime: string = '20:00'): {
   kickoffAt: Date
   signupOpensAt: Date
   guestPhaseAt: Date

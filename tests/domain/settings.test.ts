@@ -7,6 +7,16 @@ import { DEFAULT_SETTINGS } from '@/domain/settings'
 
 beforeEach(resetDb)
 
+it('provides default settings for Tuesday Football', () => {
+  expect(DEFAULT_SETTINGS).toEqual({
+    capacity: 14,
+    costAgorot: 3500,
+    venue: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+    kickoffTime: '20:00',
+    queueWindowMinutes: 30,
+  })
+})
+
 it('rejects settings changes from non-admins', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   expect(await updateSettings(testDb, member.id, { capacity: 16 })).toEqual({ ok: false, code: 'FORBIDDEN' })
@@ -42,6 +52,8 @@ it('does not coerce blank stored values to zero and preserves defaults while val
   expect(defaultResult.capacity).toBe(DEFAULT_SETTINGS.capacity)
   expect(defaultResult.costAgorot).toBe(DEFAULT_SETTINGS.costAgorot)
   expect(defaultResult.queueWindowMinutes).toBe(DEFAULT_SETTINGS.queueWindowMinutes)
+  expect(defaultResult.venue).toBe(DEFAULT_SETTINGS.venue)
+  expect(defaultResult.kickoffTime).toBe(DEFAULT_SETTINGS.kickoffTime)
 
   // A valid stored value still wins
   await testDb.insert(settings).values({ key: 'capacity', value: '18' })
@@ -51,4 +63,6 @@ it('does not coerce blank stored values to zero and preserves defaults while val
   expect(updatedResult.capacity).toBe(18)
   expect(updatedResult.costAgorot).toBe(DEFAULT_SETTINGS.costAgorot)
   expect(updatedResult.queueWindowMinutes).toBe(DEFAULT_SETTINGS.queueWindowMinutes)
+  expect(updatedResult.venue).toBe(DEFAULT_SETTINGS.venue)
+  expect(updatedResult.kickoffTime).toBe(DEFAULT_SETTINGS.kickoffTime)
 })

@@ -27,11 +27,11 @@ export async function sendMagicLinkEmail(email: string, magicLinkUrl: string): P
       ? rawUrl
       : `${(process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '')}/login/${rawUrl}`
 
-  const from = process.env.EMAIL_FROM || 'Weekly Football <onboarding@resend.dev>'
-  const subject = 'Your Magic Sign-in Link - Weekly Football'
+  const from = process.env.EMAIL_FROM || 'Tuesday Football <onboarding@resend.dev>'
+  const subject = 'Your Magic Sign-in Link - Tuesday Football'
   const html = `
     <div style="font-family: sans-serif; line-height: 1.5; color: #111;">
-      <h2>Weekly Football</h2>
+      <h2>Tuesday Football</h2>
       <p>Click the link below to sign in:</p>
       <p><a href="${url}" style="display: inline-block; padding: 10px 20px; background-color: #10b981; color: #fff; text-decoration: none; border-radius: 6px; font-weight: bold;">Sign In</a></p>
       <p>Or copy and paste this link into your browser:</p>
@@ -40,7 +40,7 @@ export async function sendMagicLinkEmail(email: string, magicLinkUrl: string): P
       <p style="color: #6b7280; font-size: 14px;">If you did not request this link, you can safely ignore this email.</p>
     </div>
   `.trim()
-  const text = `Sign in to Weekly Football:\n\n${url}\n\nIf you did not request this link, you can safely ignore this email.`
+  const text = `Sign in to Tuesday Football:\n\n${url}\n\nIf you did not request this link, you can safely ignore this email.`
 
   const apiKey = process.env.RESEND_API_KEY?.trim()
 
