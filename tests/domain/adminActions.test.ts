@@ -139,6 +139,46 @@ it('setMemberStatusAction disables and re-enables, and forbids disabling self', 
   expect((await listMembers(testDb)).find((m) => m.id === other.id)!.status).toBe('active')
 })
 
+it('setMemberStatusAction supports pending status and approving pending members', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const pendingMember = (await createMember(testDb, { name: 'Pending User', status: 'pending' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  // Admin cannot set themselves to pending
+  expect(await setMemberStatusAction(null, statusForm(admin.id, 'pending'))).toEqual({ ok: false, code: 'FORBIDDEN' })
+
+  // Admin approves pending member
+  expect(await setMemberStatusAction(null, statusForm(pendingMember.id, 'active'))).toEqual({ ok: true })
+  expect((await listMembers(testDb)).find((m) => m.id === pendingMember.id)!.status).toBe('active')
+
+  // Admin can change status back to pending
+  expect(await setMemberStatusAction(null, statusForm(pendingMember.id, 'pending'))).toEqual({ ok: true })
+  expect((await listMembers(testDb)).find((m) => m.id === pendingMember.id)!.status).toBe('pending')
+
+  // Invalid status returns NOT_FOUND
+  expect(await setMemberStatusAction(null, statusForm(pendingMember.id, 'invalid'))).toEqual({ ok: false, code: 'NOT_FOUND' })
+})
+
+it('addMemberAction supports adding a member by email with pending status', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const emailForm = new FormData()
+  emailForm.set('email', 'newplayer@example.com')
+  emailForm.set('role', 'member')
+  emailForm.set('locale', 'es')
+  emailForm.set('status', 'pending')
+
+  const result = await addMemberAction(null, emailForm)
+  expect(result.ok).toBe(true)
+
+  const created = (await listMembers(testDb)).find((m) => m.name === 'newplayer@example.com')
+  expect(created).toBeDefined()
+  expect(created?.status).toBe('pending')
+  expect(created?.role).toBe('member')
+  expect(created?.locale).toBe('es')
+})
+
 it('updateSettingsAction converts shekels to agorot and rejects malformed values', async () => {
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   vi.mocked(requireAdmin).mockResolvedValue(admin)

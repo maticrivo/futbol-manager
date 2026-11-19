@@ -56,17 +56,24 @@ export async function addMemberAction(_prev: InviteActionResult | null, formData
   await requireAdmin()
   const db = getDb()
 
+  const rawEmail = formData.get('email')
   const rawName = formData.get('name')
-  const name = typeof rawName === 'string' ? rawName.trim() : ''
-  if (!name || name.length > 80) {
+  const name = typeof rawEmail === 'string' && rawEmail.trim()
+    ? rawEmail.trim()
+    : typeof rawName === 'string'
+      ? rawName.trim()
+      : ''
+  if (!name || (formData.has('email') ? name.length > 120 : name.length > 80)) {
     return { ok: false, code: 'INVALID_NAME' }
   }
 
   const role = formData.get('role') === 'admin' ? 'admin' : 'member'
   const localeValue = formData.get('locale')
   const locale = localeValue === 'he' || localeValue === 'es' ? localeValue : 'en'
+  const statusValue = formData.get('status')
+  const status = statusValue === 'pending' || statusValue === 'disabled' ? statusValue : 'active'
 
-  const { inviteToken } = await createMember(db, { name, role, locale })
+  const { inviteToken } = await createMember(db, { name, role, locale, status })
 
   revalidatePath('/admin/members')
   revalidatePath('/admin')
@@ -101,7 +108,7 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   }
 
   const statusValue = formData.get('status')
-  if (statusValue !== 'active' && statusValue !== 'disabled') {
+  if (statusValue !== 'active' && statusValue !== 'disabled' && statusValue !== 'pending') {
     return { ok: false, code: 'NOT_FOUND' }
   }
 

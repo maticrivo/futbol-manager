@@ -1,5 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
-import AddMemberForm from '@/components/AddMemberForm'
+import AddMemberByEmailForm from '@/components/AddMemberByEmailForm'
 import AdminNav from '@/components/AdminNav'
 import MemberActions from '@/components/MemberActions'
 import { getDb } from '@/db'
@@ -24,7 +24,7 @@ export default async function AdminMembers() {
       <AdminNav />
       <h1 className="text-2xl font-semibold">{t('members.title')}</h1>
 
-      <AddMemberForm />
+      <AddMemberByEmailForm />
 
       <section className="overflow-x-auto rounded-xl border">
         <table className="w-full text-sm">
@@ -46,7 +46,19 @@ export default async function AdminMembers() {
                   {member.role === 'admin' ? t('members.roleAdmin') : t('members.roleMember')}
                 </td>
                 <td className="px-4 py-2 align-top">
-                  {member.status === 'active' ? t('members.statusActive') : t('members.statusDisabled')}
+                  {member.status === 'pending' ? (
+                    <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300">
+                      {t('members.statusPending')}
+                    </span>
+                  ) : member.status === 'active' ? (
+                    <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300">
+                      {t('members.statusActive')}
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center rounded-full border border-neutral-300 bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
+                      {t('members.statusDisabled')}
+                    </span>
+                  )}
                 </td>
                 <td className="px-4 py-2 align-top"><bdi dir="ltr">{member.locale}</bdi></td>
                 <td className="px-4 py-2 align-top"><bdi>{dateFormat.format(member.createdAt)}</bdi></td>

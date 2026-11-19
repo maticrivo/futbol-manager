@@ -17,7 +17,12 @@ export async function listMembers(db: Db): Promise<Member[]> {
 
 export async function createMember(
   db: Db,
-  input: { name: string; role?: 'member' | 'admin'; locale?: string }
+  input: {
+    name: string
+    role?: 'member' | 'admin'
+    locale?: string
+    status?: 'active' | 'disabled' | 'pending'
+  }
 ): Promise<{ member: Member; inviteToken: string }> {
   const inviteToken = generateToken()
   const tokenHash = hashToken(inviteToken)
@@ -29,7 +34,7 @@ export async function createMember(
         name: input.name,
         role: input.role ?? 'member',
         locale: input.locale ?? 'en',
-        status: 'active',
+        status: input.status ?? 'active',
       })
       .$returningId()
 
@@ -200,7 +205,7 @@ export async function setMemberStatus(
   db: Db,
   actorId: number,
   memberId: number,
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'pending'
 ): Promise<Result<Member, 'FORBIDDEN' | 'NOT_FOUND'>> {
   return await db.transaction(async (tx) => {
     // Global lock order: member rows first, ordered by ascending id
@@ -223,8 +228,8 @@ export async function setMemberStatus(
       return err('NOT_FOUND')
     }
 
-    // An admin cannot disable their own account.
-    if (actorId === memberId && status === 'disabled') {
+    // An admin cannot disable their own account or set it to pending.
+    if (actorId === memberId && (status === 'disabled' || status === 'pending')) {
       return err('FORBIDDEN')
     }
 

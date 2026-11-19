@@ -28,27 +28,59 @@ export default function MemberActions({
   const [regenState, regenAction] = useActionState(regenerateInviteAction, null)
   const [statusState, statusAction] = useActionState(setMemberStatusAction, null)
 
-  const nextStatus = status === 'active' ? 'disabled' : 'active'
   const canDisable = !(isSelf && status === 'active')
 
   return (
     <div className="space-y-2">
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-center gap-2">
+        {status === 'pending' && (
+          <>
+            <form action={statusAction}>
+              <input type="hidden" name="memberId" value={memberId} />
+              <input type="hidden" name="status" value="active" />
+              <SubmitButton
+                label={t('admin.members.approve')}
+                pendingLabel={t('admin.members.working')}
+                primary
+              />
+            </form>
+            <form action={statusAction}>
+              <input type="hidden" name="memberId" value={memberId} />
+              <input type="hidden" name="status" value="disabled" />
+              <SubmitButton
+                label={t('admin.members.disable')}
+                pendingLabel={t('admin.members.working')}
+              />
+            </form>
+          </>
+        )}
+        {status === 'active' && (
+          <form action={statusAction}>
+            <input type="hidden" name="memberId" value={memberId} />
+            <input type="hidden" name="status" value="disabled" />
+            {canDisable ? (
+              <SubmitButton
+                label={t('admin.members.disable')}
+                pendingLabel={t('admin.members.working')}
+              />
+            ) : (
+              <span className="text-sm text-neutral-500 dark:text-neutral-400">{t('admin.members.selfNote')}</span>
+            )}
+          </form>
+        )}
+        {status === 'disabled' && (
+          <form action={statusAction}>
+            <input type="hidden" name="memberId" value={memberId} />
+            <input type="hidden" name="status" value="active" />
+            <SubmitButton
+              label={t('admin.members.enable')}
+              pendingLabel={t('admin.members.working')}
+            />
+          </form>
+        )}
         <form action={regenAction}>
           <input type="hidden" name="memberId" value={memberId} />
           <SubmitButton label={t('admin.members.regenerate')} pendingLabel={t('admin.members.working')} />
-        </form>
-        <form action={statusAction}>
-          <input type="hidden" name="memberId" value={memberId} />
-          <input type="hidden" name="status" value={nextStatus} />
-          {canDisable ? (
-            <SubmitButton
-              label={status === 'active' ? t('admin.members.disable') : t('admin.members.enable')}
-              pendingLabel={t('admin.members.working')}
-            />
-          ) : (
-            <span className="text-sm text-neutral-500 dark:text-neutral-400">{t('admin.members.selfNote')}</span>
-          )}
         </form>
       </div>
       {regenState?.ok && <InviteLink url={regenState.inviteUrl} />}

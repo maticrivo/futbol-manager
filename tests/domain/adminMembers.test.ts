@@ -127,3 +127,23 @@ it('revokes sessions when a member is disabled and preserves revocation upon re-
   expect(enableResult.ok).toBe(true)
   expect(await getSessionMember(testDb, token, now)).toBeNull()
 })
+
+it('admin can approve a pending member and cannot set themselves to pending', async () => {
+  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
+  const pending = (await createMember(testDb, { name: 'Pending Player', status: 'pending' })).member
+  expect(pending.status).toBe('pending')
+
+  // Admin cannot set themselves to pending
+  const selfPending = await setMemberStatus(testDb, admin.id, admin.id, 'pending')
+  expect(selfPending).toEqual({ ok: false, code: 'FORBIDDEN' })
+
+  // Admin approves pending member
+  const approveResult = await setMemberStatus(testDb, admin.id, pending.id, 'active')
+  expect(approveResult.ok).toBe(true)
+  expect((await listMembers(testDb)).find((m) => m.id === pending.id)!.status).toBe('active')
+
+  // Admin can change status back to pending
+  const toPendingResult = await setMemberStatus(testDb, admin.id, pending.id, 'pending')
+  expect(toPendingResult.ok).toBe(true)
+  expect((await listMembers(testDb)).find((m) => m.id === pending.id)!.status).toBe('pending')
+})
