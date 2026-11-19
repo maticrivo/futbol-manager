@@ -1,36 +1,57 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Weekly Football Manager
 
-## Getting Started
+A private web application for coordinating a recurring weekly football match, managing signups, waitlist queues, guest players, match lock transitions, push notifications, and member billing.
 
-First, run the development server:
+All monetary amounts are represented as integer agorot in Israeli New Shekels (ILS, where 100 agorot = 1 ILS).
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+## Stack
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+- **Framework**: Next.js 16 (App Router) with React 19 and TypeScript
+- **Database & ORM**: MySQL 8 with Drizzle ORM and `mysql2`
+- **Styling**: Tailwind CSS v4
+- **Date & Time**: Luxon (primary timezone: `Asia/Jerusalem`)
+- **PWA & Notifications**: Web Push with Service Worker (`web-push`)
+- **Testing**: Vitest
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Local Quickstart
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. **Start the local MySQL database**:
+   ```bash
+   docker compose up -d db
+   ```
+2. **Copy the environment configuration**:
+   ```bash
+   cp .env.example .env.local
+   ```
+3. **Run database migrations**:
+   ```bash
+   npm run db:migrate
+   ```
+4. **Seed initial development data**:
+   ```bash
+   npm run seed
+   ```
+5. **Start the Next.js development server**:
+   ```bash
+   npm run dev
+   ```
 
-## Learn More
+## Scripts
 
-To learn more about Next.js, take a look at the following resources:
+| Script | Command | Purpose |
+| --- | --- | --- |
+| `dev` | `next dev` | Start local development server |
+| `build` | `next build` | Create production build |
+| `start` | `next start` | Run production server |
+| `test` | `vitest run` | Run automated test suite with Vitest |
+| `lint` | `eslint` | Run ESLint code checks |
+| `db:generate` | `drizzle-kit generate` | Generate Drizzle migration files from schema |
+| `db:migrate` | `drizzle-kit migrate` | Apply pending Drizzle migrations to database |
+| `seed` | `tsx scripts/seed.ts` | Seed settings, admin, player roster, and upcoming match |
+| `check-db` | `tsx scripts/check-db.ts` | Test database connectivity via `DATABASE_URL` |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Documentation
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- [System Design Spec](docs/superpowers/specs/2026-11-18-weekly-football-manager-design.md)
+- [Implementation Plan](docs/superpowers/plans/2026-11-18-weekly-football-manager.md)
+- [Deployment & Operations Runbook](docs/runbook.md)
