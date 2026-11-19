@@ -235,6 +235,8 @@
       },
       "edit": {
         "title": "עריכת משחק",
+        "openSignupsNow": "פתיחת הרשמה כעת",
+        "openingSignupsNow": "פותח הרשמה…",
         "venue": "מגרש",
         "kickoffAt": "שעת תחילת המשחק",
         "costShekels": "עלות למשתתף (₪)",

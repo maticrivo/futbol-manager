@@ -235,6 +235,8 @@
       },
       "edit": {
         "title": "Editar partido",
+        "openSignupsNow": "Abrir inscripción ya",
+        "openingSignupsNow": "Abriendo inscripción…",
         "venue": "Lugar",
         "kickoffAt": "Inicio del partido",
         "costShekels": "Precio por persona (₪)",

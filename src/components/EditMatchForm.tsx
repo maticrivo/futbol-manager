@@ -2,8 +2,28 @@
 
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
-import { updateMatchAction } from '@/app/actions/admin'
+import { openSignupsNowAction, updateMatchAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+
+function OpenSignupsForm({ matchId }: { matchId: number }) {
+  const t = useTranslations()
+  const [state, formAction] = useActionState(openSignupsNowAction, null)
+
+  return (
+    <form action={formAction} className="inline-block">
+      <input type="hidden" name="matchId" value={matchId} />
+      <SubmitButton
+        label={t('admin.match.edit.openSignupsNow')}
+        pendingLabel={t('admin.match.edit.openingSignupsNow')}
+      />
+      {state?.ok === false && (
+        <span aria-live="polite" className="ms-2 text-sm text-red-700 dark:text-red-300">
+          {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
+        </span>
+      )}
+    </form>
+  )
+}
 
 export default function EditMatchForm({
   matchId,
@@ -17,6 +37,7 @@ export default function EditMatchForm({
   lockAt,
   locked,
   finished,
+  canOpenSignups,
 }: {
   matchId: number
   venue: string
@@ -29,14 +50,19 @@ export default function EditMatchForm({
   lockAt: string
   locked: boolean
   finished: boolean
+  canOpenSignups?: boolean
 }) {
   const t = useTranslations()
   const [state, formAction] = useActionState(updateMatchAction, null)
   const moneyDisabled = locked || finished
+  const showOpenSignups = canOpenSignups ?? (!locked && !finished)
 
   return (
     <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('admin.match.edit.title')}</h2>
+      <div className="flex flex-wrap items-center justify-between gap-2">
+        <h2 className="text-lg font-semibold">{t('admin.match.edit.title')}</h2>
+        {showOpenSignups && <OpenSignupsForm matchId={matchId} />}
+      </div>
       {locked && (
         <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.edit.locked')}</p>
       )}

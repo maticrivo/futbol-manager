@@ -126,6 +126,38 @@ export async function updateMatch(
   })
 }
 
+export async function openSignupsNow(
+  db: Db,
+  input: {
+    actorId: number
+    matchId: number
+    now: Date
+  },
+): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND' | 'MATCH_FINISHED'>> {
+  const { actorId, matchId, now } = input
+
+  return db.transaction(async tx => {
+    // Lock order: match row first, then the actor member row.
+    const match = await lockMatch(tx, matchId)
+    if (!match) return err('NOT_FOUND')
+    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
+
+    if (match.status !== 'scheduled') return err('MATCH_FINISHED')
+
+    await tx.update(matches).set({ signupOpensAt: now, updatedAt: now }).where(eq(matches.id, matchId))
+    await writeAudit(tx, {
+      actorId,
+      action: 'match.open_signups',
+      entity: 'match',
+      entityId: String(matchId),
+      detail: { signupOpensAt: now },
+      createdAt: now,
+    })
+    return ok({ ...match, signupOpensAt: now, updatedAt: now } as Match)
+  })
+}
+
 export async function getMatch(db: Db, matchId: number): Promise<Match | null> {
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId))
   return match ?? null

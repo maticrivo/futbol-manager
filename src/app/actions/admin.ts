@@ -12,7 +12,7 @@ import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/
 import { createMember, regenerateInvite, setMemberStatus } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
-  createMatchForDate, createNextMatch, getUpcomingMatch, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
+  createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
 import type { ActionResult, InviteActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
@@ -238,6 +238,20 @@ export async function updateMatchAction(_prev: ActionResult | null, formData: Fo
   }
 
   const result = await updateMatch(db, { actorId: admin.id, matchId, now: new Date(), patch })
+  if (!result.ok) return { ok: false, code: result.code }
+
+  revalidateMatch(matchId)
+  return { ok: true }
+}
+
+export async function openSignupsNowAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const matchId = positiveId(formData.get('matchId'))
+  if (matchId === null) return { ok: false, code: 'NOT_FOUND' }
+
+  const result = await openSignupsNow(db, { actorId: admin.id, matchId, now: new Date() })
   if (!result.ok) return { ok: false, code: result.code }
 
   revalidateMatch(matchId)

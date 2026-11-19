@@ -235,6 +235,8 @@
       },
       "edit": {
         "title": "Edit match",
+        "openSignupsNow": "Open signups now",
+        "openingSignupsNow": "Opening signups…",
         "venue": "Venue",
         "kickoffAt": "Kickoff",
         "costShekels": "Cost per player (₪)",

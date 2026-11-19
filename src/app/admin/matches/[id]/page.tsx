@@ -54,6 +54,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
   const { match: current, phase, spotsLeft, roster } = view
   const finished = current.status === 'played' || current.status === 'cancelled'
   const locked = current.status === 'locked' || now >= current.lockAt
+  const canOpenSignups = !locked && !finished && (phase === 'before' || now < current.signupOpensAt)
 
   const origin = requestOrigin(await headers(), process.env.APP_URL ?? 'http://localhost:3000')
   const signupCopy = buildGroupMessage('signup_open', locale, {
@@ -153,6 +154,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
         lockAt={localDateTime(current.lockAt)}
         locked={locked}
         finished={finished}
+        canOpenSignups={canOpenSignups}
       />
 
       <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} disabled={finished} />

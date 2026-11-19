@@ -3,7 +3,7 @@ import { beforeEach, expect, it } from 'vitest'
 import { auditLog, matches } from '@/db/schema'
 import { addGuest, signup } from '@/domain/entries'
 import { lockMatch } from '@/domain/lock'
-import { createMatchForDate, updateMatch, type UpdateMatchPatch } from '@/domain/matches'
+import { createMatchForDate, openSignupsNow, updateMatch, type UpdateMatchPatch } from '@/domain/matches'
 import { createMember } from '@/domain/members'
 import { resetDb, testDb } from '../db'
 
@@ -174,3 +174,50 @@ it('validates cost, capacity range and venue length', async () => {
   expect(await updateMatch(testDb, { ...base, patch: { venue: 'x'.repeat(121) } })).toEqual({ ok: false, code: 'INVALID_PATCH' })
   expect(await updateMatch(testDb, { ...base, patch: { notes: 'x'.repeat(2001) } })).toEqual({ ok: false, code: 'INVALID_PATCH' })
 })
+
+it('openSignupsNow updates signupOpensAt and audits match.open_signups', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const now = new Date('2027-03-26T15:00:00Z')
+
+  const result = await openSignupsNow(testDb, { actorId: admin.id, matchId: match.id, now })
+  expect(result.ok).toBe(true)
+  if (!result.ok) return
+
+  expect(result.value.signupOpensAt.getTime()).toBe(now.getTime())
+  expect(result.value.updatedAt.getTime()).toBe(now.getTime())
+
+  const [dbMatch] = await testDb.select().from(matches).where(eq(matches.id, match.id))
+  expect(dbMatch.signupOpensAt.getTime()).toBe(now.getTime())
+  expect(dbMatch.updatedAt.getTime()).toBe(now.getTime())
+
+  const [audit] = await testDb.select().from(auditLog).where(eq(auditLog.action, 'match.open_signups'))
+  expect(audit).toMatchObject({
+    actorId: admin.id,
+    action: 'match.open_signups',
+    entity: 'match',
+    entityId: String(match.id),
+    detail: { signupOpensAt: now.toISOString() },
+  })
+})
+
+it('openSignupsNow rejects non-admin, non-existing and finished matches', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const member = (await createMember(testDb, { name: 'Player' })).member
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const now = new Date('2027-03-26T15:00:00Z')
+
+  expect(await openSignupsNow(testDb, { actorId: member.id, matchId: match.id, now }))
+    .toEqual({ ok: false, code: 'FORBIDDEN' })
+  expect(await openSignupsNow(testDb, { actorId: 999999, matchId: match.id, now }))
+    .toEqual({ ok: false, code: 'FORBIDDEN' })
+  expect(await openSignupsNow(testDb, { actorId: admin.id, matchId: 999999, now }))
+    .toEqual({ ok: false, code: 'NOT_FOUND' })
+
+  for (const status of ['played', 'cancelled', 'locked'] as const) {
+    await testDb.update(matches).set({ status }).where(eq(matches.id, match.id))
+    expect(await openSignupsNow(testDb, { actorId: admin.id, matchId: match.id, now }))
+      .toEqual({ ok: false, code: 'MATCH_FINISHED' })
+  }
+})
+

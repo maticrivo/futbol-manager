@@ -5,6 +5,7 @@ import {
   adminAddEntryAction,
   adminRemoveEntryAction,
   cancelMatchAction,
+  openSignupsNowAction,
   recordGuestPaymentAction,
   refundGuestPaymentAction,
   restoreChargeAction,
@@ -46,6 +47,38 @@ it('updateMatchAction freezes money fields after lock and returns the code', asy
   form.set('costShekels', '40')
   expect(await updateMatchAction(null, form)).toEqual({ ok: false, code: 'MONEY_FIELDS_FROZEN' })
   expect(revalidatePath).not.toHaveBeenCalled()
+})
+
+it('openSignupsNowAction calls openSignupsNow and revalidates paths', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const form = new FormData()
+  form.set('matchId', String(match.id))
+
+  const res = await openSignupsNowAction(null, form)
+  expect(res).toEqual({ ok: true })
+
+  const updated = await getMatch(testDb, match.id)
+  expect(updated?.signupOpensAt).toBeDefined()
+  expect(revalidatePath).toHaveBeenCalledWith('/')
+  expect(revalidatePath).toHaveBeenCalledWith('/admin')
+  expect(revalidatePath).toHaveBeenCalledWith(`/admin/matches/${match.id}`)
+})
+
+it('openSignupsNowAction rejects missing matchId or non-scheduled match', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, match.id))
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const missingForm = new FormData()
+  expect(await openSignupsNowAction(null, missingForm)).toEqual({ ok: false, code: 'NOT_FOUND' })
+
+  const playedForm = new FormData()
+  playedForm.set('matchId', String(match.id))
+  expect(await openSignupsNowAction(null, playedForm)).toEqual({ ok: false, code: 'MATCH_FINISHED' })
 })
 
 it('adminAddEntryAction adds without a reason pre-lock and requires one when locked', async () => {
