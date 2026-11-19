@@ -44,11 +44,13 @@ function newCharge(match: Match, memberId: number, now: Date) {
 }
 
 // Internal charge mutations run with the caller's match row lock held.
+// Member rows are locked in ascending order before inserting charges to preserve the
+// match -> members -> entry/charge hierarchy and prevent FK shared lock upgrade deadlocks.
 export async function createMatchCharges(tx: Tx, match: Match, memberIds: number[], now: Date): Promise<number> {
   if (memberIds.length === 0) return 0
-  const [result] = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
   const sortedIds = [...new Set(memberIds)].sort((a, b) => a - b)
   await tx.select().from(members).where(inArray(members.id, sortedIds)).orderBy(asc(members.id)).for('update')
+  const [result] = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
   for (const memberId of sortedIds) {
     await allocateAvailableCredit(tx, memberId, now)
   }
