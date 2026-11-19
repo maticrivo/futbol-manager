@@ -2,9 +2,10 @@ import type { Db } from '@/db'
 import { loginTokens, members, sessions } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { generateToken, hashToken } from '@/lib/tokens'
-import { and, asc, eq, inArray, isNull } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { revokeSessions, SESSION_LIFETIME_MS } from './sessions'
+import { sendMagicLinkEmail } from '@/lib/email'
 
 export type Member = typeof members.$inferSelect
 
@@ -253,3 +254,109 @@ export async function setMemberStatus(
     return ok(updated!)
   })
 }
+
+function isValidEmail(email: string): boolean {
+  const trimmed = email.trim()
+  if (trimmed.length === 0 || trimmed.length > 120) return false
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
+}
+
+export async function requestMemberAccess(
+  db: Db,
+  email: string,
+  now: Date = new Date()
+): Promise<Result<{ memberId: number; inviteToken: string; member: Member }, 'INVALID_EMAIL'>> {
+  const trimmedEmail = email.trim()
+  if (!isValidEmail(trimmedEmail)) {
+    return err('INVALID_EMAIL')
+  }
+
+  const normalizedEmail = trimmedEmail.toLowerCase()
+  const inviteToken = generateToken()
+  const tokenHash = hashToken(inviteToken)
+
+  const { member } = await db.transaction(async (tx) => {
+    // 1. Look up existing member by email/name (case-insensitive)
+    const [existing] = await tx
+      .select()
+      .from(members)
+      .where(or(eq(members.name, trimmedEmail), eq(members.name, normalizedEmail)))
+      .for('update')
+      .limit(1)
+
+    if (existing) {
+      // Revoke outstanding unrevoked login tokens
+      await tx
+        .update(loginTokens)
+        .set({ revokedAt: now })
+        .where(and(eq(loginTokens.memberId, existing.id), isNull(loginTokens.revokedAt)))
+
+      await tx.insert(loginTokens).values({
+        memberId: existing.id,
+        tokenHash,
+      })
+
+      await writeAudit(tx, {
+        actorId: existing.id,
+        action: 'auth.magic_link_request',
+        entity: 'member',
+        entityId: String(existing.id),
+        detail: {
+          email: existing.name,
+          status: existing.status,
+        },
+      })
+
+      return { member: existing }
+    }
+
+    // 2. Insert new pending member
+    const [inserted] = await tx
+      .insert(members)
+      .values({
+        name: trimmedEmail,
+        role: 'member',
+        locale: 'en',
+        status: 'pending',
+      })
+      .$returningId()
+
+    const [created] = await tx
+      .select()
+      .from(members)
+      .where(eq(members.id, inserted.id))
+      .limit(1)
+
+    if (!created) {
+      throw new Error(`Failed to retrieve newly created member ${inserted.id}`)
+    }
+
+    await tx.insert(loginTokens).values({
+      memberId: created.id,
+      tokenHash,
+    })
+
+    await writeAudit(tx, {
+      actorId: created.id,
+      action: 'member.request_access',
+      entity: 'member',
+      entityId: String(created.id),
+      detail: {
+        email: created.name,
+        role: created.role,
+        status: created.status,
+      },
+    })
+
+    return { member: created }
+  })
+
+  const baseUrl = (process.env.APP_URL ?? 'http://localhost:3000').replace(/\/+$/, '')
+  const magicLinkUrl = `${baseUrl}/login/${inviteToken}`
+  await sendMagicLinkEmail(trimmedEmail, magicLinkUrl)
+
+  return ok({ memberId: member.id, inviteToken, member })
+}
+
+export const requestMagicLink = requestMemberAccess
+
