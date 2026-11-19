@@ -33,7 +33,7 @@ function matchCharges(matchId: number) {
 }
 
 function logs(action: string) {
-  return testDb.select().from(auditLog).where(eq(auditLog.action, action))
+  return testDb.select().from(auditLog).where(eq(auditLog.action, action)).orderBy(auditLog.id)
 }
 
 it('charges confirmed members once, including no-shows, and never guests', async () => {

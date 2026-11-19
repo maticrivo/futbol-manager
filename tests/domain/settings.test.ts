@@ -1,7 +1,9 @@
 import { beforeEach, expect, it } from 'vitest'
+import { settings } from '@/db/schema'
 import { testDb, resetDb } from '../db'
 import { createMember } from '@/domain/members'
 import { getSettings, updateSettings } from '@/domain/matches'
+import { DEFAULT_SETTINGS } from '@/domain/settings'
 
 beforeEach(resetDb)
 
@@ -27,4 +29,26 @@ it('persists a valid update', async () => {
   const settings = await getSettings(testDb)
   expect(settings.capacity).toBe(16)
   expect(settings.costAgorot).toBe(4000)
+})
+
+it('does not coerce blank stored values to zero and preserves defaults while valid values still win', async () => {
+  await testDb.insert(settings).values([
+    { key: 'capacity', value: '' },
+    { key: 'costAgorot', value: '   ' },
+    { key: 'queueWindowMinutes', value: '' },
+  ])
+
+  const defaultResult = await getSettings(testDb)
+  expect(defaultResult.capacity).toBe(DEFAULT_SETTINGS.capacity)
+  expect(defaultResult.costAgorot).toBe(DEFAULT_SETTINGS.costAgorot)
+  expect(defaultResult.queueWindowMinutes).toBe(DEFAULT_SETTINGS.queueWindowMinutes)
+
+  // A valid stored value still wins
+  await testDb.insert(settings).values({ key: 'capacity', value: '18' })
+    .onDuplicateKeyUpdate({ set: { value: '18' } })
+
+  const updatedResult = await getSettings(testDb)
+  expect(updatedResult.capacity).toBe(18)
+  expect(updatedResult.costAgorot).toBe(DEFAULT_SETTINGS.costAgorot)
+  expect(updatedResult.queueWindowMinutes).toBe(DEFAULT_SETTINGS.queueWindowMinutes)
 })

@@ -261,19 +261,19 @@ export async function cancelMatch(
     } else {
       await tx.update(charges).set({ status: 'waived', waivedBy: actorId, waiveReason: reason, updatedAt: now })
         .where(and(eq(charges.matchId, matchId), eq(charges.status, 'charged')))
+    }
 
-      // Serialize the ledger read and reversals with guest records/refunds from other admins.
-      const guests = await tx.select({ id: entries.id }).from(entries)
-        .where(and(matchEntries, eq(entries.kind, 'guest'))).orderBy(entries.id).for('update')
-      if (guests.length > 0) {
-        const originals = await tx.select().from(guestPayments).where(and(
-          eq(guestPayments.kind, 'payment'), inArray(guestPayments.entryId, guests.map(guest => guest.id)),
-        ))
-        for (const original of originals) {
-          const result = await insertGuestRefund(tx, original, { actorId, now, note: reason })
-          if (!result.ok && result.code !== 'ALREADY_REFUNDED') {
-            throw new Error(`Cannot reverse guest payment ${original.id}: ${result.code}`)
-          }
+    // Serialize the ledger read and reversals with guest records/refunds from other admins.
+    const guests = await tx.select({ id: entries.id }).from(entries)
+      .where(and(matchEntries, eq(entries.kind, 'guest'))).orderBy(entries.id).for('update')
+    if (guests.length > 0) {
+      const originals = await tx.select().from(guestPayments).where(and(
+        eq(guestPayments.kind, 'payment'), inArray(guestPayments.entryId, guests.map(guest => guest.id)),
+      ))
+      for (const original of originals) {
+        const result = await insertGuestRefund(tx, original, { actorId, now, note: reason })
+        if (!result.ok && result.code !== 'ALREADY_REFUNDED') {
+          throw new Error(`Cannot reverse guest payment ${original.id}: ${result.code}`)
         }
       }
     }

@@ -1,7 +1,10 @@
+import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
+import { sessions } from '@/db/schema'
 import { testDb, resetDb } from '../db'
 import { getAuditLog, writeAudit } from '@/domain/audit'
 import { createMember, listMembers, loginWithInvite, regenerateInvite, setMemberStatus } from '@/domain/members'
+import { getSessionMember } from '@/domain/sessions'
 
 const now = new Date('2027-03-27T10:00:00Z')
 
@@ -96,4 +99,31 @@ it('admin regeneration invalidates the old token and the new token logs in', asy
 
   expect(await loginWithInvite(testDb, target.inviteToken, now)).toEqual({ ok: false, code: 'INVALID_TOKEN' })
   expect((await loginWithInvite(testDb, regen.value.inviteToken, now)).ok).toBe(true)
+})
+
+it('revokes sessions when a member is disabled and preserves revocation upon re-enabling', async () => {
+  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
+  const target = await createMember(testDb, { name: 'Player' })
+  const login = await loginWithInvite(testDb, target.inviteToken, now)
+  if (!login.ok) throw new Error(login.code)
+  const token = login.value.sessionToken
+
+  // Valid session initially
+  expect(await getSessionMember(testDb, token, now)).toMatchObject({ id: target.member.id })
+  const sessionRowsBefore = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+  expect(sessionRowsBefore.length).toBe(1)
+
+  // Disable member
+  const disableResult = await setMemberStatus(testDb, admin.id, target.member.id, 'disabled')
+  expect(disableResult.ok).toBe(true)
+
+  // Session row is gone and request with token is rejected
+  const sessionRowsAfter = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
+  expect(sessionRowsAfter).toEqual([])
+  expect(await getSessionMember(testDb, token, now)).toBeNull()
+
+  // Re-enable and confirm the old token still does not work
+  const enableResult = await setMemberStatus(testDb, admin.id, target.member.id, 'active')
+  expect(enableResult.ok).toBe(true)
+  expect(await getSessionMember(testDb, token, now)).toBeNull()
 })

@@ -232,6 +232,36 @@ it('removes confirmed entries and expires the queue on scheduled cancellation wi
   expect(await testDb.select().from(charges)).toEqual([])
 })
 
+it('refunds guest payments when a scheduled match is cancelled pre-lock', async () => {
+  const { adminId, match, entryId } = await setupGuest()
+  const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
+  expect(payment.kind).toBe('payment')
+
+  const cancelResult = await cancelMatch(testDb, {
+    actorId: adminId,
+    matchId: match.id,
+    now,
+    reason: 'rain cancellation',
+  })
+  expect(cancelResult).toMatchObject({ ok: true, value: { status: 'cancelled' } })
+
+  const [refundRow] = await testDb.select().from(guestPayments)
+    .where(eq(guestPayments.refundOfId, payment.id))
+  expect(refundRow).toMatchObject({
+    kind: 'refund',
+    amountAgorot: -3500,
+    entryId,
+    refundOfId: payment.id,
+  })
+
+  expect((await monthSummary(testDb, '2027-03')).guestCollectedAgorot).toBe(0)
+
+  const [entry] = await testDb.select().from(entries).where(eq(entries.id, entryId))
+  expect(entry.status).toBe('removed')
+
+  expect(await testDb.select().from(charges)).toEqual([])
+})
+
 it('waives charges and reverses guest money without replacing the original payment on post-lock cancellation', async () => {
   const { adminId, memberId, match, entryId } = await setupGuest()
   await testDb.insert(entries).values([

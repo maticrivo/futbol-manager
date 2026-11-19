@@ -1,8 +1,9 @@
-import { and, eq } from 'drizzle-orm'
+import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { Db, Tx } from '@/db'
 import { charges, matches, members } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { billingMonthOf } from '@/lib/time'
+import { allocateAvailableCredit } from './allocations'
 import { writeAudit } from './audit'
 import type { Match } from './matches'
 
@@ -46,6 +47,11 @@ function newCharge(match: Match, memberId: number, now: Date) {
 export async function createMatchCharges(tx: Tx, match: Match, memberIds: number[], now: Date): Promise<number> {
   if (memberIds.length === 0) return 0
   const [result] = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
+  const sortedIds = [...new Set(memberIds)].sort((a, b) => a - b)
+  await tx.select().from(members).where(inArray(members.id, sortedIds)).orderBy(asc(members.id)).for('update')
+  for (const memberId of sortedIds) {
+    await allocateAvailableCredit(tx, memberId, now)
+  }
   return result.affectedRows
 }
 
@@ -53,6 +59,8 @@ export async function chargeAddedMember(tx: Tx, match: Match, memberId: number, 
   // A member re-added after removal already has a charge; bill them again on that same row.
   await tx.insert(charges).values(newCharge(match, memberId, now))
     .onDuplicateKeyUpdate({ set: { ...charged, updatedAt: now } })
+  // Caller (adminAddEntry) holds the member lock.
+  await allocateAvailableCredit(tx, memberId, now)
 }
 
 export async function waiveRemovedMember(
@@ -119,7 +127,14 @@ export async function restoreCharge(
 ): Promise<Result<Charge, 'FORBIDDEN' | 'NOT_FOUND' | 'NOT_WAIVED'>> {
   return db.transaction(async tx => {
     const match = await lockMatchForCharge(tx, chargeId)
-    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
+    const [target] = await tx.select({ memberId: charges.memberId }).from(charges).where(eq(charges.id, chargeId))
+    const memberIds = [...new Set([actorId, ...(target ? [target.memberId] : [])])].sort((a, b) => a - b)
+    let actorRole: (typeof members.$inferSelect)['role'] | undefined
+    for (const id of memberIds) {
+      const [member] = await tx.select({ role: members.role }).from(members).where(eq(members.id, id)).for('update')
+      if (id === actorId) actorRole = member?.role
+    }
+    if (actorRole !== 'admin') return err('FORBIDDEN')
     if (!match) return err('NOT_FOUND')
     const charge = await lockCharge(tx, chargeId, match.id)
     if (!charge) return err('NOT_FOUND')
@@ -127,6 +142,7 @@ export async function restoreCharge(
 
     const update = { ...charged, updatedAt: now }
     await tx.update(charges).set(update).where(eq(charges.id, chargeId))
+    await allocateAvailableCredit(tx, charge.memberId, now)
     await writeAudit(tx, { actorId, action: 'charge.restore', entity: 'charge', entityId: String(chargeId), createdAt: now })
     return ok({ ...charge, ...update })
   })

@@ -232,6 +232,10 @@ export async function setMemberStatus(
       .set({ status })
       .where(eq(members.id, memberId))
 
+    if (status === 'disabled') {
+      await revokeSessions(tx, memberId)
+    }
+
     await writeAudit(tx, {
       actorId,
       action: 'member.status',

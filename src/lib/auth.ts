@@ -36,10 +36,6 @@ export async function requireAdmin(): Promise<Member> {
   return member
 }
 
-export async function setSessionCookie(token: string): Promise<void> {
-  (await cookies()).set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS)
-}
-
 export async function clearSessionCookie(): Promise<void> {
   (await cookies()).delete(SESSION_COOKIE)
 }

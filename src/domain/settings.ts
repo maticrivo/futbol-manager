@@ -30,6 +30,14 @@ const VALID_SETTING_KEYS: Set<string> = new Set([
 
 const KICKOFF_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/
 
+function parseNumericSetting(val: string | undefined, fallback: number): number {
+  if (val === undefined) return fallback
+  const trimmed = val.trim()
+  if (trimmed === '') return fallback
+  const n = Number(trimmed)
+  return Number.isFinite(n) ? n : fallback
+}
+
 export async function getSettings(db: Executor): Promise<Settings> {
   const rows = await db.select().from(settings)
   const map = new Map(rows.map((r) => [r.key, r.value]))
@@ -41,20 +49,11 @@ export async function getSettings(db: Executor): Promise<Settings> {
   const queueVal = map.get('queueWindowMinutes')
 
   return {
-    capacity:
-      capacityVal !== undefined && !Number.isNaN(Number(capacityVal))
-        ? Number(capacityVal)
-        : DEFAULT_SETTINGS.capacity,
-    costAgorot:
-      costVal !== undefined && !Number.isNaN(Number(costVal))
-        ? Number(costVal)
-        : DEFAULT_SETTINGS.costAgorot,
+    capacity: parseNumericSetting(capacityVal, DEFAULT_SETTINGS.capacity),
+    costAgorot: parseNumericSetting(costVal, DEFAULT_SETTINGS.costAgorot),
     venue: venueVal !== undefined ? venueVal : DEFAULT_SETTINGS.venue,
     kickoffTime: kickoffVal !== undefined ? kickoffVal : DEFAULT_SETTINGS.kickoffTime,
-    queueWindowMinutes:
-      queueVal !== undefined && !Number.isNaN(Number(queueVal))
-        ? Number(queueVal)
-        : DEFAULT_SETTINGS.queueWindowMinutes,
+    queueWindowMinutes: parseNumericSetting(queueVal, DEFAULT_SETTINGS.queueWindowMinutes),
   }
 }
 
