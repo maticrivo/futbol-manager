@@ -54,6 +54,7 @@ it('runs one full week and settles the month', async () => {
   const monday = new Date('2027-03-29T11:00:00Z')
   const guest = await addGuest(testDb, { hostMemberId: people[2].id, matchId: match.id, name: 'Dani', now: monday })
   expect(guest.ok).toBe(true)
+  if (!guest.ok) throw new Error('guest not created')
   for (const p of people.slice(13, 15)) await joinQueue(testDb, { memberId: p.id, matchId: match.id, now: monday })
 
   const leaving = await withdraw(testDb, { entryId: await confirmedEntryId(match.id, people[0].id), actorMemberId: people[0].id, now: monday })
@@ -63,7 +64,7 @@ it('runs one full week and settles the month', async () => {
 
   const tuesdayLock = new Date('2027-03-30T11:00:00Z')
   await lockMatch(testDb, match.id, tuesdayLock)
-  await recordGuestPayment(testDb, { actorId: admin.id, entryId: guest.ok ? guest.value.id : 0, amountAgorot: 3500, paidAt: tuesdayLock })
+  await recordGuestPayment(testDb, { actorId: admin.id, entryId: guest.value.id, amountAgorot: 3500, paidAt: tuesdayLock })
   await recordPayment(testDb, { actorId: admin.id, memberId: people[1].id, amountAgorot: 3500, paidAt: tuesdayLock, method: 'paybox' })
   await setMonthlyExpense(testDb, { actorId: admin.id, month: '2027-03', fieldCostAgorot: 20000 })
 
@@ -71,6 +72,8 @@ it('runs one full week and settles the month', async () => {
   expect(summary.chargesAgorot).toBe(13 * 3500)
   expect(summary.memberCollectedAgorot).toBe(3500)
   expect(summary.guestCollectedAgorot).toBe(3500)
+  expect(summary.expenseAgorot).toBe(20000)
+  expect(summary.differenceAgorot).toBe(3500 + 3500 - 20000)
   expect(summary.outstandingAgorot).toBe(12 * 3500)
   expect((await memberBalance(testDb, people[1].id)).balanceAgorot).toBe(0)
 
@@ -82,12 +85,10 @@ it('runs one full week and settles the month', async () => {
   expect(withdrawnCharges.length).toBe(0)
 
   // Guest is on the roster at lock
-  if (guest.ok) {
-    const [guestEntry] = await testDb
-      .select()
-      .from(entries)
-      .where(eq(entries.id, guest.value.id))
-    expect(guestEntry).toBeDefined()
-    expect(guestEntry.status).toBe('confirmed')
-  }
+  const [guestEntry] = await testDb
+    .select()
+    .from(entries)
+    .where(eq(entries.id, guest.value.id))
+  expect(guestEntry).toBeDefined()
+  expect(guestEntry.status).toBe('confirmed')
 })

@@ -12,21 +12,27 @@ import { TZ } from '../src/lib/time'
 
 async function main() {
   const db = getDb()
-  const baseUrl = (process.env.APP_URL || 'http://localhost:3000').replace(/\/+$/, '')
+  let rawUrl = process.env.APP_URL?.trim()
+  if (rawUrl) {
+    if (!/^https?:\/\//i.test(rawUrl)) {
+      rawUrl = `https://${rawUrl}`
+    }
+  }
+  const baseUrl = (rawUrl || 'http://localhost:3000').replace(/\/+$/, '')
 
   const existingMembers = await db.select().from(members)
   const existingByName = new Map(existingMembers.map((m) => [m.name, m]))
 
   const adminName = process.env.SEED_ADMIN_NAME?.trim() || 'Admin'
-  let adminId: number
+  let adminId: number | null = null
   let createdCount = 0
   let skippedCount = 0
 
   const existingAdmin = existingByName.get(adminName)
-  if (existingAdmin) {
+  if (existingAdmin && existingAdmin.role === 'admin') {
     adminId = existingAdmin.id
     skippedCount++
-  } else {
+  } else if (!existingAdmin) {
     const { member: newAdmin, inviteToken } = await createMember(db, {
       name: adminName,
       role: 'admin',
@@ -36,6 +42,42 @@ async function main() {
     existingByName.set(newAdmin.name, newAdmin)
     createdCount++
     console.log(`${newAdmin.name}: ${baseUrl}/login/${inviteToken}`)
+  } else {
+    for (let i = 1; i <= 5; i++) {
+      const candidateName = i === 1 ? `${adminName} (admin)` : `${adminName} (admin ${i})`
+      const candidate = existingByName.get(candidateName)
+      if (candidate) {
+        if (candidate.role === 'admin') {
+          adminId = candidate.id
+          skippedCount++
+          console.error(
+            `Warning: "${adminName}" already exists as a member; using existing admin "${candidateName}" instead.`
+          )
+          break
+        }
+        continue
+      }
+
+      const { member: newAdmin, inviteToken } = await createMember(db, {
+        name: candidateName,
+        role: 'admin',
+        locale: 'he',
+      })
+      adminId = newAdmin.id
+      existingByName.set(newAdmin.name, newAdmin)
+      createdCount++
+      console.error(
+        `Warning: "${adminName}" already exists as a member; created admin "${candidateName}" instead.`
+      )
+      console.log(`${newAdmin.name}: ${baseUrl}/login/${inviteToken}`)
+      break
+    }
+
+    if (!adminId) {
+      throw new Error(
+        `Failed to resolve admin: "${adminName}" exists as a member and no free admin candidate could be found in 5 attempts. Please set SEED_ADMIN_NAME to an unused name.`
+      )
+    }
   }
 
   const existingSettings = await db.select().from(settings)

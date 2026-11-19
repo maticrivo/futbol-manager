@@ -93,6 +93,8 @@ This outputs:
    ```
    Save the printed login links from the seed output securely to distribute initial admin and player invites.
 
+   > **Security Warning**: Printed invite links are bearer login tokens granting direct, passwordless access to member and admin accounts. Do not capture seed output in shared CI logs, chat channels, or tickets. If an invite link leaks, immediately regenerate an invite in `/admin/members` to revoke active sessions and issue a new token.
+
 ---
 
 ## 5. Background Scheduler (cron-job.org)
@@ -111,11 +113,11 @@ The application handles status transitions (lock, played), queue offer expiratio
      ```
 2. **Verification**:
    - Check the cron-job.org execution log to confirm HTTP 200 responses.
-   - The response returns a JSON payload summarizing actions performed:
-     `{"ok":true,"now":"...","scheduleHealed":false,"advanced":0,"expiredOffers":0,"notificationsSent":0}`.
+   - The response returns a JSON payload representing `TickCounts`:
+     `{"locked":0,"matchesCreated":0,"expiredOffers":0,"notificationsSent":0}`.
 3. **Recognizing a Stuck Schedule**:
    - If response codes are 401: verify `TICK_SECRET` in header and Vercel match.
-   - If `advanced: 0` persists when current time is past a match's `lockAt`: verify server time and time zone settings (`Asia/Jerusalem`).
+   - If a scheduled match is past `lockAt` while `locked: 0` or `matchesCreated: 0` persists across ticks, verify server time, scheduler execution, and time zone settings (`Asia/Jerusalem`).
    - If cron-job.org fails repeatedly: the app provides a lazy self-healing fallback when users access match pages, but timely automated push notifications rely on the cron runner.
 
 ---
@@ -172,8 +174,9 @@ The application handles status transitions (lock, played), queue offer expiratio
      ```sql
      SELECT id, matchDate, status, kickoffAt, lockAt
      FROM matches
-     WHERE status = 'scheduled' AND lockAt < NOW();
+     WHERE status = 'scheduled' AND lockAt < UTC_TIMESTAMP();
      ```
+   - Note that the application stores timestamps in UTC (`timezone: 'Z'`), so `NOW()` is wrong on a server whose session timezone is local; always use `UTC_TIMESTAMP()`.
    - If any rows appear, triggering `POST /api/tick` or visiting the match page in a browser will advance the match to `locked` and generate charges.
 4. **Notification Deduplication**:
    - Notifications are recorded in `notificationLog` with a unique key `(eventKey)`.
