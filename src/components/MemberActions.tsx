@@ -22,7 +22,7 @@ export default function MemberActions({
 }: {
   memberId: number
   isSelf: boolean
-  status: 'active' | 'disabled'
+  status: 'active' | 'disabled' | 'pending'
 }) {
   const t = useTranslations()
   const [regenState, regenAction] = useActionState(regenerateInviteAction, null)

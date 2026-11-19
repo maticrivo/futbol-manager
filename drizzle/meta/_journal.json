@@ -8,6 +8,13 @@
       "when": 1795011928882,
       "tag": "0000_sudden_goliath",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "5",
+      "when": 1795070248338,
+      "tag": "0001_third_maestro",
+      "breakpoints": true
     }
   ]
 }

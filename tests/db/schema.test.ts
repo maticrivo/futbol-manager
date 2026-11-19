@@ -37,4 +37,19 @@ describe('schema constraints', () => {
     const guests = await testDb.select().from(entries).where(eq(entries.matchId, matchId))
     expect(guests).toHaveLength(3)
   })
+
+  it('allows members with status pending, active, and disabled', async () => {
+    const [p] = await testDb.insert(members).values({ name: 'Pending User', status: 'pending' }).$returningId()
+    const [a] = await testDb.insert(members).values({ name: 'Active User', status: 'active' }).$returningId()
+    const [d] = await testDb.insert(members).values({ name: 'Disabled User', status: 'disabled' }).$returningId()
+
+    const rows = await testDb.select().from(members)
+    const pendingMember = rows.find((r) => r.id === p.id)
+    const activeMember = rows.find((r) => r.id === a.id)
+    const disabledMember = rows.find((r) => r.id === d.id)
+
+    expect(pendingMember?.status).toBe('pending')
+    expect(activeMember?.status).toBe('active')
+    expect(disabledMember?.status).toBe('disabled')
+  })
 })

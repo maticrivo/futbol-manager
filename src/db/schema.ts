@@ -14,7 +14,7 @@ import {
 } from 'drizzle-orm/mysql-core'
 
 export const memberRoleEnum = mysqlEnum('role', ['member', 'admin'])
-export const memberStatusEnum = mysqlEnum('status', ['active', 'disabled'])
+export const memberStatusEnum = mysqlEnum('status', ['pending', 'active', 'disabled'])
 
 export const members = mysqlTable('members', {
   id: int('id', { unsigned: true }).autoincrement().primaryKey(),
