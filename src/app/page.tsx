@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
 import Countdown from '@/components/Countdown'
 import GuestForm from '@/components/GuestForm'
 import MatchActionForm from '@/components/MatchActionForm'
@@ -13,6 +14,9 @@ import { requireMember } from '@/lib/auth'
 
 export default async function Home() {
   const member = await requireMember()
+  if (member.status === 'pending') {
+    redirect('/login/pending')
+  }
   const db = getDb()
   const now = new Date()
   const upcoming = await getUpcomingMatch(db, now)

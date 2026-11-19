@@ -165,7 +165,7 @@ export async function loginWithInvite(
       return err('INVALID_TOKEN')
     }
 
-    if (member.status !== 'active') {
+    if (member.status === 'disabled') {
       return err('DISABLED')
     }
 

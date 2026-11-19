@@ -1,7 +1,7 @@
 import type { Db, Executor } from '@/db'
 import { members, sessions } from '@/db/schema'
 import { hashToken } from '@/lib/tokens'
-import { and, eq, gt } from 'drizzle-orm'
+import { and, eq, gt, ne } from 'drizzle-orm'
 import type { Member } from './members'
 
 export const SESSION_LIFETIME_DAYS = 365
@@ -24,7 +24,7 @@ export async function getSessionMember(
       and(
         eq(sessions.tokenHash, tokenHash),
         gt(sessions.expiresAt, now),
-        eq(members.status, 'active')
+        ne(members.status, 'disabled')
       )
     )
     .limit(1)

@@ -15,7 +15,18 @@
   "auth": {
     "signedInAs": "Signed in as {name}",
     "invalidLink": "Link expired or revoked",
-    "askAdmin": "Ask an admin for a new link"
+    "askAdmin": "Ask an admin for a new link",
+    "signInTitle": "Sign in / Sign up",
+    "signInSubtitle": "Enter your email to receive a magic sign-in link.",
+    "emailLabel": "Email",
+    "emailPlaceholder": "player@example.com",
+    "sendLink": "Send sign-in link",
+    "sendingLink": "Sending…",
+    "magicLinkSent": "Check your email for your sign-in link.",
+    "magicLinkError": "Please enter a valid email address.",
+    "pendingTitle": "Account pending approval",
+    "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
+    "signOut": "Sign out"
   },
   "home": { "placeholder": "Match details will appear here." },
   "match": {

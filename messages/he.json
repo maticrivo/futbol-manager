@@ -15,7 +15,18 @@
   "auth": {
     "signedInAs": "התחברת בשם {name}",
     "invalidLink": "תוקף הקישור פג או שהקישור בוטל",
-    "askAdmin": "אפשר לבקש קישור חדש מצוות הניהול"
+    "askAdmin": "אפשר לבקש קישור חדש מצוות הניהול",
+    "signInTitle": "התחברות / הרשמה",
+    "signInSubtitle": "יש להזין כתובת אימייל כדי לקבל קישור התחברות.",
+    "emailLabel": "אימייל",
+    "emailPlaceholder": "player@example.com",
+    "sendLink": "שליחת קישור התחברות",
+    "sendingLink": "שולח…",
+    "magicLinkSent": "קישור ההתחברות נשלח לאימייל שלך.",
+    "magicLinkError": "נא להזין כתובת אימייל תקינה.",
+    "pendingTitle": "החשבון ממתין לאישור",
+    "pendingDescription": "החשבון שלך ממתין לאישור מנהל. לאחר האישור תוכל להצטרף למשחקים ולצפות בתשלומים.",
+    "signOut": "התנתקות"
   },
   "home": { "placeholder": "פרטי המשחק יופיעו כאן." },
   "match": {

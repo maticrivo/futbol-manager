@@ -10,7 +10,8 @@ export async function GET(req: Request, { params }: RouteContext<'/login/[token]
   const result = await loginWithInvite(getDb(), token, new Date())
   if (!result.ok) return NextResponse.redirect(new URL('/login/expired', origin))
 
-  const response = NextResponse.redirect(new URL('/', origin))
+  const destination = result.value.member.status === 'pending' ? '/login/pending' : '/'
+  const response = NextResponse.redirect(new URL(destination, origin))
   response.cookies.set(SESSION_COOKIE, result.value.sessionToken, SESSION_COOKIE_OPTIONS)
   return response
 }

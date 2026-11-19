@@ -15,7 +15,18 @@
   "auth": {
     "signedInAs": "Sesión iniciada como {name}",
     "invalidLink": "El enlace caducó o fue revocado",
-    "askAdmin": "Pide un enlace nuevo al equipo de administración"
+    "askAdmin": "Pide un enlace nuevo al equipo de administración",
+    "signInTitle": "Iniciar sesión / Registrarse",
+    "signInSubtitle": "Introduce tu correo para recibir un enlace de inicio de sesión.",
+    "emailLabel": "Correo electrónico",
+    "emailPlaceholder": "jugador@example.com",
+    "sendLink": "Enviar enlace",
+    "sendingLink": "Enviando…",
+    "magicLinkSent": "Revisa tu correo para obtener tu enlace de inicio de sesión.",
+    "magicLinkError": "Por favor, introduce una dirección de correo válida.",
+    "pendingTitle": "Cuenta pendiente de aprobación",
+    "pendingDescription": "Tu cuenta está esperando la aprobación de un administrador. Una vez aprobada, tendrás acceso a los partidos y cobros.",
+    "signOut": "Cerrar sesión"
   },
   "home": { "placeholder": "Aquí aparecerán los detalles del partido." },
   "match": {

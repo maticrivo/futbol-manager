@@ -8,6 +8,8 @@ import { getDb } from '@/db'
 import { members } from '@/db/schema'
 import { isLocale, LOCALE_COOKIE } from '@/i18n/locale'
 import { clearSessionCookie, deleteSessionByToken, getCurrentMember, SESSION_COOKIE } from '@/lib/auth'
+import { requestMemberAccess } from '@/domain/members'
+import { toActionResult, type ActionResult } from '@/lib/actions'
 
 export async function setLocaleAction(formData: FormData): Promise<void> {
   const locale = formData.get('locale')
@@ -26,4 +28,22 @@ export async function logoutAction(): Promise<void> {
   if (token) await deleteSessionByToken(getDb(), token)
   await clearSessionCookie()
   redirect('/login/expired')
+}
+
+export async function requestMagicLinkAction(
+  prevStateOrFormData: ActionResult | null | FormData,
+  maybeFormData?: FormData
+): Promise<ActionResult> {
+  const formData =
+    maybeFormData instanceof FormData
+      ? maybeFormData
+      : prevStateOrFormData instanceof FormData
+        ? prevStateOrFormData
+        : new FormData()
+  const rawEmail = formData.get('email')
+  if (typeof rawEmail !== 'string') {
+    return { ok: false, code: 'INVALID_EMAIL' }
+  }
+  const result = await requestMemberAccess(getDb(), rawEmail)
+  return toActionResult(result)
 }
