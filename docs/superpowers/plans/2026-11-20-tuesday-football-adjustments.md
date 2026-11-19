@@ -50,7 +50,7 @@
 **Interfaces:**
 - Produces: `openSignupsNow(db, { actorId, matchId, now })` and `openSignupsNowAction`.
 
-- [ ] **Step 1: Write failing test for opening signups immediately in `tests/domain/matchEdits.test.ts`**
-- [ ] **Step 2: Implement `openSignupsNow` and `openSignupsNowAction`**
-- [ ] **Step 3: Add "Open signups now" button to match detail admin view and update tests**
-- [ ] **Step 4: Run full test suite, build, and lint**
+- [x] **Step 1: Write failing test for opening signups immediately in `tests/domain/matchEdits.test.ts`**
+- [x] **Step 2: Implement `openSignupsNow` and `openSignupsNowAction`**
+- [x] **Step 3: Add "Open signups now" button to match detail admin view and update tests**
+- [x] **Step 4: Run full test suite, build, and lint**
