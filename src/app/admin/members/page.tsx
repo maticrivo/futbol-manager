@@ -2,6 +2,7 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import AddMemberByEmailForm from '@/components/AddMemberByEmailForm'
 import AdminNav from '@/components/AdminNav'
 import MemberActions from '@/components/MemberActions'
+import MemberEditForm from '@/components/MemberEditForm'
 import { getDb } from '@/db'
 import { listMembers } from '@/domain/members'
 import { requireAdmin } from '@/lib/auth'
@@ -31,6 +32,8 @@ export default async function AdminMembers() {
           <thead className="border-b text-start">
             <tr>
               <th className="px-4 py-2 text-start font-medium">{t('members.name')}</th>
+              <th className="px-4 py-2 text-start font-medium">{t('members.email')}</th>
+              <th className="px-4 py-2 text-start font-medium">{t('members.phone')}</th>
               <th className="px-4 py-2 text-start font-medium">{t('members.role')}</th>
               <th className="px-4 py-2 text-start font-medium">{t('members.status')}</th>
               <th className="px-4 py-2 text-start font-medium">{t('members.locale')}</th>
@@ -41,7 +44,22 @@ export default async function AdminMembers() {
           <tbody>
             {members.map((member) => (
               <tr key={member.id} className="border-b last:border-b-0">
-                <td className="px-4 py-2 align-top"><bdi>{member.name}</bdi></td>
+                <td className="px-4 py-2 align-top">
+                  <div>
+                    <bdi>{member.name}</bdi>
+                  </div>
+                  {member.nickname ? (
+                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
+                      <bdi>{member.nickname}</bdi>
+                    </div>
+                  ) : null}
+                </td>
+                <td className="px-4 py-2 align-top">
+                  {member.email ? <bdi dir="ltr">{member.email}</bdi> : '—'}
+                </td>
+                <td className="px-4 py-2 align-top">
+                  {member.phone ? <bdi dir="ltr">{member.phone}</bdi> : '—'}
+                </td>
                 <td className="px-4 py-2 align-top">
                   {member.role === 'admin' ? t('members.roleAdmin') : t('members.roleMember')}
                 </td>
@@ -63,7 +81,17 @@ export default async function AdminMembers() {
                 <td className="px-4 py-2 align-top"><bdi dir="ltr">{member.locale}</bdi></td>
                 <td className="px-4 py-2 align-top"><bdi>{dateFormat.format(member.createdAt)}</bdi></td>
                 <td className="px-4 py-2 align-top">
-                  <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
+                  <div className="space-y-2">
+                    <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
+                    <details className="text-xs">
+                      <summary className="cursor-pointer font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100">
+                        {t('members.editDetails')}
+                      </summary>
+                      <div className="mt-2 min-w-64 rounded-lg border p-3">
+                        <MemberEditForm member={member} />
+                      </div>
+                    </details>
+                  </div>
                 </td>
               </tr>
             ))}
