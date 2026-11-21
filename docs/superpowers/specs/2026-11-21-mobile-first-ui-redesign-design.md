@@ -28,6 +28,7 @@ This redesign gives the whole app — player screens and admin screens — one c
 ## Non-goals
 
 - No new product features: no online payments, no new notification types, no new admin powers.
+- No ability to clear attendance. “Not set” stays a display state; the existing Present / No-show actions are unchanged.
 - No change to domain rules, database schema, actions, or API routes.
 - No custom illustration or photography.
 - No manual theme toggle; dark mode continues to follow the system.
@@ -198,12 +199,12 @@ Icons: a small inline SVG set in `src/components/ui/icons.tsx` (pitch/ball, rece
    - Signup open and spots available: primary “Sign up”.
    - Signup open, full, no entry: primary “Join waiting list”.
    - Signed up and withdrawable: quiet “Withdraw” inside the player's own roster row; no hero CTA.
-   - Offer reserved: highlighted offer card with expiry and primary “Claim spot”.
+   - Offer reserved: a primary-soft offer card sits directly under the hero (above the roster) with the expiry time and a primary “Claim spot”. On phones the fixed action bar repeats “Claim spot”.
    - Before signup opens: no action; the countdown says when signups open.
    - Locked/played/cancelled: no action; a short explanatory line.
    - On phones, the primary action is duplicated in a fixed action bar above the tab bar; on desktop it stays inline in the hero card.
 4. **Roster card** — title “Who's going” with “12/16” count; avatar row for the first 6 plus “+N”; list rows with avatar, name, guest host, “You” badge. Guests removable by host/admin keep their quiet action.
-5. **Waiting list card** — title, position line, numbered list, join/leave button. The offer state gets a primary-soft card with a primary border and an expiry clock.
+5. **Waiting list card** — title, position line, numbered list, join/leave button. While an offer is active, this card shows a compact “Spot reserved for you” line and no second claim button.
 6. **Guests card** — only during the guest phase; name field plus add button.
 7. **Empty state** — no upcoming match: centred card with clock icon, “No match scheduled yet”, and an admin-only “Create next match” action.
 
@@ -272,11 +273,12 @@ Icons: a small inline SVG set in `src/components/ui/icons.tsx` (pitch/ball, rece
 
 ### Admin match detail (`/admin/matches/[id]`)
 
+- Admin sub-nav stays visible; **Dashboard** is the active pill because match detail is reached from the dashboard. The existing “Back to admin” link stays.
 - Header card: phase chip, date/time, spots left, confirmed count, back link.
 - Copy signup message card.
 - Edit match card grouped into schedule, money/capacity, and notes; locked/finished notices in warning-soft; existing “Open signups now” action.
 - Roster card: player cards with charge amount, waive/restore, remove with reason, and the add-member form.
-- Attendance card: each player with a three-way Present / No-show / Not set control.
+- Attendance card: each player shows Present / No-show / Not set as a display state, with the existing two actions. “Not set” is not a third action; clearing attendance is out of scope.
 - Guest payments card: guest rows with payment history and record/refund forms.
 - Cancel match card: danger-soft surface, existing confirmation checkbox, danger button.
 
@@ -291,7 +293,7 @@ Icons: a small inline SVG set in `src/components/ui/icons.tsx` (pitch/ball, rece
 - **Touch** — interactive controls are at least 44×44px on phones. Rows that contain actions keep actions on their own line when space is tight.
 - **No horizontal scroll** — verified at 320px width. Tables become stacked cards; long emails and JSON details break or truncate with a copy affordance.
 - **Countdown** — keeps the existing client logic and refresh rules. Only the presentation changes: a pill in the hero with tabular digits and a fixed height to avoid layout shift; `—` placeholder before hydration.
-- **Offer expiry** — the offer card shows the local expiry time and remains the most prominent element while active.
+- **Offer expiry** — the offer card sits directly under the hero, shows the local expiry time, and is the only place with a claim button (the fixed action bar repeats it on phones).
 - **Capacity** — progress bar reflects confirmed/capacity; a full match shows a “Full” badge.
 - **Destructive actions** — existing confirmations are preserved; no new modal flows in this version.
 - **Reduced motion** — honoured as described above.
@@ -319,7 +321,7 @@ Icons: a small inline SVG set in `src/components/ui/icons.tsx` (pitch/ball, rece
 - **Tokens in CSS.** Replace the `:root` / `@theme inline` block in `globals.css` with the light and dark token sets above, mapped to Tailwind color, radius, and shadow utilities. Keep `prefers-color-scheme` for dark mode.
 - **Fonts.** Keep Geist Sans/Mono and add Noto Sans Hebrew via `next/font/google` for Hebrew glyphs. The body uses the `font-sans` stack; Arial is removed.
 - **Primitives first.** Build `src/components/ui/` primitives, then migrate pages one at a time. No page keeps ad-hoc border/gray classes once migrated.
-- **Shell.** Split `Nav` into a desktop top bar and a client `BottomNav` that reads `usePathname` for the active tab. Pass links and role from the server component. Add a client `AdminNav` with active pills.
+- **Shell.** Split `Nav` into a desktop top bar and a client `BottomNav` that reads `usePathname` for the active tab. Pass links and role from the server component. Add a client `AdminNav` with active pills; Dashboard stays active on `/admin/matches/*`, and the Admin bottom tab stays active on every `/admin` route.
 - **Home.** Merge `MatchCard` and `Countdown` visually into the hero card; keep `Countdown`'s logic untouched. Add a mobile-only fixed action bar that renders the same `MatchActionForm` intent as the inline action. Restyle `RosterList`, `QueuePanel`, and `GuestForm` with the primitives.
 - **Admin.** Replace wide tables with responsive card lists in Members, Money, and Audit. Keep all existing forms and actions; restyle fields and buttons.
 - **Server/client boundary.** New primitives are server components by default. Only the nav active state and existing interactive forms are client components.
