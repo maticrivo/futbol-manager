@@ -4,11 +4,15 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { recordGuestPaymentAction, refundGuestPaymentAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+import { Card } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+    <div aria-live="polite" className="text-sm font-medium text-danger">
       {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
     </div>
   )
@@ -37,20 +41,18 @@ function RecordPayment({ matchId, entryId, costShekels }: {
   const t = useTranslations()
   const [state, formAction] = useActionState(recordGuestPaymentAction, null)
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
+    <form action={formAction} className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 pt-2">
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="entryId" value={entryId} />
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.match.guests.amount')}</span>
+      <Field label={t('admin.match.guests.amount')} className="w-full sm:w-36">
         <input
           name="amountShekels" inputMode="decimal" required defaultValue={costShekels}
-          className="mt-1 rounded border px-3 py-2"
+          className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.match.guests.note')}</span>
-        <input name="note" dir="auto" className="mt-1 rounded border px-3 py-2" />
-      </label>
+      </Field>
+      <Field label={t('admin.match.guests.note')} className="flex-1">
+        <input name="note" dir="auto" className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" />
+      </Field>
       <SubmitButton label={t('admin.match.guests.record')} pendingLabel={t('admin.match.guests.recording')} primary />
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
@@ -64,7 +66,9 @@ function RefundPayment({ matchId, guestPaymentId }: { matchId: number; guestPaym
     <form action={formAction}>
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="guestPaymentId" value={guestPaymentId} />
-      <SubmitButton label={t('admin.match.guests.refund')} pendingLabel={t('admin.match.guests.refunding')} />
+      <Button type="submit" variant="outline" size="sm">
+        {t('admin.match.guests.refund')}
+      </Button>
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
   )
@@ -82,31 +86,38 @@ function GuestRow({ matchId, entryId, name, hostName, costShekels, payments, dis
   const t = useTranslations()
 
   return (
-    <li className="space-y-2 rounded border p-3">
-      <div>
-        <bdi>{name}</bdi>
+    <li className="space-y-3 rounded-[var(--radius-md)] border border-line bg-surface p-4 shadow-subtle">
+      <div className="flex items-center gap-2">
+        <span className="font-medium text-ink">
+          <bdi>{name}</bdi>
+        </span>
+        <Badge variant="secondary" size="sm">Guest</Badge>
         {hostName && (
-          <span className="ms-2 text-sm">{t('admin.match.roster.guestOfLabel')} <bdi>{hostName}</bdi></span>
+          <span className="text-xs text-muted">
+            {t('admin.match.roster.guestOfLabel')} <bdi>{hostName}</bdi>
+          </span>
         )}
       </div>
 
       {!disabled && <RecordPayment matchId={matchId} entryId={entryId} costShekels={costShekels} />}
 
-      <div className="text-sm">
-        <p className="font-medium">{t('admin.match.guests.history')}</p>
+      <div className="space-y-2 pt-2 border-t border-line text-sm">
+        <p className="font-medium text-ink">{t('admin.match.guests.history')}</p>
         {payments.length === 0 ? (
-          <p className="text-neutral-600 dark:text-neutral-300">{t('admin.match.guests.noPayments')}</p>
+          <p className="text-muted">{t('admin.match.guests.noPayments')}</p>
         ) : (
-          <ul className="space-y-1">
+          <ul className="space-y-2">
             {payments.map(payment => (
-              <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  <bdi>{payment.amount}</bdi>
+              <li key={payment.id} className="flex flex-wrap items-center justify-between gap-2 rounded-[var(--radius-sm)] bg-surface-muted p-2.5 border border-line">
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-ink">
+                    <bdi>{payment.amount}</bdi>
+                  </span>
                   {payment.kind === 'refund' && (
-                    <span className="ms-2 text-neutral-500 dark:text-neutral-400">{t('admin.match.guests.refunded')}</span>
+                    <Badge variant="secondary" size="sm">{t('admin.match.guests.refunded')}</Badge>
                   )}
-                  {payment.note && <span className="ms-2 text-neutral-500 dark:text-neutral-400"><bdi>{payment.note}</bdi></span>}
-                </span>
+                  {payment.note && <span className="text-muted"><bdi>{payment.note}</bdi></span>}
+                </div>
                 {payment.kind === 'payment' && !payment.refunded && !disabled && (
                   <RefundPayment matchId={matchId} guestPaymentId={payment.id} />
                 )}
@@ -128,15 +139,15 @@ export default function GuestPayments({ matchId, costShekels, guests, disabled }
   const t = useTranslations()
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('admin.match.guests.title')}</h2>
+    <Card variant="default" padding="lg" className="space-y-4">
+      <h2 className="text-xl font-semibold text-ink">{t('admin.match.guests.title')}</h2>
       {disabled && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.guests.disabled')}</p>
+        <p className="text-sm text-muted">{t('admin.match.guests.disabled')}</p>
       )}
       {guests.length === 0 ? (
-        <p className="text-neutral-600 dark:text-neutral-300">{t('admin.match.guests.empty')}</p>
+        <p className="text-muted">{t('admin.match.guests.empty')}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {guests.map(guest => (
             <GuestRow
               key={guest.entryId}
@@ -151,6 +162,6 @@ export default function GuestPayments({ matchId, costShekels, guests, disabled }
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }

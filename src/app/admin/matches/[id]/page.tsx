@@ -23,6 +23,9 @@ import { requireAdmin } from '@/lib/auth'
 import { buildGroupMessage } from '@/lib/copy'
 import { requestOrigin } from '@/lib/request-origin'
 import { formatMatchDate, formatMoney, TZ } from '@/lib/time'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 
 function localDateTime(date: Date): string {
   return DateTime.fromJSDate(date, { zone: TZ }).toFormat("yyyy-MM-dd'T'HH:mm")
@@ -118,29 +121,33 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
     }))
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
       <AdminNav />
 
-      <section className="space-y-2 rounded-xl border p-5">
-        <div className="flex flex-wrap items-center gap-2">
-          <h1 className="text-2xl font-semibold">{t('match.title')}</h1>
-          <span className="rounded-full border px-3 py-1 text-sm font-medium">{tm(`phase.${phase}`)}</span>
+      <Card variant="default" padding="lg" className="space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('match.title')}</h1>
+          <Badge variant="outline">{tm(`phase.${phase}`)}</Badge>
         </div>
-        <p className="text-lg font-medium">
-          <time dateTime={current.kickoffAt.toISOString()}>{formatMatchDate(current.kickoffAt, locale)}</time>
-        </p>
-        <p>{tm('spotsLeft', { count: spotsLeft })}</p>
-        <p>{t('match.confirmed', { count: roster.length })}</p>
-        <p className="text-sm">
-          <Link href="/admin">{t('match.back')}</Link>
-        </p>
-      </section>
+        <div className="space-y-1 text-sm text-muted">
+          <p className="text-lg font-semibold text-ink">
+            <time dateTime={current.kickoffAt.toISOString()}>{formatMatchDate(current.kickoffAt, locale)}</time>
+          </p>
+          <p>{tm('spotsLeft', { count: spotsLeft })}</p>
+          <p>{t('match.confirmed', { count: roster.length })}</p>
+        </div>
+        <div>
+          <Button asChild variant="outline" size="sm">
+            <Link href="/admin">{t('match.back')}</Link>
+          </Button>
+        </div>
+      </Card>
 
-      <section className="space-y-2 rounded-xl border p-5">
-        <h2 className="text-xl font-semibold">{t('match.copy.title')}</h2>
-        <pre dir="auto" className="whitespace-pre-wrap break-words rounded bg-neutral-100 p-3 text-sm dark:bg-neutral-900">{signupCopy}</pre>
+      <Card variant="default" padding="lg" className="space-y-4">
+        <h2 className="text-xl font-semibold text-ink">{t('match.copy.title')}</h2>
+        <pre dir="auto" className="whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface-muted border border-line p-4 text-sm text-ink font-mono">{signupCopy}</pre>
         <CopyMessage text={signupCopy} label={t('match.copy.button')} />
-      </section>
+      </Card>
 
       <EditMatchForm
         matchId={current.id}

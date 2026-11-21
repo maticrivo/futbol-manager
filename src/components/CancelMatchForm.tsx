@@ -4,11 +4,14 @@ import { useActionState, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { useTranslations } from 'next-intl'
 import { cancelMatchAction } from '@/app/actions/admin'
+import { Card } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+    <div aria-live="polite" className="text-sm font-medium text-danger">
       {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
     </div>
   )
@@ -18,13 +21,14 @@ function CancelSubmit({ disabled }: { disabled: boolean }) {
   const t = useTranslations()
   const { pending } = useFormStatus()
   return (
-    <button
+    <Button
       type="submit"
+      variant="danger"
+      size="md"
       disabled={disabled || pending}
-      className="cursor-pointer rounded-md border border-red-700 bg-red-700 px-4 py-2 font-medium text-white hover:bg-red-800 disabled:cursor-not-allowed disabled:opacity-60"
     >
       {pending ? t('admin.match.cancel.submitting') : t('admin.match.cancel.submit')}
-    </button>
+    </Button>
   )
 }
 
@@ -34,22 +38,22 @@ function CancelForm({ matchId }: { matchId: number }) {
   const [confirmed, setConfirmed] = useState(false)
 
   return (
-    <form action={formAction} className="space-y-3">
+    <form action={formAction} className="space-y-4">
       <input type="hidden" name="matchId" value={matchId} />
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.match.cancel.reason')}</span>
+      <Field label={t('admin.match.cancel.reason')}>
         <textarea
-          name="reason" dir="auto" required maxLength={255} rows={2}
-          className="mt-1 w-full rounded border px-3 py-2"
+          name="reason" dir="auto" required maxLength={255} rows={3}
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         />
-      </label>
-      <label className="flex items-center gap-2">
+      </Field>
+      <label className="flex items-center gap-2 cursor-pointer">
         <input
           type="checkbox"
           checked={confirmed}
           onChange={event => setConfirmed(event.target.checked)}
+          className="h-4 w-4 rounded border-line text-primary focus:ring-focus"
         />
-        <span className="text-sm">{t('admin.match.cancel.confirm')}</span>
+        <span className="text-sm text-ink font-medium">{t('admin.match.cancel.confirm')}</span>
       </label>
       <CancelSubmit disabled={!confirmed} />
       <ActionError code={state?.ok === false ? state.code : null} />
@@ -64,15 +68,15 @@ export default function CancelMatchForm({ matchId, state }: {
   const t = useTranslations()
 
   return (
-    <section className="space-y-3 rounded-xl border border-red-300 p-5">
-      <h2 className="text-lg font-semibold text-red-700 dark:text-red-300">{t('admin.match.cancel.title')}</h2>
+    <Card variant="danger" padding="lg" className="space-y-4 border-danger/30">
+      <h2 className="text-xl font-semibold text-danger">{t('admin.match.cancel.title')}</h2>
       {state === 'open' ? (
         <CancelForm matchId={matchId} />
       ) : (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">
+        <p className="text-sm text-muted">
           {state === 'played' ? t('admin.match.cancel.finished') : t('admin.match.cancel.disabled')}
         </p>
       )}
-    </section>
+    </Card>
   )
 }

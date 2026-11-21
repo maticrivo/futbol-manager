@@ -4,6 +4,9 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { openSignupsNowAction, updateMatchAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+import { Card } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
 
 function OpenSignupsForm({ matchId }: { matchId: number }) {
   const t = useTranslations()
@@ -12,12 +15,11 @@ function OpenSignupsForm({ matchId }: { matchId: number }) {
   return (
     <form action={formAction} className="inline-block">
       <input type="hidden" name="matchId" value={matchId} />
-      <SubmitButton
-        label={t('admin.match.edit.openSignupsNow')}
-        pendingLabel={t('admin.match.edit.openingSignupsNow')}
-      />
+      <Button type="submit" variant="outline" size="sm">
+        {t('admin.match.edit.openSignupsNow')}
+      </Button>
       {state?.ok === false && (
-        <span aria-live="polite" className="ms-2 text-sm text-red-700 dark:text-red-300">
+        <span aria-live="polite" className="ms-2 text-sm font-medium text-danger">
           {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
         </span>
       )}
@@ -58,101 +60,93 @@ export default function EditMatchForm({
   const showOpenSignups = canOpenSignups ?? (!locked && !finished)
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
+    <Card variant="default" padding="lg" className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <h2 className="text-lg font-semibold">{t('admin.match.edit.title')}</h2>
+        <h2 className="text-xl font-semibold text-ink">{t('admin.match.edit.title')}</h2>
         {showOpenSignups && <OpenSignupsForm matchId={matchId} />}
       </div>
       {locked && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.edit.locked')}</p>
+        <p className="text-sm text-muted">{t('admin.match.edit.locked')}</p>
       )}
       {finished && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.edit.finished')}</p>
+        <p className="text-sm text-muted">{t('admin.match.edit.finished')}</p>
       )}
       <form action={formAction} className="space-y-4">
         <input type="hidden" name="matchId" value={matchId} />
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.venue')}</span>
+        <Field label={t('admin.match.edit.venue')}>
           <input
             name="venue" dir="auto" maxLength={120} defaultValue={venue} disabled={finished}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.kickoffAt')}</span>
+        <Field label={t('admin.match.edit.kickoffAt')}>
           <input
             name="kickoffAt" type="datetime-local" defaultValue={kickoffAt} disabled={finished}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.costShekels')}</span>
+        <Field label={t('admin.match.edit.costShekels')}>
           <input
             name="costShekels" inputMode="decimal" defaultValue={costShekels}
             readOnly={moneyDisabled} disabled={moneyDisabled}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.capacity')}</span>
+        <Field label={t('admin.match.edit.capacity')}>
           <input
             name="capacity" type="number" min={1} max={40} defaultValue={capacity}
             readOnly={moneyDisabled} disabled={moneyDisabled}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.signupOpensAt')}</span>
+        <Field label={t('admin.match.edit.signupOpensAt')}>
           <input
             name="signupOpensAt" type="datetime-local" defaultValue={signupOpensAt}
             readOnly={moneyDisabled} disabled={moneyDisabled}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.guestPhaseAt')}</span>
+        <Field label={t('admin.match.edit.guestPhaseAt')}>
           <input
             name="guestPhaseAt" type="datetime-local" defaultValue={guestPhaseAt}
             readOnly={moneyDisabled} disabled={moneyDisabled}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.lockAt')}</span>
+        <Field label={t('admin.match.edit.lockAt')}>
           <input
             name="lockAt" type="datetime-local" defaultValue={lockAt}
             readOnly={moneyDisabled} disabled={moneyDisabled}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.match.edit.notes')}</span>
+        <Field label={t('admin.match.edit.notes')}>
           <textarea
             name="notes" dir="auto" rows={3} maxLength={2000} defaultValue={notes} disabled={finished}
-            className="mt-1 w-full rounded border px-3 py-2 disabled:opacity-60"
+            className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
-        </label>
+        </Field>
 
         {!finished && <SubmitButton label={t('admin.match.edit.save')} pendingLabel={t('admin.match.edit.saving')} primary />}
         {state?.ok === true && (
-          <div aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
+          <div aria-live="polite" className="text-sm font-medium text-primary">
             {t('admin.match.edit.saved')}
           </div>
         )}
         {state?.ok === false && (
-          <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+          <div aria-live="polite" className="text-sm font-medium text-danger">
             {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
           </div>
         )}
       </form>
-    </section>
+    </Card>
   )
 }

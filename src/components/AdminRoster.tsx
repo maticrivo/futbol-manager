@@ -9,11 +9,15 @@ import {
   waiveChargeAction,
 } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+import { Card } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
+import { Badge } from '@/components/ui/Badge'
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+    <div aria-live="polite" className="text-sm font-medium text-danger">
       {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
     </div>
   )
@@ -36,25 +40,23 @@ function AddMemberForm({ matchId, members, locked }: {
   const [state, formAction] = useActionState(adminAddEntryAction, null)
 
   if (members.length === 0) {
-    return <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.roster.noAddable')}</p>
+    return <p className="text-sm text-muted">{t('admin.match.roster.noAddable')}</p>
   }
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-3">
+    <form action={formAction} className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3 pt-2">
       <input type="hidden" name="matchId" value={matchId} />
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.match.roster.addMember')}</span>
-        <select name="memberId" required defaultValue="" className="mt-1 rounded border px-3 py-2">
+      <Field label={t('admin.match.roster.addMember')} className="flex-1">
+        <select name="memberId" required defaultValue="" className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           <option value="" disabled>{t('admin.match.roster.choose')}</option>
           {members.map(member => (
             <option key={member.id} value={member.id}><bdi>{member.name}</bdi></option>
           ))}
         </select>
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.match.roster.reason')}</span>
-        <input name="reason" dir="auto" required={locked} className="mt-1 rounded border px-3 py-2" />
-      </label>
+      </Field>
+      <Field label={t('admin.match.roster.reason')} className="flex-1">
+        <input name="reason" dir="auto" required={locked} className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" />
+      </Field>
       <SubmitButton label={t('admin.match.roster.add')} pendingLabel={t('admin.match.roster.adding')} primary />
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
@@ -70,9 +72,11 @@ function RemoveEntry({ matchId, entryId }: { matchId: number; entryId: number })
       <input type="hidden" name="entryId" value={entryId} />
       <input
         name="reason" dir="auto" required placeholder={t('admin.match.roster.reason')}
-        className="rounded border px-2 py-1"
+        className="h-9 rounded-[var(--radius-md)] border border-line bg-surface px-2.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       />
-      <SubmitButton label={t('admin.match.roster.remove')} pendingLabel={t('admin.match.roster.removing')} />
+      <Button type="submit" variant="danger" size="sm">
+        {t('admin.match.roster.remove')}
+      </Button>
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
   )
@@ -87,9 +91,11 @@ function WaiveCharge({ matchId, chargeId }: { matchId: number; chargeId: number 
       <input type="hidden" name="chargeId" value={chargeId} />
       <input
         name="reason" dir="auto" required placeholder={t('admin.match.roster.reason')}
-        className="rounded border px-2 py-1"
+        className="h-9 rounded-[var(--radius-md)] border border-line bg-surface px-2.5 text-xs text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
       />
-      <SubmitButton label={t('admin.match.roster.waive')} pendingLabel={t('admin.match.roster.working')} />
+      <Button type="submit" variant="outline" size="sm">
+        {t('admin.match.roster.waive')}
+      </Button>
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
   )
@@ -102,7 +108,9 @@ function RestoreCharge({ matchId, chargeId }: { matchId: number; chargeId: numbe
     <form action={formAction}>
       <input type="hidden" name="matchId" value={matchId} />
       <input type="hidden" name="chargeId" value={chargeId} />
-      <SubmitButton label={t('admin.match.roster.restore')} pendingLabel={t('admin.match.roster.working')} />
+      <Button type="submit" variant="outline" size="sm">
+        {t('admin.match.roster.restore')}
+      </Button>
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
   )
@@ -118,39 +126,48 @@ export default function AdminRoster({ matchId, rows, members, locked, disabled }
   const t = useTranslations()
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('admin.match.roster.title')}</h2>
+    <Card variant="default" padding="lg" className="space-y-4">
+      <h2 className="text-xl font-semibold text-ink">{t('admin.match.roster.title')}</h2>
       {disabled && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.roster.finished')}</p>
+        <p className="text-sm text-muted">{t('admin.match.roster.finished')}</p>
       )}
 
       {rows.length === 0 ? (
-        <p className="text-neutral-600 dark:text-neutral-300">{t('admin.match.roster.empty')}</p>
+        <p className="text-muted">{t('admin.match.roster.empty')}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {rows.map(row => (
-            <li key={row.entryId} className="rounded border p-3">
+            <li key={row.entryId} className="rounded-[var(--radius-md)] border border-line bg-surface p-4 space-y-3 shadow-subtle">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span>
-                  <bdi>{row.name}</bdi>
-                  {row.kind === 'guest' && row.hostName && (
-                    <span className="ms-2 text-sm">{t('admin.match.roster.guestOfLabel')} <bdi>{row.hostName}</bdi></span>
+                <div className="flex items-center gap-2">
+                  <span className="font-medium text-ink">
+                    <bdi>{row.name}</bdi>
+                  </span>
+                  {row.kind === 'guest' && (
+                    <Badge variant="secondary" size="sm">Guest</Badge>
                   )}
-                </span>
+                  {row.kind === 'guest' && row.hostName && (
+                    <span className="text-xs text-muted">
+                      {t('admin.match.roster.guestOfLabel')} <bdi>{row.hostName}</bdi>
+                    </span>
+                  )}
+                </div>
                 <div className="flex flex-wrap items-center gap-3">
                   {row.charge && (
-                    <span className="text-sm">
-                      <bdi>{row.charge.amount}</bdi>
+                    <div className="flex items-center gap-2 text-sm">
+                      <span className="font-semibold text-ink">
+                        <bdi>{row.charge.amount}</bdi>
+                      </span>
                       {row.charge.status === 'waived' && (
-                        <span className="ms-2 text-neutral-500 dark:text-neutral-400">{t('admin.match.roster.waived')}</span>
+                        <Badge variant="secondary" size="sm">{t('admin.match.roster.waived')}</Badge>
                       )}
-                    </span>
+                    </div>
                   )}
                   {!disabled && <RemoveEntry matchId={matchId} entryId={row.entryId} />}
                 </div>
               </div>
               {row.charge && !disabled && (
-                <div className="mt-2">
+                <div className="pt-2 border-t border-line">
                   {row.charge.status === 'charged'
                     ? <WaiveCharge matchId={matchId} chargeId={row.charge.id} />
                     : <RestoreCharge matchId={matchId} chargeId={row.charge.id} />}
@@ -162,6 +179,6 @@ export default function AdminRoster({ matchId, rows, members, locked, disabled }
       )}
 
       {!disabled && <AddMemberForm matchId={matchId} members={members} locked={locked} />}
-    </section>
+    </Card>
   )
 }

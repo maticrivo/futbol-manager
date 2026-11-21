@@ -3,11 +3,13 @@
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { setAttendanceAction } from '@/app/actions/admin'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+    <div aria-live="polite" className="text-sm font-medium text-danger">
       {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
     </div>
   )
@@ -24,30 +26,38 @@ function AttendanceRow({ matchId, entryId, name, attended, disabled }: {
   const [state, formAction] = useActionState(setAttendanceAction, null)
 
   return (
-    <li className="flex flex-wrap items-center justify-between gap-2">
-      <bdi>{name}</bdi>
-      <span className="text-sm text-neutral-600 dark:text-neutral-300">
-        {attended === null
-          ? t('admin.match.attendance.unset')
-          : attended ? t('admin.match.attendance.present') : t('admin.match.attendance.absent')}
-      </span>
+    <li className="flex flex-wrap items-center justify-between gap-3 rounded-[var(--radius-md)] border border-line bg-surface p-4 shadow-subtle">
+      <div className="flex items-center gap-3">
+        <span className="font-medium text-ink">
+          <bdi>{name}</bdi>
+        </span>
+        <Badge
+          variant={attended === true ? 'success' : attended === false ? 'warning' : 'secondary'}
+          size="sm"
+        >
+          {attended === null
+            ? t('admin.match.attendance.unset')
+            : attended ? t('admin.match.attendance.present') : t('admin.match.attendance.absent')}
+        </Badge>
+      </div>
+
       {!disabled && (
-        <form action={formAction} className="flex items-center gap-1">
+        <form action={formAction} className="flex items-center gap-1.5">
           <input type="hidden" name="matchId" value={matchId} />
           <input type="hidden" name="entryId" value={entryId} />
           <button
             type="submit" name="attended" value="present"
-            className={`rounded-md border px-3 py-1 ${attended === true
-              ? 'border-emerald-700 bg-emerald-700 text-white'
-              : 'hover:bg-current/5'}`}
+            className={`h-9 px-3 rounded-[var(--radius-md)] text-xs font-medium transition-colors border ${attended === true
+              ? 'border-primary bg-primary text-white shadow-sm'
+              : 'border-line bg-surface text-ink hover:bg-surface-muted'}`}
           >
             {t('admin.match.attendance.present')}
           </button>
           <button
             type="submit" name="attended" value="absent"
-            className={`rounded-md border px-3 py-1 ${attended === false
-              ? 'border-amber-700 bg-amber-700 text-white'
-              : 'hover:bg-current/5'}`}
+            className={`h-9 px-3 rounded-[var(--radius-md)] text-xs font-medium transition-colors border ${attended === false
+              ? 'border-warning bg-warning text-white shadow-sm'
+              : 'border-line bg-surface text-ink hover:bg-surface-muted'}`}
           >
             {t('admin.match.attendance.absent')}
           </button>
@@ -66,15 +76,15 @@ export default function AttendanceList({ matchId, attendees, disabled }: {
   const t = useTranslations()
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('admin.match.attendance.title')}</h2>
+    <Card variant="default" padding="lg" className="space-y-4">
+      <h2 className="text-xl font-semibold text-ink">{t('admin.match.attendance.title')}</h2>
       {disabled && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('admin.match.attendance.disabled')}</p>
+        <p className="text-sm text-muted">{t('admin.match.attendance.disabled')}</p>
       )}
       {attendees.length === 0 ? (
-        <p className="text-neutral-600 dark:text-neutral-300">{t('admin.match.attendance.empty')}</p>
+        <p className="text-muted">{t('admin.match.attendance.empty')}</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="space-y-3">
           {attendees.map(attendee => (
             <AttendanceRow
               key={attendee.entryId}
@@ -87,6 +97,6 @@ export default function AttendanceList({ matchId, attendees, disabled }: {
           ))}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }
