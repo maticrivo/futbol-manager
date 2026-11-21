@@ -2,7 +2,7 @@ import React from 'react'
 import { cn } from '@/lib/cn'
 
 export interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: 'default' | 'surface' | 'muted' | 'interactive'
+  variant?: 'default' | 'surface' | 'muted' | 'interactive' | 'danger'
   padding?: 'none' | 'sm' | 'md' | 'lg'
 }
 
@@ -19,6 +19,8 @@ export function Card({
     muted: 'bg-surface-muted rounded-[var(--radius-lg)]',
     interactive:
       'bg-surface border border-line shadow-card rounded-[var(--radius-lg)] transition-all hover:border-primary/50 hover:shadow-md cursor-pointer',
+    danger:
+      'bg-danger-soft border border-danger/30 text-ink rounded-[var(--radius-lg)] shadow-card',
   }
 
   const paddings = {

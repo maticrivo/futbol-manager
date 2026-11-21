@@ -7,6 +7,8 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
   isLoading?: boolean
   leftIcon?: React.ReactNode
   rightIcon?: React.ReactNode
+  href?: string
+  asChild?: boolean
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
@@ -20,6 +22,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       rightIcon,
       disabled,
       children,
+      href,
       ...props
     },
     ref
@@ -34,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ghost:
         'text-ink hover:bg-surface-muted active:scale-[0.98]',
       danger:
-        'bg-danger text-white hover:opacity-90 shadow-sm active:scale-[0.98]',
+        'bg-danger text-white dark:bg-danger dark:text-white hover:opacity-90 shadow-sm active:scale-[0.98]',
     }
 
     const sizes = {
@@ -44,18 +47,15 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       icon: 'h-11 w-11 rounded-[var(--radius-md)] p-0 flex items-center justify-center min-w-[44px] min-h-[44px]',
     }
 
-    return (
-      <button
-        ref={ref}
-        disabled={disabled || isLoading}
-        className={cn(
-          'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-50 select-none',
-          variants[variant],
-          sizes[size],
-          className
-        )}
-        {...props}
-      >
+    const combinedClassName = cn(
+      'inline-flex items-center justify-center font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:pointer-events-none disabled:opacity-50 select-none',
+      variants[variant],
+      sizes[size],
+      className
+    )
+
+    const content = (
+      <>
         {isLoading ? (
           <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
         ) : (
@@ -63,6 +63,25 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         )}
         {children}
         {!isLoading && rightIcon}
+      </>
+    )
+
+    if (href) {
+      return (
+        <a href={href} className={combinedClassName} {...(props as React.AnchorHTMLAttributes<HTMLAnchorElement>)}>
+          {content}
+        </a>
+      )
+    }
+
+    return (
+      <button
+        ref={ref}
+        disabled={disabled || isLoading}
+        className={combinedClassName}
+        {...props}
+      >
+        {content}
       </button>
     )
   }

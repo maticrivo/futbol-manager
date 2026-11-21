@@ -17,6 +17,7 @@ vi.mock('next-intl', () => ({
     t.has = () => true
     return t
   }),
+  useLocale: vi.fn(() => 'en'),
 }))
 
 vi.mock('next-intl/server', () => ({

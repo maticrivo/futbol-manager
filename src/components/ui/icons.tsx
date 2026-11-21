@@ -26,6 +26,14 @@ export type IconName =
   | 'alert-triangle'
   | 'refresh'
   | 'search'
+  | 'user-plus'
+  | 'map-pin'
+  | 'receipt'
+  | 'userPlus'
+  | 'card'
+  | 'wallet'
+  | 'alert'
+  | 'credit-card'
 
 interface IconProps extends React.SVGProps<SVGSVGElement> {
   name: IconName
@@ -221,6 +229,56 @@ export function Icon({ name, size = 20, className, ...props }: IconProps) {
         <svg {...commonProps}>
           <circle cx="11" cy="11" r="8" />
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+      )
+    case 'user-plus':
+    case 'userPlus':
+      return (
+        <svg {...commonProps}>
+          <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+          <circle cx="8.5" cy="7" r="4" />
+          <line x1="20" y1="8" x2="20" y2="14" />
+          <line x1="23" y1="11" x2="17" y2="11" />
+        </svg>
+      )
+    case 'map-pin':
+      return (
+        <svg {...commonProps}>
+          <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      )
+    case 'receipt':
+      return (
+        <svg {...commonProps}>
+          <path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z" />
+          <line x1="8" y1="8" x2="16" y2="8" />
+          <line x1="8" y1="12" x2="16" y2="12" />
+          <line x1="8" y1="16" x2="12" y2="16" />
+        </svg>
+      )
+    case 'card':
+    case 'credit-card':
+      return (
+        <svg {...commonProps}>
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2" />
+          <line x1="1" y1="10" x2="23" y2="10" />
+        </svg>
+      )
+    case 'wallet':
+      return (
+        <svg {...commonProps}>
+          <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+          <path d="M4 6v12a2 2 0 0 0 2 2h14v-4" />
+          <path d="M18 12h2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2h-2v-6z" />
+        </svg>
+      )
+    case 'alert':
+      return (
+        <svg {...commonProps}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="12" y1="8" x2="12" y2="12" />
+          <line x1="12" y1="16" x2="12.01" y2="16" />
         </svg>
       )
     default:

@@ -1,9 +1,11 @@
-import { getLocale } from 'next-intl/server'
+'use client'
+
+import { useLocale } from 'next-intl'
 import { setLocaleAction } from '@/app/actions/auth'
 import { LOCALES, LOCALE_LABELS } from '@/i18n/locale'
 
-export default async function LocaleSwitcher() {
-  const currentLocale = await getLocale()
+export default function LocaleSwitcher() {
+  const currentLocale = useLocale()
 
   return (
     <div className="flex flex-wrap gap-2">
@@ -15,7 +17,7 @@ export default async function LocaleSwitcher() {
             lang={locale}
             dir="auto"
             aria-pressed={locale === currentLocale}
-            className="cursor-pointer rounded border px-2 py-1 aria-pressed:font-semibold"
+            className="cursor-pointer rounded border border-line bg-surface px-2 py-1 text-xs font-medium text-ink aria-pressed:font-semibold aria-pressed:border-primary"
           >
             {LOCALE_LABELS[locale]}
           </button>

@@ -11,7 +11,7 @@ export default function MobileActionBar({
   spotsLeft,
 }: {
   canSignup: boolean
-  canWithdraw: boolean
+  canWithdraw: boolean | object | null
   matchId: number
   entryId?: number | null
   spotsLeft: number

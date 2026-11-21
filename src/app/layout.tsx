@@ -1,25 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono, Noto_Sans_Hebrew } from "next/font/google";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale, getTranslations } from "next-intl/server";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import Nav from "@/components/Nav";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
-const notoSansHebrew = Noto_Sans_Hebrew({
-  variable: "--font-noto-sans-hebrew",
-  subsets: ["hebrew"],
-});
+const geistSans = { variable: '--font-geist-sans' }
+const geistMono = { variable: '--font-geist-mono' }
+const notoSansHebrew = { variable: '--font-noto-sans-hebrew' }
 
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations("common");

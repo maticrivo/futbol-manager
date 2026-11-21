@@ -4,7 +4,7 @@ import { Icon, IconName } from './icons'
 
 export interface StatProps extends React.HTMLAttributes<HTMLDivElement> {
   label: string
-  value: string | number
+  value: React.ReactNode
   change?: string
   trend?: 'up' | 'down' | 'neutral'
   icon?: IconName | React.ReactNode

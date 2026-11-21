@@ -1,11 +1,12 @@
-import Link from 'next/link'
-import { getTranslations } from 'next-intl/server'
-import { headers } from 'next/headers'
+'use client'
 
-export default async function AdminNav() {
-  const t = await getTranslations('admin')
-  const headersList = await headers()
-  const pathname = headersList.get('x-pathname') || headersList.get('referer') ? new URL(headersList.get('referer') || 'http://localhost').pathname : '/admin'
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+
+export default function AdminNav() {
+  const t = useTranslations('admin')
+  const pathname = usePathname()
 
   const isActive = (href: string) => {
     if (href === '/admin') {
@@ -14,14 +15,30 @@ export default async function AdminNav() {
     return pathname.startsWith(href)
   }
 
+  const linkClass = (active: boolean) =>
+    `px-3 py-1.5 rounded-full transition-colors ${
+      active
+        ? 'bg-primary text-on-primary shadow-sm'
+        : 'bg-surface-muted text-ink hover:bg-line'
+    }`
+
   return (
-    <nav className="flex flex-wrap gap-2 text-sm font-medium border-b pb-3 mb-6">
-      <Link href="/admin" className={`px-3 py-1.5 rounded-full transition-colors ${isActive('/admin') && pathname === '/admin' ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('nav.dashboard')}</Link>
-      <Link href="/admin/members" className={`px-3 py-1.5 rounded-full transition-colors ${isActive('/admin/members') ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('nav.members')}</Link>
-      <Link href="/admin/money" className={`px-3 py-1.5 rounded-full transition-colors ${isActive('/admin/money') ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('nav.money')}</Link>
-      <Link href="/admin/settings" className={`px-3 py-1.5 rounded-full transition-colors ${isActive('/admin/settings') ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('nav.settings')}</Link>
-      <Link href="/admin/audit" className={`px-3 py-1.5 rounded-full transition-colors ${isActive('/admin/audit') ? 'bg-green-700 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'}`}>{t('nav.audit')}</Link>
+    <nav className="flex flex-wrap gap-2 text-sm font-medium border-b border-line pb-3 mb-6">
+      <Link href="/admin" className={linkClass(isActive('/admin'))}>
+        {t('nav.dashboard')}
+      </Link>
+      <Link href="/admin/members" className={linkClass(isActive('/admin/members'))}>
+        {t('nav.members')}
+      </Link>
+      <Link href="/admin/money" className={linkClass(isActive('/admin/money'))}>
+        {t('nav.money')}
+      </Link>
+      <Link href="/admin/settings" className={linkClass(isActive('/admin/settings'))}>
+        {t('nav.settings')}
+      </Link>
+      <Link href="/admin/audit" className={linkClass(isActive('/admin/audit'))}>
+        {t('nav.audit')}
+      </Link>
     </nav>
   )
 }
-
