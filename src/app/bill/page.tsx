@@ -8,6 +8,9 @@ import { memberBalance, memberBill } from '@/domain/billing'
 import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
 import { requireMember } from '@/lib/auth'
 import { billingMonthOf, formatMoney } from '@/lib/time'
+import { PageHeader } from '@/components/ui/PageHeader'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 
 export default async function BillPage() {
   const member = await requireMember()
@@ -30,23 +33,32 @@ export default async function BillPage() {
   const bidi = (chunks: ReactNode) => <bdi>{chunks}</bdi>
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
-      <section className="space-y-2 rounded-xl border p-5">
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">
-          {t.rich('month', { month, bidi })}
-        </p>
-        <p className="text-lg font-medium">
-          {bill.dueAgorot <= 0
-            ? t('settled')
-            : t.rich('due', { amount: formatMoney(bill.dueAgorot, member.locale), bidi })}
-        </p>
-        <p>
-          {balance.balanceAgorot < 0
-            ? t.rich('credit', { amount: formatMoney(Math.abs(balance.balanceAgorot), member.locale), bidi })
-            : t.rich('balance', { amount: formatMoney(balance.balanceAgorot, member.locale), bidi })}
-        </p>
-      </section>
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 pb-28 md:pb-8 text-start">
+      <PageHeader title={t('title')} subtitle={t.rich('month', { month, bidi })} />
+      <Card className="space-y-4 p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <span className="text-sm font-medium text-muted">{t('charges')}</span>
+          {bill.dueAgorot <= 0 ? (
+            <Badge variant="success">{t('settled')}</Badge>
+          ) : (
+            <Badge variant="warning">
+              {t.rich('due', { amount: formatMoney(bill.dueAgorot, member.locale), bidi })}
+            </Badge>
+          )}
+        </div>
+        <div className="flex flex-wrap items-baseline justify-between gap-2 pt-2 border-t border-line">
+          <div className="text-2xl font-bold text-ink">
+            {bill.dueAgorot <= 0
+              ? t('settled')
+              : t.rich('due', { amount: formatMoney(bill.dueAgorot, member.locale), bidi })}
+          </div>
+          <div className="text-sm text-muted">
+            {balance.balanceAgorot < 0
+              ? t.rich('credit', { amount: formatMoney(Math.abs(balance.balanceAgorot), member.locale), bidi })
+              : t.rich('balance', { amount: formatMoney(balance.balanceAgorot, member.locale), bidi })}
+          </div>
+        </div>
+      </Card>
       <BillTable charges={chargeRows} payments={paymentRows} moneyLocale={member.locale} />
       <NotificationPrefs categories={NOTIFICATION_CATEGORIES} prefs={prefs} />
       <PushSetup />

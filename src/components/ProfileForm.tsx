@@ -5,6 +5,8 @@ import { useTranslations } from 'next-intl'
 import { updateOwnProfileAction } from '@/app/actions/profile'
 import type { Member } from '@/domain/members'
 import SubmitButton from './SubmitButton'
+import { Field } from '@/components/ui/Field'
+import { InlineMessage } from '@/components/ui/InlineMessage'
 
 export default function ProfileForm({ member }: { member: Member }) {
   const t = useTranslations()
@@ -12,10 +14,7 @@ export default function ProfileForm({ member }: { member: Member }) {
 
   return (
     <form action={formAction} className="space-y-4 text-start">
-      <div className="space-y-1">
-        <label htmlFor="name" className="block text-sm font-medium">
-          {t('profile.name')}
-        </label>
+      <Field label={t('profile.name')} required>
         <input
           id="name"
           name="name"
@@ -24,14 +23,11 @@ export default function ProfileForm({ member }: { member: Member }) {
           maxLength={120}
           defaultValue={member.name ?? ''}
           dir="auto"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label htmlFor="nickname" className="block text-sm font-medium">
-          {t('profile.nickname')}
-        </label>
+      <Field label={t('profile.nickname')}>
         <input
           id="nickname"
           name="nickname"
@@ -39,14 +35,11 @@ export default function ProfileForm({ member }: { member: Member }) {
           maxLength={60}
           defaultValue={member.nickname ?? ''}
           dir="auto"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label htmlFor="email" className="block text-sm font-medium">
-          {t('profile.email')}
-        </label>
+      <Field label={t('profile.email')}>
         <input
           id="email"
           name="email"
@@ -54,14 +47,11 @@ export default function ProfileForm({ member }: { member: Member }) {
           maxLength={254}
           defaultValue={member.email ?? ''}
           dir="ltr"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label htmlFor="phone" className="block text-sm font-medium">
-          {t('profile.phone')}
-        </label>
+      <Field label={t('profile.phone')}>
         <input
           id="phone"
           name="phone"
@@ -69,14 +59,11 @@ export default function ProfileForm({ member }: { member: Member }) {
           maxLength={40}
           defaultValue={member.phone ?? ''}
           dir="ltr"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </div>
+      </Field>
 
-      <div className="space-y-1">
-        <label htmlFor="image" className="block text-sm font-medium">
-          {t('profile.image')}
-        </label>
+      <Field label={t('profile.image')} hint={t('profile.imageHint')}>
         <input
           id="image"
           name="image"
@@ -84,12 +71,9 @@ export default function ProfileForm({ member }: { member: Member }) {
           maxLength={500}
           defaultValue={member.image ?? ''}
           dir="ltr"
-          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          {t('profile.imageHint')}
-        </p>
-      </div>
+      </Field>
 
       <div className="pt-2">
         <SubmitButton
@@ -100,14 +84,18 @@ export default function ProfileForm({ member }: { member: Member }) {
       </div>
 
       {state?.ok === true && (
-        <div aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
-          {t('profile.saved')}
+        <div aria-live="polite">
+          <InlineMessage variant="success">
+            {t('profile.saved')}
+          </InlineMessage>
         </div>
       )}
 
       {state?.ok === false && (
-        <div aria-live="polite" className="text-sm text-red-600 dark:text-red-400">
-          {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
+        <div aria-live="polite">
+          <InlineMessage variant="danger">
+            {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
+          </InlineMessage>
         </div>
       )}
     </form>

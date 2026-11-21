@@ -3,6 +3,9 @@
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { urlBase64ToUint8Array } from '@/lib/push-client'
+import { Card } from '@/components/ui/Card'
+import { Button } from '@/components/ui/Button'
+import { InlineMessage } from '@/components/ui/InlineMessage'
 
 type Status =
   | 'loading'
@@ -128,57 +131,61 @@ export default function PushSetup() {
   }
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-xl font-semibold">{t('notifications.push.title')}</h2>
-      <p className="text-sm">{t('notifications.push.description')}</p>
+    <Card className="space-y-4 p-6">
+      <div className="space-y-1">
+        <h2 className="text-xl font-semibold text-ink">{t('notifications.push.title')}</h2>
+        <p className="text-sm text-muted">{t('notifications.push.description')}</p>
+      </div>
 
       {status === 'loading' && (
-        <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('notifications.push.loading')}</p>
+        <p className="text-sm text-muted">{t('notifications.push.loading')}</p>
       )}
 
-      {status === 'unsupported' && <p className="text-sm">{t('notifications.push.unsupported')}</p>}
+      {status === 'unsupported' && <InlineMessage variant="info">{t('notifications.push.unsupported')}</InlineMessage>}
 
-      {status === 'misconfigured' && <p className="text-sm">{t('notifications.push.misconfigured')}</p>}
+      {status === 'misconfigured' && <InlineMessage variant="warning">{t('notifications.push.misconfigured')}</InlineMessage>}
 
       {status === 'ios-install' && (
-        <div className="space-y-2">
-          <p className="text-sm">{t('notifications.push.iosInstallTitle')}</p>
-          <ol className="list-inside list-decimal space-y-1 text-sm">
+        <InlineMessage variant="info" title={t('notifications.push.iosInstallTitle')}>
+          <ol className="list-inside list-decimal space-y-1 mt-2 text-sm">
             <li>{t('notifications.push.iosStep1')}</li>
             <li>{t('notifications.push.iosStep2')}</li>
             <li>{t('notifications.push.iosStep3')}</li>
           </ol>
-        </div>
+        </InlineMessage>
       )}
 
       {status === 'denied' && (
-        <p className="text-sm text-amber-700 dark:text-amber-300">{t('notifications.push.denied')}</p>
+        <InlineMessage variant="warning">{t('notifications.push.denied')}</InlineMessage>
       )}
 
       {status === 'not-subscribed' && (
-        <button
+        <Button
           type="button"
           onClick={enable}
-          disabled={busy}
-          className="cursor-pointer rounded-md border border-emerald-700 bg-emerald-700 px-4 py-2 font-medium text-white hover:bg-emerald-800 disabled:cursor-wait disabled:opacity-60"
+          isLoading={busy}
+          variant="primary"
         >
-          {busy ? t('notifications.push.enabling') : t('notifications.push.enable')}
-        </button>
+          {t('notifications.push.enable')}
+        </Button>
       )}
 
       {status === 'subscribed' && (
-        <div className="flex flex-wrap items-center gap-2">
-          <p className="text-sm text-emerald-700 dark:text-emerald-300">{t('notifications.push.subscribed')}</p>
-          <button
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <InlineMessage variant="success" className="border-0 bg-transparent p-0">
+            {t('notifications.push.subscribed')}
+          </InlineMessage>
+          <Button
             type="button"
             onClick={disable}
-            disabled={busy}
-            className="cursor-pointer rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-current/5 disabled:cursor-wait disabled:opacity-60"
+            isLoading={busy}
+            variant="outline"
+            size="sm"
           >
-            {busy ? t('notifications.push.disabling') : t('notifications.push.disable')}
-          </button>
+            {t('notifications.push.disable')}
+          </Button>
         </div>
       )}
-    </section>
+    </Card>
   )
 }

@@ -1,5 +1,8 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { formatMatchDate, formatMoney } from '@/lib/time'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { EmptyState } from '@/components/ui/EmptyState'
 
 type PaymentMethod = 'paybox' | 'cash' | 'other'
 
@@ -30,57 +33,57 @@ export default async function BillTable({
   }
 
   return (
-    <div className="space-y-4">
-      <section className="space-y-2 rounded-xl border p-5">
-        <h2 className="text-xl font-semibold">{t('charges')}</h2>
+    <div className="space-y-6">
+      <Card className="space-y-4 p-6">
+        <h2 className="text-xl font-semibold text-ink">{t('charges')}</h2>
         {charges.length === 0 ? (
-          <p>{t('chargesEmpty')}</p>
+          <EmptyState icon="receipt" title={t('chargesEmpty')} className="border-0 p-6 bg-surface-muted" />
         ) : (
-          <ul className="divide-y">
+          <ul className="divide-y divide-line">
             {charges.map(charge => (
-              <li key={charge.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                <bdi>
+              <li key={charge.id} className="flex flex-wrap items-center justify-between gap-2 py-3">
+                <bdi className="text-sm font-medium text-ink">
                   <time dateTime={charge.kickoffAt}>
                     {formatMatchDate(new Date(charge.kickoffAt), locale)}
                   </time>
                 </bdi>
-                <span className="flex items-center gap-2">
+                <span className="flex items-center gap-2.5">
                   {charge.waived && (
-                    <span className="rounded-full border px-2 py-0.5 text-xs font-medium">{t('waived')}</span>
+                    <Badge variant="secondary" size="sm">{t('waived')}</Badge>
                   )}
-                  <bdi>{formatMoney(charge.amountAgorot, moneyLocale)}</bdi>
+                  <bdi className="text-sm font-semibold text-ink">{formatMoney(charge.amountAgorot, moneyLocale)}</bdi>
                 </span>
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
 
-      <section className="space-y-2 rounded-xl border p-5">
-        <h2 className="text-xl font-semibold">{t('payments')}</h2>
+      <Card className="space-y-4 p-6">
+        <h2 className="text-xl font-semibold text-ink">{t('payments')}</h2>
         {payments.length === 0 ? (
-          <p>{t('paymentsEmpty')}</p>
+          <EmptyState icon="credit-card" title={t('paymentsEmpty')} className="border-0 p-6 bg-surface-muted" />
         ) : (
-          <ul className="divide-y">
+          <ul className="divide-y divide-line">
             {payments.map(payment => (
-              <li key={payment.id} className="space-y-1 py-2">
+              <li key={payment.id} className="space-y-1.5 py-3">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <bdi>
+                  <bdi className="text-sm font-medium text-ink">
                     <time dateTime={payment.paidAt}>
                       {formatMatchDate(new Date(payment.paidAt), locale)}
                     </time>
                   </bdi>
-                  <span className="flex items-center gap-2">
-                    <span className="text-sm font-medium">{methodLabels[payment.method]}</span>
-                    <bdi>{formatMoney(payment.amountAgorot, moneyLocale)}</bdi>
+                  <span className="flex items-center gap-2.5">
+                    <Badge variant="outline" size="sm">{methodLabels[payment.method]}</Badge>
+                    <bdi className="text-sm font-semibold text-ink">{formatMoney(payment.amountAgorot, moneyLocale)}</bdi>
                   </span>
                 </div>
-                {payment.note && <p className="text-sm text-neutral-600 dark:text-neutral-300"><bdi>{payment.note}</bdi></p>}
+                {payment.note && <p className="text-xs text-muted"><bdi>{payment.note}</bdi></p>}
               </li>
             ))}
           </ul>
         )}
-      </section>
+      </Card>
     </div>
   )
 }
