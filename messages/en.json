@@ -10,6 +10,7 @@
     "home": "Home",
     "bill": "Bill",
     "admin": "Admin",
+    "profile": "Profile",
     "logout": "Sign out"
   },
   "auth": {
@@ -20,6 +21,11 @@
     "signInSubtitle": "Enter your email to receive a magic sign-in link.",
     "emailLabel": "Email",
     "emailPlaceholder": "player@example.com",
+    "detailsSummary": "Add your details (optional)",
+    "nameLabel": "Name",
+    "nicknameLabel": "Nickname",
+    "phoneLabel": "Phone",
+    "imageLabel": "Image URL",
     "sendLink": "Send sign-in link",
     "sendingLink": "Sending…",
     "magicLinkSent": "Check your email for your sign-in link.",
@@ -27,6 +33,19 @@
     "pendingTitle": "Account pending approval",
     "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
     "signOut": "Sign out"
+  },
+  "profile": {
+    "title": "Your Profile",
+    "subtitle": "Update your personal details and contact information.",
+    "name": "Name",
+    "nickname": "Nickname",
+    "email": "Email",
+    "phone": "Phone",
+    "image": "Image URL",
+    "imageHint": "Direct link to a public photo or avatar (optional).",
+    "save": "Save profile",
+    "saving": "Saving…",
+    "saved": "Profile updated."
   },
   "home": { "placeholder": "Match details will appear here." },
   "match": {

@@ -18,6 +18,7 @@ export default async function Nav({ children }: { children: ReactNode }) {
                 <Link href="/">{t('nav.home')}</Link>
                 <Link href="/bill">{t('nav.bill')}</Link>
                 {member.role === 'admin' && <Link href="/admin">{t('nav.admin')}</Link>}
+                <Link href="/profile">{t('nav.profile')}</Link>
               </>
             )}
             <bdi>{member.name}</bdi>

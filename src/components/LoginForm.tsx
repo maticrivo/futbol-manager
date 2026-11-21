@@ -34,6 +34,69 @@ export default function LoginForm() {
             />
           </div>
 
+          <details className="rounded-md border border-gray-200 p-3 text-start dark:border-gray-800">
+            <summary className="cursor-pointer text-sm font-medium text-gray-700 dark:text-gray-300">
+              {t('detailsSummary')}
+            </summary>
+            <div className="mt-3 space-y-3">
+              <div className="space-y-1">
+                <label htmlFor="name" className="block text-sm font-medium">
+                  {t('nameLabel')}
+                </label>
+                <input
+                  id="name"
+                  type="text"
+                  name="name"
+                  maxLength={120}
+                  dir="auto"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="nickname" className="block text-sm font-medium">
+                  {t('nicknameLabel')}
+                </label>
+                <input
+                  id="nickname"
+                  type="text"
+                  name="nickname"
+                  maxLength={60}
+                  dir="auto"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="phone" className="block text-sm font-medium">
+                  {t('phoneLabel')}
+                </label>
+                <input
+                  id="phone"
+                  type="tel"
+                  name="phone"
+                  maxLength={40}
+                  dir="ltr"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label htmlFor="image" className="block text-sm font-medium">
+                  {t('imageLabel')}
+                </label>
+                <input
+                  id="image"
+                  type="url"
+                  name="image"
+                  maxLength={500}
+                  dir="ltr"
+                  className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:border-green-600 focus:outline-none focus:ring-1 focus:ring-green-600 dark:border-gray-700 dark:bg-gray-900"
+                />
+              </div>
+            </div>
+          </details>
+
           {state && !state.ok && (
             <div aria-live="polite" className="text-sm text-red-600 dark:text-red-400">
               {t('magicLinkError')}

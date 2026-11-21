@@ -10,6 +10,7 @@
     "home": "Inicio",
     "bill": "Cuenta",
     "admin": "Administración",
+    "profile": "Perfil",
     "logout": "Cerrar sesión"
   },
   "auth": {
@@ -20,6 +21,11 @@
     "signInSubtitle": "Introduce tu correo para recibir un enlace de inicio de sesión.",
     "emailLabel": "Correo electrónico",
     "emailPlaceholder": "jugador@example.com",
+    "detailsSummary": "Añadir tus datos (opcional)",
+    "nameLabel": "Nombre",
+    "nicknameLabel": "Apodo",
+    "phoneLabel": "Teléfono",
+    "imageLabel": "URL de la imagen",
     "sendLink": "Enviar enlace",
     "sendingLink": "Enviando…",
     "magicLinkSent": "Revisa tu correo para obtener tu enlace de inicio de sesión.",
@@ -27,6 +33,19 @@
     "pendingTitle": "Cuenta pendiente de aprobación",
     "pendingDescription": "Tu cuenta está esperando la aprobación de un administrador. Una vez aprobada, tendrás acceso a los partidos y cobros.",
     "signOut": "Cerrar sesión"
+  },
+  "profile": {
+    "title": "Tu perfil",
+    "subtitle": "Actualiza tus datos personales e información de contacto.",
+    "name": "Nombre",
+    "nickname": "Apodo",
+    "email": "Correo electrónico",
+    "phone": "Teléfono",
+    "image": "URL de la imagen",
+    "imageHint": "Enlace directo a una foto pública o avatar (opcional).",
+    "save": "Guardar perfil",
+    "saving": "Guardando…",
+    "saved": "Perfil actualizado."
   },
   "home": { "placeholder": "Aquí aparecerán los detalles del partido." },
   "match": {

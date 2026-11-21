@@ -10,6 +10,7 @@
     "home": "בית",
     "bill": "חשבון",
     "admin": "ניהול",
+    "profile": "פרופיל",
     "logout": "התנתקות"
   },
   "auth": {
@@ -20,6 +21,11 @@
     "signInSubtitle": "יש להזין כתובת אימייל כדי לקבל קישור התחברות.",
     "emailLabel": "אימייל",
     "emailPlaceholder": "player@example.com",
+    "detailsSummary": "הוספת פרטים (אופציונלי)",
+    "nameLabel": "שם",
+    "nicknameLabel": "כינוי",
+    "phoneLabel": "טלפון",
+    "imageLabel": "קישור לתמונה",
     "sendLink": "שליחת קישור התחברות",
     "sendingLink": "שולח…",
     "magicLinkSent": "קישור ההתחברות נשלח לאימייל שלך.",
@@ -27,6 +33,19 @@
     "pendingTitle": "החשבון ממתין לאישור",
     "pendingDescription": "החשבון שלך ממתין לאישור מנהל. לאחר האישור תוכל להצטרף למשחקים ולצפות בתשלומים.",
     "signOut": "התנתקות"
+  },
+  "profile": {
+    "title": "הפרופיל שלך",
+    "subtitle": "עדכון הפרטים האישיים ופרטי הקשר שלך.",
+    "name": "שם",
+    "nickname": "כינוי",
+    "email": "אימייל",
+    "phone": "טלפון",
+    "image": "קישור לתמונה",
+    "imageHint": "קישור ישיר לתמונה ציבורית או אווטאר (אופציונלי).",
+    "save": "שמירת פרופיל",
+    "saving": "שומר…",
+    "saved": "הפרופיל עודכן."
   },
   "home": { "placeholder": "פרטי המשחק יופיעו כאן." },
   "match": {
