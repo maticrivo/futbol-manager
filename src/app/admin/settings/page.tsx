@@ -4,6 +4,7 @@ import SettingsForm from '@/components/SettingsForm'
 import { getDb } from '@/db'
 import { getSettings } from '@/domain/matches'
 import { requireAdmin } from '@/lib/auth'
+import { Card } from '@/components/ui/Card'
 
 export default async function AdminSettings() {
   await requireAdmin()
@@ -12,11 +13,11 @@ export default async function AdminSettings() {
   const [settings, t] = await Promise.all([getSettings(db), getTranslations('admin')])
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
       <AdminNav />
-      <h1 className="text-2xl font-semibold">{t('settings.title')}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('settings.title')}</h1>
 
-      <section className="rounded-xl border p-5">
+      <Card variant="default" padding="lg">
         <SettingsForm
           capacity={settings.capacity}
           costShekels={(settings.costAgorot / 100).toFixed(2)}
@@ -24,7 +25,7 @@ export default async function AdminSettings() {
           kickoffTime={settings.kickoffTime}
           queueWindowMinutes={settings.queueWindowMinutes}
         />
-      </section>
+      </Card>
     </main>
   )
 }

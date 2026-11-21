@@ -6,8 +6,8 @@ export default function manifest(): MetadataRoute.Manifest {
     short_name: 'Tuesday Football',
     start_url: '/',
     display: 'standalone',
-    background_color: '#0a7d3a',
-    theme_color: '#0a7d3a',
+    background_color: '#12301c',
+    theme_color: '#12301c',
     lang: 'en',
     icons: [
       { src: '/icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },

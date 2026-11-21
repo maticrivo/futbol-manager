@@ -4,6 +4,8 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { updateSettingsAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+import { Field } from '@/components/ui/Field'
+import { InlineMessage } from '@/components/ui/InlineMessage'
 
 export default function SettingsForm({
   capacity,
@@ -22,9 +24,8 @@ export default function SettingsForm({
   const [state, formAction] = useActionState(updateSettingsAction, null)
 
   return (
-    <form action={formAction} className="space-y-4">
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.settings.capacity')}</span>
+    <form action={formAction} className="space-y-4 text-start">
+      <Field label={t('admin.settings.capacity')} required>
         <input
           name="capacity"
           type="number"
@@ -32,41 +33,41 @@ export default function SettingsForm({
           max={40}
           required
           defaultValue={capacity}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.settings.costShekels')}</span>
+      </Field>
+
+      <Field label={t('admin.settings.costShekels')} required>
         <input
           name="costShekels"
           inputMode="decimal"
           required
           defaultValue={costShekels}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.settings.venue')}</span>
+      </Field>
+
+      <Field label={t('admin.settings.venue')}>
         <input
           name="venue"
           dir="auto"
           maxLength={120}
           defaultValue={venue}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.settings.kickoffTime')}</span>
+      </Field>
+
+      <Field label={t('admin.settings.kickoffTime')} required>
         <input
           name="kickoffTime"
           type="time"
           required
           defaultValue={kickoffTime}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.settings.queueWindowMinutes')}</span>
+      </Field>
+
+      <Field label={t('admin.settings.queueWindowMinutes')} required>
         <input
           name="queueWindowMinutes"
           type="number"
@@ -74,18 +75,27 @@ export default function SettingsForm({
           max={1440}
           required
           defaultValue={queueWindowMinutes}
-          className="mt-1 w-full rounded border px-3 py-2"
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
-      </label>
-      <SubmitButton label={t('admin.settings.save')} pendingLabel={t('admin.settings.saving')} primary />
+      </Field>
+
+      <div className="pt-2">
+        <SubmitButton label={t('admin.settings.save')} pendingLabel={t('admin.settings.saving')} primary />
+      </div>
+
       {state?.ok === true && (
-        <div aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
-          {t('admin.settings.saved')}
+        <div aria-live="polite">
+          <InlineMessage variant="success">
+            {t('admin.settings.saved')}
+          </InlineMessage>
         </div>
       )}
+
       {state?.ok === false && (
-        <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
-          {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
+        <div aria-live="polite">
+          <InlineMessage variant="danger">
+            {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
+          </InlineMessage>
         </div>
       )}
     </form>
