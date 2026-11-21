@@ -1,1 +1,0 @@
-ALTER TABLE `matches` ADD `venue_url` varchar(500);

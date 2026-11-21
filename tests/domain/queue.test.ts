@@ -130,7 +130,7 @@ it('reserves a vacancy before a signup waiting behind the withdrawal can take it
 
     withdrawal = withdraw(testDb, { entryId: departingEntryId, actorMemberId: members[0].id, now })
     void withdrawal.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = (select \`matchId\` from \`entries\` where \`entries\`.\`id\` = ${departingEntryId})`)
+    await waitForLockWait(`\`matches\`.\`id\` = (select \`match_id\` from \`entries\` where \`entries\`.\`id\` = ${departingEntryId})`)
 
     admission = signup(testDb, { memberId: members[17].id, matchId: match.id, now })
     void admission.catch(() => {})

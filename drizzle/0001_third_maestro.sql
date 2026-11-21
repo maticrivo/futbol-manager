@@ -1,1 +1,0 @@
-ALTER TABLE `members` MODIFY COLUMN `status` enum('pending','active','disabled') NOT NULL DEFAULT 'active';

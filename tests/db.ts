@@ -7,19 +7,19 @@ dotenv.config({ path: '.env.test', quiet: true })
 export const testDb = createDb(process.env.TEST_DATABASE_URL!)
 
 const tables = [
-  'notificationLog',
-  'notificationPrefs',
-  'pushSubscriptions',
-  'auditLog',
-  'guestPayments',
-  'paymentAllocations',
+  'notification_logs',
+  'notification_prefs',
+  'push_subscriptions',
+  'audit_logs',
+  'guest_payments',
+  'payment_allocations',
   'payments',
   'expenses',
   'charges',
   'entries',
   'matches',
   'sessions',
-  'loginTokens',
+  'login_tokens',
   'members',
   'settings',
 ]

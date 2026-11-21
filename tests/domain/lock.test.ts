@@ -297,7 +297,7 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
     await waitForLockWait(`\`matches\`.\`id\` = ${match.id} for update`)
     removal = adminRemoveEntry(testDb, { actorId, entryId: target.id, now: lockTime, reason: 'test' })
     void removal.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = (select \`matchId\` from \`entries\` where \`entries\`.\`id\` = ${target.id})`)
+    await waitForLockWait(`\`matches\`.\`id\` = (select \`match_id\` from \`entries\` where \`entries\`.\`id\` = ${target.id})`)
     await holder.commit()
 
     const [locked, removed] = await Promise.allSettled([billing, removal])

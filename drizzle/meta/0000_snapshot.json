@@ -1,11 +1,11 @@
 {
   "version": "5",
   "dialect": "mysql",
-  "id": "695dce3f-ac75-4f52-b693-ca4c30f07fd7",
+  "id": "57e006bb-42e8-4f78-9667-a84c7a4945d6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "tables": {
-    "auditLog": {
-      "name": "auditLog",
+    "audit_logs": {
+      "name": "audit_logs",
       "columns": {
         "id": {
           "name": "id",
@@ -14,8 +14,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "actorId": {
-          "name": "actorId",
+        "actor_id": {
+          "name": "actor_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": false,
@@ -35,8 +35,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "entityId": {
-          "name": "entityId",
+        "entity_id": {
+          "name": "entity_id",
           "type": "varchar(40)",
           "primaryKey": false,
           "notNull": false,
@@ -49,8 +49,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -59,12 +59,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "auditLog_actorId_members_id_fk": {
-          "name": "auditLog_actorId_members_id_fk",
-          "tableFrom": "auditLog",
+        "audit_logs_actor_id_members_id_fk": {
+          "name": "audit_logs_actor_id_members_id_fk",
+          "tableFrom": "audit_logs",
           "tableTo": "members",
           "columnsFrom": [
-            "actorId"
+            "actor_id"
           ],
           "columnsTo": [
             "id"
@@ -74,8 +74,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "auditLog_id": {
-          "name": "auditLog_id",
+        "audit_logs_id": {
+          "name": "audit_logs_id",
           "columns": [
             "id"
           ]
@@ -94,29 +94,29 @@
           "notNull": true,
           "autoincrement": true
         },
-        "matchId": {
-          "name": "matchId",
+        "match_id": {
+          "name": "match_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "amountAgorot": {
-          "name": "amountAgorot",
+        "amount_agorot": {
+          "name": "amount_agorot",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "billingMonth": {
-          "name": "billingMonth",
+        "billing_month": {
+          "name": "billing_month",
           "type": "char(7)",
           "primaryKey": false,
           "notNull": true,
@@ -130,29 +130,29 @@
           "autoincrement": false,
           "default": "'charged'"
         },
-        "waivedBy": {
-          "name": "waivedBy",
+        "waived_by": {
+          "name": "waived_by",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "waiveReason": {
-          "name": "waiveReason",
+        "waive_reason": {
+          "name": "waive_reason",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -160,22 +160,22 @@
         }
       },
       "indexes": {
-        "charges_memberId_billingMonth_idx": {
-          "name": "charges_memberId_billingMonth_idx",
+        "charges_member_id_billing_month_idx": {
+          "name": "charges_member_id_billing_month_idx",
           "columns": [
-            "memberId",
-            "billingMonth"
+            "member_id",
+            "billing_month"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "charges_matchId_matches_id_fk": {
-          "name": "charges_matchId_matches_id_fk",
+        "charges_match_id_matches_id_fk": {
+          "name": "charges_match_id_matches_id_fk",
           "tableFrom": "charges",
           "tableTo": "matches",
           "columnsFrom": [
-            "matchId"
+            "match_id"
           ],
           "columnsTo": [
             "id"
@@ -183,12 +183,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "charges_memberId_members_id_fk": {
-          "name": "charges_memberId_members_id_fk",
+        "charges_member_id_members_id_fk": {
+          "name": "charges_member_id_members_id_fk",
           "tableFrom": "charges",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -196,12 +196,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "charges_waivedBy_members_id_fk": {
-          "name": "charges_waivedBy_members_id_fk",
+        "charges_waived_by_members_id_fk": {
+          "name": "charges_waived_by_members_id_fk",
           "tableFrom": "charges",
           "tableTo": "members",
           "columnsFrom": [
-            "waivedBy"
+            "waived_by"
           ],
           "columnsTo": [
             "id"
@@ -219,11 +219,11 @@
         }
       },
       "uniqueConstraints": {
-        "charges_matchId_memberId_unique": {
-          "name": "charges_matchId_memberId_unique",
+        "charges_match_id_member_id_unique": {
+          "name": "charges_match_id_member_id_unique",
           "columns": [
-            "matchId",
-            "memberId"
+            "match_id",
+            "member_id"
           ]
         }
       },
@@ -239,8 +239,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "matchId": {
-          "name": "matchId",
+        "match_id": {
+          "name": "match_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
@@ -253,22 +253,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "guestName": {
-          "name": "guestName",
+        "guest_name": {
+          "name": "guest_name",
           "type": "varchar(120)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "hostMemberId": {
-          "name": "hostMemberId",
+        "host_member_id": {
+          "name": "host_member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": false,
@@ -289,29 +289,29 @@
           "notNull": false,
           "autoincrement": false
         },
-        "offeredAt": {
-          "name": "offeredAt",
+        "offered_at": {
+          "name": "offered_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "offerExpiresAt": {
-          "name": "offerExpiresAt",
+        "offer_expires_at": {
+          "name": "offer_expires_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -319,22 +319,22 @@
         }
       },
       "indexes": {
-        "entries_matchId_status_idx": {
-          "name": "entries_matchId_status_idx",
+        "entries_match_id_status_idx": {
+          "name": "entries_match_id_status_idx",
           "columns": [
-            "matchId",
+            "match_id",
             "status"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "entries_matchId_matches_id_fk": {
-          "name": "entries_matchId_matches_id_fk",
+        "entries_match_id_matches_id_fk": {
+          "name": "entries_match_id_matches_id_fk",
           "tableFrom": "entries",
           "tableTo": "matches",
           "columnsFrom": [
-            "matchId"
+            "match_id"
           ],
           "columnsTo": [
             "id"
@@ -342,12 +342,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "entries_memberId_members_id_fk": {
-          "name": "entries_memberId_members_id_fk",
+        "entries_member_id_members_id_fk": {
+          "name": "entries_member_id_members_id_fk",
           "tableFrom": "entries",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -355,12 +355,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "entries_hostMemberId_members_id_fk": {
-          "name": "entries_hostMemberId_members_id_fk",
+        "entries_host_member_id_members_id_fk": {
+          "name": "entries_host_member_id_members_id_fk",
           "tableFrom": "entries",
           "tableTo": "members",
           "columnsFrom": [
-            "hostMemberId"
+            "host_member_id"
           ],
           "columnsTo": [
             "id"
@@ -378,11 +378,11 @@
         }
       },
       "uniqueConstraints": {
-        "entries_matchId_memberId_unique": {
-          "name": "entries_matchId_memberId_unique",
+        "entries_match_id_member_id_unique": {
+          "name": "entries_match_id_member_id_unique",
           "columns": [
-            "matchId",
-            "memberId"
+            "match_id",
+            "member_id"
           ]
         }
       },
@@ -398,29 +398,29 @@
           "notNull": true,
           "autoincrement": true
         },
-        "billingMonth": {
-          "name": "billingMonth",
+        "billing_month": {
+          "name": "billing_month",
           "type": "char(7)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "fieldCostAgorot": {
-          "name": "fieldCostAgorot",
+        "field_cost_agorot": {
+          "name": "field_cost_agorot",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedBy": {
-          "name": "updatedBy",
+        "updated_by": {
+          "name": "updated_by",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -429,12 +429,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "expenses_updatedBy_members_id_fk": {
-          "name": "expenses_updatedBy_members_id_fk",
+        "expenses_updated_by_members_id_fk": {
+          "name": "expenses_updated_by_members_id_fk",
           "tableFrom": "expenses",
           "tableTo": "members",
           "columnsFrom": [
-            "updatedBy"
+            "updated_by"
           ],
           "columnsTo": [
             "id"
@@ -452,17 +452,17 @@
         }
       },
       "uniqueConstraints": {
-        "expenses_billingMonth_unique": {
-          "name": "expenses_billingMonth_unique",
+        "expenses_billing_month_unique": {
+          "name": "expenses_billing_month_unique",
           "columns": [
-            "billingMonth"
+            "billing_month"
           ]
         }
       },
       "checkConstraint": {}
     },
-    "guestPayments": {
-      "name": "guestPayments",
+    "guest_payments": {
+      "name": "guest_payments",
       "columns": {
         "id": {
           "name": "id",
@@ -471,15 +471,15 @@
           "notNull": true,
           "autoincrement": true
         },
-        "entryId": {
-          "name": "entryId",
+        "entry_id": {
+          "name": "entry_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "amountAgorot": {
-          "name": "amountAgorot",
+        "amount_agorot": {
+          "name": "amount_agorot",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
@@ -492,22 +492,22 @@
           "notNull": true,
           "autoincrement": false
         },
-        "refundOfId": {
-          "name": "refundOfId",
+        "refund_of_id": {
+          "name": "refund_of_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "paidAt": {
-          "name": "paidAt",
+        "paid_at": {
+          "name": "paid_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "recordedBy": {
-          "name": "recordedBy",
+        "recorded_by": {
+          "name": "recorded_by",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
@@ -520,8 +520,8 @@
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -530,12 +530,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "guestPayments_entryId_entries_id_fk": {
-          "name": "guestPayments_entryId_entries_id_fk",
-          "tableFrom": "guestPayments",
+        "guest_payments_entry_id_entries_id_fk": {
+          "name": "guest_payments_entry_id_entries_id_fk",
+          "tableFrom": "guest_payments",
           "tableTo": "entries",
           "columnsFrom": [
-            "entryId"
+            "entry_id"
           ],
           "columnsTo": [
             "id"
@@ -543,12 +543,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "guestPayments_recordedBy_members_id_fk": {
-          "name": "guestPayments_recordedBy_members_id_fk",
-          "tableFrom": "guestPayments",
+        "guest_payments_recorded_by_members_id_fk": {
+          "name": "guest_payments_recorded_by_members_id_fk",
+          "tableFrom": "guest_payments",
           "tableTo": "members",
           "columnsFrom": [
-            "recordedBy"
+            "recorded_by"
           ],
           "columnsTo": [
             "id"
@@ -558,8 +558,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "guestPayments_id": {
-          "name": "guestPayments_id",
+        "guest_payments_id": {
+          "name": "guest_payments_id",
           "columns": [
             "id"
           ]
@@ -568,8 +568,8 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "loginTokens": {
-      "name": "loginTokens",
+    "login_tokens": {
+      "name": "login_tokens",
       "columns": {
         "id": {
           "name": "id",
@@ -578,36 +578,36 @@
           "notNull": true,
           "autoincrement": true
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "tokenHash": {
-          "name": "tokenHash",
+        "token_hash": {
+          "name": "token_hash",
           "type": "char(64)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "lastUsedAt": {
-          "name": "lastUsedAt",
+        "last_used_at": {
+          "name": "last_used_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "revokedAt": {
-          "name": "revokedAt",
+        "revoked_at": {
+          "name": "revoked_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -616,12 +616,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "loginTokens_memberId_members_id_fk": {
-          "name": "loginTokens_memberId_members_id_fk",
-          "tableFrom": "loginTokens",
+        "login_tokens_member_id_members_id_fk": {
+          "name": "login_tokens_member_id_members_id_fk",
+          "tableFrom": "login_tokens",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -631,18 +631,18 @@
         }
       },
       "compositePrimaryKeys": {
-        "loginTokens_id": {
-          "name": "loginTokens_id",
+        "login_tokens_id": {
+          "name": "login_tokens_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "loginTokens_tokenHash_unique": {
-          "name": "loginTokens_tokenHash_unique",
+        "login_tokens_token_hash_unique": {
+          "name": "login_tokens_token_hash_unique",
           "columns": [
-            "tokenHash"
+            "token_hash"
           ]
         }
       },
@@ -658,36 +658,36 @@
           "notNull": true,
           "autoincrement": true
         },
-        "matchDate": {
-          "name": "matchDate",
+        "match_date": {
+          "name": "match_date",
           "type": "char(10)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "kickoffAt": {
-          "name": "kickoffAt",
+        "kickoff_at": {
+          "name": "kickoff_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "signupOpensAt": {
-          "name": "signupOpensAt",
+        "signup_opens_at": {
+          "name": "signup_opens_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "guestPhaseAt": {
-          "name": "guestPhaseAt",
+        "guest_phase_at": {
+          "name": "guest_phase_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "lockAt": {
-          "name": "lockAt",
+        "lock_at": {
+          "name": "lock_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -701,8 +701,15 @@
           "autoincrement": false,
           "default": "''"
         },
-        "costAgorot": {
-          "name": "costAgorot",
+        "venue_url": {
+          "name": "venue_url",
+          "type": "varchar(500)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "cost_agorot": {
+          "name": "cost_agorot",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
@@ -730,15 +737,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -756,10 +763,10 @@
         }
       },
       "uniqueConstraints": {
-        "matches_matchDate_unique": {
-          "name": "matches_matchDate_unique",
+        "matches_match_date_unique": {
+          "name": "matches_match_date_unique",
           "columns": [
-            "matchDate"
+            "match_date"
           ]
         }
       },
@@ -782,6 +789,34 @@
           "notNull": true,
           "autoincrement": false
         },
+        "email": {
+          "name": "email",
+          "type": "varchar(254)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "role": {
           "name": "role",
           "type": "enum('member','admin')",
@@ -800,21 +835,21 @@
         },
         "status": {
           "name": "status",
-          "type": "enum('active','disabled')",
+          "type": "enum('pending','active','disabled')",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false,
           "default": "'active'"
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -831,11 +866,18 @@
           ]
         }
       },
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "members_email_unique": {
+          "name": "members_email_unique",
+          "columns": [
+            "email"
+          ]
+        }
+      },
       "checkConstraint": {}
     },
-    "notificationLog": {
-      "name": "notificationLog",
+    "notification_logs": {
+      "name": "notification_logs",
       "columns": {
         "id": {
           "name": "id",
@@ -844,22 +886,22 @@
           "notNull": true,
           "autoincrement": true
         },
-        "eventKey": {
-          "name": "eventKey",
+        "event_key": {
+          "name": "event_key",
           "type": "varchar(200)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "sentAt": {
-          "name": "sentAt",
+        "sent_at": {
+          "name": "sent_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -868,12 +910,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notificationLog_memberId_members_id_fk": {
-          "name": "notificationLog_memberId_members_id_fk",
-          "tableFrom": "notificationLog",
+        "notification_logs_member_id_members_id_fk": {
+          "name": "notification_logs_member_id_members_id_fk",
+          "tableFrom": "notification_logs",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -883,26 +925,26 @@
         }
       },
       "compositePrimaryKeys": {
-        "notificationLog_id": {
-          "name": "notificationLog_id",
+        "notification_logs_id": {
+          "name": "notification_logs_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "notificationLog_eventKey_memberId_unique": {
-          "name": "notificationLog_eventKey_memberId_unique",
+        "notification_logs_event_key_member_id_unique": {
+          "name": "notification_logs_event_key_member_id_unique",
           "columns": [
-            "eventKey",
-            "memberId"
+            "event_key",
+            "member_id"
           ]
         }
       },
       "checkConstraint": {}
     },
-    "notificationPrefs": {
-      "name": "notificationPrefs",
+    "notification_prefs": {
+      "name": "notification_prefs",
       "columns": {
         "id": {
           "name": "id",
@@ -911,8 +953,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
@@ -936,12 +978,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notificationPrefs_memberId_members_id_fk": {
-          "name": "notificationPrefs_memberId_members_id_fk",
-          "tableFrom": "notificationPrefs",
+        "notification_prefs_member_id_members_id_fk": {
+          "name": "notification_prefs_member_id_members_id_fk",
+          "tableFrom": "notification_prefs",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -951,26 +993,26 @@
         }
       },
       "compositePrimaryKeys": {
-        "notificationPrefs_id": {
-          "name": "notificationPrefs_id",
+        "notification_prefs_id": {
+          "name": "notification_prefs_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "notificationPrefs_memberId_category_unique": {
-          "name": "notificationPrefs_memberId_category_unique",
+        "notification_prefs_member_id_category_unique": {
+          "name": "notification_prefs_member_id_category_unique",
           "columns": [
-            "memberId",
+            "member_id",
             "category"
           ]
         }
       },
       "checkConstraint": {}
     },
-    "paymentAllocations": {
-      "name": "paymentAllocations",
+    "payment_allocations": {
+      "name": "payment_allocations",
       "columns": {
         "id": {
           "name": "id",
@@ -979,29 +1021,29 @@
           "notNull": true,
           "autoincrement": true
         },
-        "paymentId": {
-          "name": "paymentId",
+        "payment_id": {
+          "name": "payment_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "billingMonth": {
-          "name": "billingMonth",
+        "billing_month": {
+          "name": "billing_month",
           "type": "char(7)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "amountAgorot": {
-          "name": "amountAgorot",
+        "amount_agorot": {
+          "name": "amount_agorot",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -1009,21 +1051,21 @@
         }
       },
       "indexes": {
-        "paymentAllocations_billingMonth_idx": {
-          "name": "paymentAllocations_billingMonth_idx",
+        "payment_allocations_billing_month_idx": {
+          "name": "payment_allocations_billing_month_idx",
           "columns": [
-            "billingMonth"
+            "billing_month"
           ],
           "isUnique": false
         }
       },
       "foreignKeys": {
-        "paymentAllocations_paymentId_payments_id_fk": {
-          "name": "paymentAllocations_paymentId_payments_id_fk",
-          "tableFrom": "paymentAllocations",
+        "payment_allocations_payment_id_payments_id_fk": {
+          "name": "payment_allocations_payment_id_payments_id_fk",
+          "tableFrom": "payment_allocations",
           "tableTo": "payments",
           "columnsFrom": [
-            "paymentId"
+            "payment_id"
           ],
           "columnsTo": [
             "id"
@@ -1033,8 +1075,8 @@
         }
       },
       "compositePrimaryKeys": {
-        "paymentAllocations_id": {
-          "name": "paymentAllocations_id",
+        "payment_allocations_id": {
+          "name": "payment_allocations_id",
           "columns": [
             "id"
           ]
@@ -1053,22 +1095,22 @@
           "notNull": true,
           "autoincrement": true
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "amountAgorot": {
-          "name": "amountAgorot",
+        "amount_agorot": {
+          "name": "amount_agorot",
           "type": "int",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "paidAt": {
-          "name": "paidAt",
+        "paid_at": {
+          "name": "paid_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -1088,15 +1130,15 @@
           "notNull": false,
           "autoincrement": false
         },
-        "recordedBy": {
-          "name": "recordedBy",
+        "recorded_by": {
+          "name": "recorded_by",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -1105,12 +1147,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "payments_memberId_members_id_fk": {
-          "name": "payments_memberId_members_id_fk",
+        "payments_member_id_members_id_fk": {
+          "name": "payments_member_id_members_id_fk",
           "tableFrom": "payments",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -1118,12 +1160,12 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "payments_recordedBy_members_id_fk": {
-          "name": "payments_recordedBy_members_id_fk",
+        "payments_recorded_by_members_id_fk": {
+          "name": "payments_recorded_by_members_id_fk",
           "tableFrom": "payments",
           "tableTo": "members",
           "columnsFrom": [
-            "recordedBy"
+            "recorded_by"
           ],
           "columnsTo": [
             "id"
@@ -1143,8 +1185,8 @@
       "uniqueConstraints": {},
       "checkConstraint": {}
     },
-    "pushSubscriptions": {
-      "name": "pushSubscriptions",
+    "push_subscriptions": {
+      "name": "push_subscriptions",
       "columns": {
         "id": {
           "name": "id",
@@ -1153,8 +1195,8 @@
           "notNull": true,
           "autoincrement": true
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
@@ -1181,15 +1223,15 @@
           "notNull": true,
           "autoincrement": false
         },
-        "userAgent": {
-          "name": "userAgent",
+        "user_agent": {
+          "name": "user_agent",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -1198,12 +1240,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "pushSubscriptions_memberId_members_id_fk": {
-          "name": "pushSubscriptions_memberId_members_id_fk",
-          "tableFrom": "pushSubscriptions",
+        "push_subscriptions_member_id_members_id_fk": {
+          "name": "push_subscriptions_member_id_members_id_fk",
+          "tableFrom": "push_subscriptions",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -1213,16 +1255,16 @@
         }
       },
       "compositePrimaryKeys": {
-        "pushSubscriptions_id": {
-          "name": "pushSubscriptions_id",
+        "push_subscriptions_id": {
+          "name": "push_subscriptions_id",
           "columns": [
             "id"
           ]
         }
       },
       "uniqueConstraints": {
-        "pushSubscriptions_endpoint_unique": {
-          "name": "pushSubscriptions_endpoint_unique",
+        "push_subscriptions_endpoint_unique": {
+          "name": "push_subscriptions_endpoint_unique",
           "columns": [
             "endpoint"
           ]
@@ -1240,36 +1282,36 @@
           "notNull": true,
           "autoincrement": true
         },
-        "memberId": {
-          "name": "memberId",
+        "member_id": {
+          "name": "member_id",
           "type": "int unsigned",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "tokenHash": {
-          "name": "tokenHash",
+        "token_hash": {
+          "name": "token_hash",
           "type": "char(64)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "expiresAt": {
-          "name": "expiresAt",
+        "expires_at": {
+          "name": "expires_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
-        "userAgent": {
-          "name": "userAgent",
+        "user_agent": {
+          "name": "user_agent",
           "type": "varchar(255)",
           "primaryKey": false,
           "notNull": false,
           "autoincrement": false
         },
-        "createdAt": {
-          "name": "createdAt",
+        "created_at": {
+          "name": "created_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
@@ -1278,12 +1320,12 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "sessions_memberId_members_id_fk": {
-          "name": "sessions_memberId_members_id_fk",
+        "sessions_member_id_members_id_fk": {
+          "name": "sessions_member_id_members_id_fk",
           "tableFrom": "sessions",
           "tableTo": "members",
           "columnsFrom": [
-            "memberId"
+            "member_id"
           ],
           "columnsTo": [
             "id"
@@ -1301,10 +1343,10 @@
         }
       },
       "uniqueConstraints": {
-        "sessions_tokenHash_unique": {
-          "name": "sessions_tokenHash_unique",
+        "sessions_token_hash_unique": {
+          "name": "sessions_token_hash_unique",
           "columns": [
-            "tokenHash"
+            "token_hash"
           ]
         }
       },
@@ -1327,8 +1369,8 @@
           "notNull": true,
           "autoincrement": false
         },
-        "updatedAt": {
-          "name": "updatedAt",
+        "updated_at": {
+          "name": "updated_at",
           "type": "datetime(3)",
           "primaryKey": false,
           "notNull": true,
