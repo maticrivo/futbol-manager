@@ -6,11 +6,13 @@ import MatchActionForm from '@/components/MatchActionForm'
 import MatchCard from '@/components/MatchCard'
 import QueuePanel from '@/components/QueuePanel'
 import RosterList from '@/components/RosterList'
+import MobileActionBar from '@/components/MobileActionBar'
 import { getDb } from '@/db'
 import { advanceMatch } from '@/domain/lock'
 import { getMatchView } from '@/domain/matchView'
 import { getUpcomingMatch } from '@/domain/matches'
 import { requireMember } from '@/lib/auth'
+import { Card } from '@/components/ui/Card'
 
 export default async function Home() {
   const member = await requireMember()
@@ -24,8 +26,10 @@ export default async function Home() {
   if (!upcoming) {
     return (
       <main className="mx-auto w-full max-w-3xl px-4 py-8 text-start">
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        <p className="mt-2">{t('empty')}</p>
+        <Card className="space-y-3 p-6 text-center">
+          <h1 className="text-2xl font-bold text-ink">{t('title')}</h1>
+          <p className="text-sm text-muted">{t('empty')}</p>
+        </Card>
       </main>
     )
   }
@@ -36,7 +40,7 @@ export default async function Home() {
   const canWithdraw = myEntry && (phase === 'before' || phase === 'open' || phase === 'guest')
 
   return (
-    <main key={match.id} className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main key={match.id} className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 pb-28 md:pb-8 text-start">
       <MatchCard match={match} phase={phase} spotsLeft={spotsLeft} />
       {phase !== 'played' && phase !== 'cancelled' && (
         <Countdown
@@ -51,8 +55,10 @@ export default async function Home() {
           kickoffLabel={t('countdown.kickoff')}
         />
       )}
-      {canSignup && <MatchActionForm key="signup" intent="signup" matchId={match.id} />}
-      {canWithdraw && <MatchActionForm key="withdraw" intent="withdraw" matchId={match.id} entryId={myEntry.id} />}
+      <div className="hidden md:block space-y-3">
+        {canSignup && <MatchActionForm key="signup" intent="signup" matchId={match.id} />}
+        {canWithdraw && <MatchActionForm key="withdraw" intent="withdraw" matchId={match.id} entryId={myEntry.id} />}
+      </div>
       <RosterList roster={roster} matchId={match.id} myEntryId={myEntry?.id ?? null} memberId={member.id} asAdmin={member.role === 'admin'} phase={phase} />
       <QueuePanel
         match={match}
@@ -65,6 +71,13 @@ export default async function Home() {
         myOffer={myOffer}
       />
       {phase === 'guest' && <GuestForm matchId={match.id} />}
+      <MobileActionBar
+        canSignup={canSignup}
+        canWithdraw={canWithdraw}
+        matchId={match.id}
+        entryId={myEntry?.id}
+        spotsLeft={spotsLeft}
+      />
     </main>
   )
 }

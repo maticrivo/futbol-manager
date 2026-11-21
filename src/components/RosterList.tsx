@@ -1,6 +1,9 @@
 import { getTranslations } from 'next-intl/server'
 import type { MatchPhase, MatchRosterEntry } from '@/domain/matchView'
 import MatchActionForm from './MatchActionForm'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
+import { Icon } from '@/components/ui/icons'
 
 export default async function RosterList({
   roster, matchId, myEntryId, memberId, asAdmin, phase,
@@ -15,32 +18,49 @@ export default async function RosterList({
   const t = await getTranslations('match')
   const editable = phase !== 'locked' && phase !== 'played' && phase !== 'cancelled'
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('roster')}</h2>
-      {roster.length === 0 ? <p>{t('rosterEmpty')}</p> : (
-        <ul className="space-y-1">
-          {roster.map(entry => (
-            <li key={entry.id} className={`flex flex-wrap items-center justify-between gap-2 rounded px-2 py-1 ${
-              entry.id === myEntryId ? 'bg-emerald-100 font-semibold dark:bg-emerald-950' : ''
-            }`}>
-              <span>
-                <bdi>{entry.kind === 'guest' ? entry.guestName : entry.memberName}</bdi>
-                {entry.id === myEntryId && <span className="ms-2 text-sm">{t('you')}</span>}
-                {entry.kind === 'guest' && (
-                  <span className="ms-2 text-sm">
-                    {entry.hostName
-                      ? t.rich('guestOf', { host: entry.hostName, bidi: chunks => <bdi>{chunks}</bdi> })
-                      : t('guest')}
-                  </span>
+    <Card className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-lg font-semibold text-ink flex items-center gap-2">
+          <Icon name="users" size={18} className="text-primary" />
+          {t('roster')}
+        </h2>
+        <Badge variant="secondary" size="sm">{roster.length}</Badge>
+      </div>
+
+      {roster.length === 0 ? (
+        <p className="text-sm text-muted py-4 text-center">{t('rosterEmpty')}</p>
+      ) : (
+        <ul className="divide-y divide-line">
+          {roster.map((entry, index) => {
+            const isMe = entry.id === myEntryId
+            return (
+              <li key={entry.id} className={`py-2.5 flex items-center justify-between gap-3 text-sm ${
+                isMe ? 'bg-primary-soft/50 -mx-4 px-4 rounded-[var(--radius-md)] font-medium text-primary' : 'text-ink'
+              }`}>
+                <div className="flex items-center gap-3">
+                  <span className="text-xs text-muted w-5 text-right font-mono">{index + 1}.</span>
+                  <div>
+                    <span className="font-medium">
+                      <bdi>{entry.kind === 'guest' ? entry.guestName : entry.memberName}</bdi>
+                    </span>
+                    {isMe && <Badge variant="primary" size="sm" className="ms-2">{t('you')}</Badge>}
+                    {entry.kind === 'guest' && (
+                      <span className="ms-2 text-xs text-muted">
+                        {entry.hostName
+                          ? t.rich('guestOf', { host: entry.hostName, bidi: chunks => <bdi>{chunks}</bdi> })
+                          : t('guest')}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {editable && entry.kind === 'guest' && (asAdmin || entry.hostMemberId === memberId) && (
+                  <MatchActionForm intent="removeGuest" matchId={matchId} entryId={entry.id} />
                 )}
-              </span>
-              {editable && entry.kind === 'guest' && (asAdmin || entry.hostMemberId === memberId) && (
-                <MatchActionForm intent="removeGuest" matchId={matchId} entryId={entry.id} />
-              )}
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       )}
-    </section>
+    </Card>
   )
 }

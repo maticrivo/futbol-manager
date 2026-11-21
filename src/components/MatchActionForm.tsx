@@ -5,7 +5,9 @@ import { useTranslations } from 'next-intl'
 import {
   addGuestAction, claimOfferAction, joinQueueAction, leaveQueueAction, removeGuestAction, signupAction, withdrawAction,
 } from '@/app/actions/match'
-import SubmitButton from './SubmitButton'
+import { Button } from './ui/Button'
+import { Field } from './ui/Field'
+import { InlineMessage } from './ui/InlineMessage'
 
 const actions = {
   signup: signupAction,
@@ -34,27 +36,58 @@ type FormProps = { matchId: number } & (
 
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
+  if (code === null) return null
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
-      {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
-    </div>
+    <InlineMessage variant="danger" className="mt-2 text-xs">
+      {t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN')}
+    </InlineMessage>
   )
 }
 
 export default function MatchActionForm({ intent, matchId, entryId }: FormProps) {
   const t = useTranslations()
   const [state, formAction] = useActionState(actions[intent], null)
+
+  const isPrimary = intent === 'signup' || intent === 'claim'
+  const isDanger = intent === 'withdraw' || intent === 'leave' || intent === 'removeGuest'
+
+  if (intent === 'removeGuest') {
+    return (
+      <form action={formAction}>
+        <input type="hidden" name="matchId" value={matchId} />
+        {entryId !== undefined && <input type="hidden" name="entryId" value={entryId} />}
+        <Button type="submit" variant="ghost" size="sm" className="text-danger hover:bg-danger-soft">
+          {t(labels[intent])}
+        </Button>
+        <ActionError code={state?.ok === false ? state.code : null} />
+      </form>
+    )
+  }
+
   return (
-    <form action={formAction} className="space-y-2">
+    <form action={formAction} className="space-y-3">
       <input type="hidden" name="matchId" value={matchId} />
       {entryId !== undefined && <input type="hidden" name="entryId" value={entryId} />}
       {intent === 'addGuest' && (
-        <label className="block">
-          <span className="block text-sm font-medium">{t('match.guestName')}</span>
-          <input name="guestName" dir="auto" required maxLength={120} className="mt-1 w-full rounded border px-3 py-2" />
-        </label>
+        <Field label={t('match.guestName')}>
+          <input
+            name="guestName"
+            dir="auto"
+            required
+            maxLength={120}
+            className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-ink text-sm focus:outline-none focus:ring-2 focus:ring-focus"
+            placeholder={t('match.guestNamePlaceholder') || 'Guest full name'}
+          />
+        </Field>
       )}
-      <SubmitButton label={t(labels[intent])} pendingLabel={t('match.submitting')} primary={intent === 'signup' || intent === 'claim'} />
+      <Button
+        type="submit"
+        variant={isDanger ? 'outline' : isPrimary ? 'primary' : 'secondary'}
+        size="md"
+        className={isDanger ? 'border-danger/30 text-danger hover:bg-danger-soft w-full sm:w-auto' : 'w-full sm:w-auto'}
+      >
+        {t(labels[intent])}
+      </Button>
       <ActionError code={state?.ok === false ? state.code : null} />
     </form>
   )

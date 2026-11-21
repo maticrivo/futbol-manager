@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { latestPassedBoundary, nextTransition, shouldRequestRefresh } from '@/lib/countdown'
+import { Card } from '@/components/ui/Card'
+import { Icon } from '@/components/ui/icons'
 
 export default function Countdown({
   renderedAt, signupAt, guestAt, lockAt, kickoffAt, signupLabel, guestLabel, lockLabel, kickoffLabel,
@@ -30,7 +32,6 @@ export default function Countdown({
   const lastRequestRef = useRef<number | null>(null)
 
   useEffect(() => {
-    // Only the server payload confirms a boundary; a skewed browser may request it early.
     if (renderedBoundary !== null && (confirmedRef.current === null || renderedBoundary > confirmedRef.current)) {
       confirmedRef.current = renderedBoundary
     }
@@ -61,12 +62,21 @@ export default function Countdown({
     }
   }, [renderedBoundary, router, transitions])
 
-  if (now === null) return <p aria-hidden="true">—</p>
+  if (now === null) return <Card padding="sm" className="flex items-center justify-center text-muted text-sm"><span aria-hidden="true">—</span></Card>
   const next = nextTransition(transitions, now)
   if (!next) return null
 
   const total = Math.ceil((next.at - now) / 1000)
   const clock = [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60]
     .map(value => String(value).padStart(2, '0')).join(':')
-  return <p>{next.label} <bdi className="font-mono tabular-nums">{clock}</bdi></p>
+
+  return (
+    <Card padding="sm" className="bg-surface-muted/60 flex items-center justify-between gap-3 px-4 py-3">
+      <div className="flex items-center gap-2 text-xs font-medium text-muted">
+        <Icon name="clock" size={16} className="text-primary" />
+        <span>{next.label}</span>
+      </div>
+      <bdi className="font-mono text-base font-bold tabular-nums text-ink tracking-tight">{clock}</bdi>
+    </Card>
+  )
 }
