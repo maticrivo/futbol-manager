@@ -52,4 +52,43 @@ describe('schema constraints', () => {
     expect(activeMember?.status).toBe('active')
     expect(disabledMember?.status).toBe('disabled')
   })
+
+  it('supports extended member profile fields with unique email and nullable optionals', async () => {
+    const [full] = await testDb.insert(members).values({
+      name: 'Full Profile',
+      email: 'user@example.com',
+      phone: '+1 555-0199',
+      nickname: 'FP',
+      image: 'https://example.com/avatar.jpg',
+    }).$returningId()
+
+    const [fullRow] = await testDb.select().from(members).where(eq(members.id, full.id))
+    expect(fullRow.email).toBe('user@example.com')
+    expect(fullRow.phone).toBe('+1 555-0199')
+    expect(fullRow.nickname).toBe('FP')
+    expect(fullRow.image).toBe('https://example.com/avatar.jpg')
+
+    const [minimal] = await testDb.insert(members).values({
+      name: 'Minimal User',
+    }).$returningId()
+
+    const [minimalRow] = await testDb.select().from(members).where(eq(members.id, minimal.id))
+    expect(minimalRow.email).toBeNull()
+    expect(minimalRow.phone).toBeNull()
+    expect(minimalRow.nickname).toBeNull()
+    expect(minimalRow.image).toBeNull()
+
+    await expect(
+      testDb.insert(members).values({
+        name: 'Duplicate Email User',
+        email: 'user@example.com',
+      })
+    ).rejects.toThrow()
+
+    // Multiple members with null email are permitted
+    const [secondMinimal] = await testDb.insert(members).values({
+      name: 'Second Minimal User',
+    }).$returningId()
+    expect(secondMinimal.id).toBeDefined()
+  })
 })

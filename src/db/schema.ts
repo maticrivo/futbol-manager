@@ -19,6 +19,10 @@ export const memberStatusEnum = mysqlEnum('status', ['pending', 'active', 'disab
 export const members = mysqlTable('members', {
   id: int('id', { unsigned: true }).autoincrement().primaryKey(),
   name: varchar('name', { length: 120 }).notNull(),
+  email: varchar('email', { length: 254 }).unique(),
+  phone: varchar('phone', { length: 40 }),
+  nickname: varchar('nickname', { length: 60 }),
+  image: varchar('image', { length: 500 }),
   role: memberRoleEnum.default('member').notNull(),
   locale: varchar('locale', { length: 5 }).default('en').notNull(),
   status: memberStatusEnum.default('active').notNull(),

@@ -15,6 +15,13 @@
       "when": 1795070248338,
       "tag": "0001_third_maestro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "5",
+      "when": 1795248628885,
+      "tag": "0002_careless_kitty_pryde",
+      "breakpoints": true
     }
   ]
 }
