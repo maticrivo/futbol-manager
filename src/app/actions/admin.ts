@@ -1,15 +1,15 @@
 'use server'
 
-import { and, eq } from 'drizzle-orm'
+import { and, eq, or } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { getDb } from '@/db'
-import { charges, entries, guestPayments } from '@/db/schema'
+import { charges, entries, guestPayments, members } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
-import { createMember, regenerateInvite, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
+import { createMember, isValidEmail, regenerateInvite, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
@@ -58,13 +58,26 @@ export async function addMemberAction(_prev: InviteActionResult | null, formData
 
   const rawEmail = formData.get('email')
   const rawName = formData.get('name')
-  const name = typeof rawEmail === 'string' && rawEmail.trim()
-    ? rawEmail.trim()
-    : typeof rawName === 'string'
-      ? rawName.trim()
-      : ''
+  const trimmedEmail = typeof rawEmail === 'string' ? rawEmail.trim() : ''
+  const name = trimmedEmail || (typeof rawName === 'string' ? rawName.trim() : '')
   if (!name || (formData.has('email') ? name.length > 120 : name.length > 80)) {
     return { ok: false, code: 'INVALID_NAME' }
+  }
+
+  const email = trimmedEmail ? trimmedEmail.toLowerCase() : null
+  if (email !== null && !isValidEmail(email)) {
+    return { ok: false, code: 'INVALID_EMAIL' }
+  }
+
+  if (email !== null) {
+    const [existing] = await db
+      .select({ id: members.id })
+      .from(members)
+      .where(or(eq(members.email, email), eq(members.name, email)))
+      .limit(1)
+    if (existing) {
+      return { ok: false, code: 'EMAIL_TAKEN' }
+    }
   }
 
   const role = formData.get('role') === 'admin' ? 'admin' : 'member'
@@ -73,7 +86,7 @@ export async function addMemberAction(_prev: InviteActionResult | null, formData
   const statusValue = formData.get('status')
   const status = statusValue === 'pending' || statusValue === 'disabled' ? statusValue : 'active'
 
-  const { inviteToken } = await createMember(db, { name, role, locale, status })
+  const { inviteToken } = await createMember(db, { name, email, role, locale, status })
 
   revalidatePath('/admin/members')
   revalidatePath('/admin')

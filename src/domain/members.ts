@@ -274,7 +274,7 @@ export async function setMemberStatus(
   })
 }
 
-function isValidEmail(email: string): boolean {
+export function isValidEmail(email: string): boolean {
   const trimmed = email.trim()
   if (trimmed.length === 0 || trimmed.length > 254) return false
   const localPartLength = trimmed.lastIndexOf('@')

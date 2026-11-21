@@ -178,6 +178,27 @@ it('addMemberAction supports adding a member by email with pending status', asyn
   expect(created?.status).toBe('pending')
   expect(created?.role).toBe('member')
   expect(created?.locale).toBe('es')
+  expect(created?.email).toBe('newplayer@example.com')
+})
+
+it('addMemberAction sets the email identity and rejects invalid or duplicate emails', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const invalid = new FormData()
+  invalid.set('email', 'not-an-email')
+  expect(await addMemberAction(null, invalid)).toEqual({ ok: false, code: 'INVALID_EMAIL' })
+
+  const first = new FormData()
+  first.set('email', 'Taken@Example.com')
+  expect((await addMemberAction(null, first)).ok).toBe(true)
+
+  const duplicate = new FormData()
+  duplicate.set('email', ' taken@example.com ')
+  expect(await addMemberAction(null, duplicate)).toEqual({ ok: false, code: 'EMAIL_TAKEN' })
+
+  const takenRows = (await listMembers(testDb)).filter((m) => m.email === 'taken@example.com')
+  expect(takenRows).toHaveLength(1)
 })
 
 it('updateSettingsAction converts shekels to agorot and rejects malformed values', async () => {
