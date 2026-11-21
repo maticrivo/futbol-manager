@@ -481,19 +481,23 @@ export async function updateMemberProfile(
       normalizedImage = null
     } else {
       const trimmed = patch.image.trim()
-      if (trimmed.length > 500) {
+      if (trimmed.length > 2_000_000) {
         return err('INVALID_IMAGE')
       }
-      if (!/^https?:\/\//i.test(trimmed)) {
+      const isHttp = /^https?:\/\//i.test(trimmed)
+      const isDataUri = /^data:image\/[a-zA-Z0-9+.-]+;base64,/i.test(trimmed)
+      if (!isHttp && !isDataUri) {
         return err('INVALID_IMAGE')
       }
-      try {
-        const parsed = new URL(trimmed)
-        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      if (isHttp) {
+        try {
+          const parsed = new URL(trimmed)
+          if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+            return err('INVALID_IMAGE')
+          }
+        } catch {
           return err('INVALID_IMAGE')
         }
-      } catch {
-        return err('INVALID_IMAGE')
       }
       normalizedImage = trimmed
     }
@@ -502,7 +506,7 @@ export async function updateMemberProfile(
   let normalizedEmail: string | null | undefined
   if (patch.email !== undefined) {
     if (patch.email === null || patch.email.trim() === '') {
-      normalizedEmail = null
+      return err('INVALID_EMAIL')
     } else {
       const trimmed = patch.email.trim()
       if (!isValidEmail(trimmed)) {

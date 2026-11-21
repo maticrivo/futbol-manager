@@ -154,7 +154,7 @@ describe('ProfilePage & Nav integration', () => {
     expect(html).toContain('value="existing@example.com"')
     expect(html).toContain('value="+972501234567"')
     expect(html).toContain('value="Exister"')
-    expect(html).toContain('value="https://example.com/ex.png"')
+    expect(html).toContain('src="https://example.com/ex.png"')
     expect(html).toContain('required')
   })
 

@@ -6,6 +6,7 @@ import { updateMemberAction } from '@/app/actions/admin'
 import type { Member } from '@/domain/members'
 import SubmitButton from './SubmitButton'
 import { Field } from './ui/Field'
+import { Avatar } from './ui/Avatar'
 
 export default function MemberEditForm({ member }: { member: Member }) {
   const t = useTranslations()
@@ -14,6 +15,11 @@ export default function MemberEditForm({ member }: { member: Member }) {
   return (
     <form action={formAction} className="space-y-3 text-start">
       <input type="hidden" name="memberId" value={member.id} />
+
+      <div className="flex items-center gap-3 pb-1">
+        <Avatar name={member.name} src={member.image} size="md" />
+        <span className="text-xs font-medium text-muted">{member.email || ''}</span>
+      </div>
 
       <Field label={t('admin.members.name')} required>
         <input
@@ -38,10 +44,11 @@ export default function MemberEditForm({ member }: { member: Member }) {
         />
       </Field>
 
-      <Field label={t('admin.members.email')}>
+      <Field label={t('admin.members.email')} required>
         <input
           name="email"
           type="email"
+          required
           maxLength={254}
           defaultValue={member.email ?? ''}
           dir="ltr"
@@ -63,11 +70,10 @@ export default function MemberEditForm({ member }: { member: Member }) {
       <Field label={t('admin.members.image')}>
         <input
           name="image"
-          type="url"
-          maxLength={500}
-          defaultValue={member.image ?? ''}
+          type="file"
+          accept="image/*"
           dir="ltr"
-          className="h-10 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          className="w-full text-xs text-ink file:me-2 file:py-1 file:px-3 file:rounded file:border-0 file:text-xs file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-primary/20"
         />
       </Field>
 

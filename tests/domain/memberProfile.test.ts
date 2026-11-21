@@ -293,7 +293,7 @@ describe('updateMemberProfile validation', () => {
       await updateMemberProfile(testDb, {
         actorId: admin.id,
         memberId: target.id,
-        patch: { image: 'https://' + 'a'.repeat(500) },
+        patch: { image: 'https://' + 'a'.repeat(2_000_001) },
       })
     ).toEqual({ ok: false, code: 'INVALID_IMAGE' })
 
@@ -356,7 +356,7 @@ describe('updateMemberProfile validation', () => {
       })
     ).toEqual({ ok: false, code: 'INVALID_EMAIL' })
 
-    // Legacy members without an email may keep it empty
+    // Email is mandatory when patched
     const legacy = (
       await createMember(testDb, { name: 'Legacy Player' })
     ).member
@@ -365,9 +365,7 @@ describe('updateMemberProfile validation', () => {
       memberId: legacy.id,
       patch: { email: '   ' },
     })
-    expect(legacyBlank.ok).toBe(true)
-    if (!legacyBlank.ok) throw new Error(legacyBlank.code)
-    expect(legacyBlank.value.email).toBeNull()
+    expect(legacyBlank).toEqual({ ok: false, code: 'INVALID_EMAIL' })
   })
 })
 

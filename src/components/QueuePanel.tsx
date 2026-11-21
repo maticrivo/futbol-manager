@@ -6,6 +6,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/icons'
 import { InlineMessage } from '@/components/ui/InlineMessage'
+import { MemberName } from '@/components/ui/MemberName'
 
 export default async function QueuePanel({
   match, phase, spotsLeft, queue, queuePosition, myEntry, myQueueEntry, myOffer,
@@ -58,7 +59,7 @@ export default async function QueuePanel({
             <li key={entry.id} className="flex items-center justify-between text-sm py-1.5 px-3 bg-surface-muted rounded-[var(--radius-sm)]">
               <span className="flex items-center gap-2 font-medium text-ink">
                 <span className="text-xs text-muted font-mono">{index + 1}.</span>
-                <bdi>{entry.memberName}</bdi>
+                <MemberName name={entry.memberName} nickname={entry.memberNickname} />
               </span>
             </li>
           ))}

@@ -39,6 +39,7 @@ export async function getMatchView(
     match: getTableColumns(matches),
     entry: getTableColumns(entries),
     memberName: members.name,
+    memberNickname: members.nickname,
     hostName: hosts.name,
   }).from(matches)
     .leftJoin(entries, and(eq(entries.matchId, matches.id), inArray(entries.status, ['confirmed', 'queued', 'offered'])))
@@ -58,14 +59,14 @@ export async function getMatchView(
   let queuePosition: number | null = null
   let pendingOffers = 0
 
-  for (const { entry, memberName, hostName } of rows) {
+  for (const { entry, memberName, memberNickname, hostName } of rows) {
     if (!entry) continue
     const isMine = entry.kind === 'member' && entry.memberId === memberId
     if (entry.status === 'confirmed') {
-      roster.push({ ...entry, memberName, hostName })
+      roster.push({ ...entry, memberName, memberNickname, hostName })
       if (isMine) myEntry = entry
     } else if (entry.status === 'queued') {
-      queue.push({ ...entry, memberName, hostName })
+      queue.push({ ...entry, memberName, memberNickname, hostName })
       if (isMine) {
         myQueueEntry = entry
         queuePosition = queue.length

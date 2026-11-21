@@ -21,6 +21,10 @@ async function seedMatch() {
 describe('schema constraints', () => {
   beforeEach(resetDb)
 
+  it('includes venueUrl column in matches table definition', () => {
+    expect(matches.venueUrl).toBeDefined()
+  })
+
   it('rejects a second charge for the same member and match', async () => {
     const { memberId, matchId } = await seedMatch()
     const row = { matchId, memberId, amountAgorot: 3500, billingMonth: '2027-03' }

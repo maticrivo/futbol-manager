@@ -6,6 +6,21 @@ import { updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import type { ActionResult } from '@/lib/actions'
 import { requireMember } from '@/lib/auth'
 
+async function parseImageEntry(entry: FormDataEntryValue | null): Promise<string | null | undefined> {
+  if (!entry) return undefined
+  if (entry instanceof File && entry.size > 0) {
+    if (entry.size > 2 * 1024 * 1024) return null
+    const arrayBuffer = await entry.arrayBuffer()
+    const base64 = Buffer.from(arrayBuffer).toString('base64')
+    return `data:${entry.type || 'image/jpeg'};base64,${base64}`
+  }
+  if (typeof entry === 'string') {
+    const trimmed = entry.trim()
+    return trimmed === '' ? null : trimmed
+  }
+  return undefined
+}
+
 export async function updateOwnProfileAction(
   prevStateOrFormData: ActionResult | null | FormData,
   maybeFormData?: FormData
@@ -38,8 +53,7 @@ export async function updateOwnProfileAction(
     if (typeof val === 'string') patch.nickname = val
   }
   if (formData.has('image')) {
-    const val = formData.get('image')
-    if (typeof val === 'string') patch.image = val
+    patch.image = await parseImageEntry(formData.get('image'))
   }
 
   const result = await updateMemberProfile(db, {

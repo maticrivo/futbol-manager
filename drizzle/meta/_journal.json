@@ -22,6 +22,20 @@
       "when": 1795248628885,
       "tag": "0002_careless_kitty_pryde",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "5",
+      "when": 1795289209260,
+      "tag": "0003_chubby_psylocke",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "5",
+      "when": 1795289427964,
+      "tag": "0004_lovely_turbo",
+      "breakpoints": true
     }
   ]
 }

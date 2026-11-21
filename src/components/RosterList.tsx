@@ -4,6 +4,7 @@ import MatchActionForm from './MatchActionForm'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/icons'
+import { MemberName } from '@/components/ui/MemberName'
 
 export default async function RosterList({
   roster, matchId, myEntryId, memberId, asAdmin, phase,
@@ -41,7 +42,7 @@ export default async function RosterList({
                   <span className="text-xs text-muted w-5 text-right font-mono">{index + 1}.</span>
                   <div>
                     <span className="font-medium">
-                      <bdi>{entry.kind === 'guest' ? entry.guestName : entry.memberName}</bdi>
+                      {entry.kind === 'guest' ? <bdi>{entry.guestName}</bdi> : <MemberName name={entry.memberName} nickname={entry.memberNickname} />}
                     </span>
                     {isMe && <Badge variant="primary" size="sm" className="ms-2">{t('you')}</Badge>}
                     {entry.kind === 'guest' && (

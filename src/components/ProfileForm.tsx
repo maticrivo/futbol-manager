@@ -7,6 +7,7 @@ import type { Member } from '@/domain/members'
 import SubmitButton from './SubmitButton'
 import { Field } from '@/components/ui/Field'
 import { InlineMessage } from '@/components/ui/InlineMessage'
+import { Avatar } from '@/components/ui/Avatar'
 
 export default function ProfileForm({ member }: { member: Member }) {
   const t = useTranslations()
@@ -14,6 +15,14 @@ export default function ProfileForm({ member }: { member: Member }) {
 
   return (
     <form action={formAction} className="space-y-4 text-start">
+      <div className="flex items-center gap-4 pb-2">
+        <Avatar name={member.name} src={member.image} size="xl" />
+        <div>
+          <p className="text-sm font-medium text-ink">{member.name}</p>
+          <p className="text-xs text-muted">{member.email || ''}</p>
+        </div>
+      </div>
+
       <Field label={t('profile.name')} required>
         <input
           id="name"
@@ -39,11 +48,12 @@ export default function ProfileForm({ member }: { member: Member }) {
         />
       </Field>
 
-      <Field label={t('profile.email')}>
+      <Field label={t('profile.email')} required>
         <input
           id="email"
           name="email"
           type="email"
+          required
           maxLength={254}
           defaultValue={member.email ?? ''}
           dir="ltr"
@@ -67,11 +77,10 @@ export default function ProfileForm({ member }: { member: Member }) {
         <input
           id="image"
           name="image"
-          type="url"
-          maxLength={500}
-          defaultValue={member.image ?? ''}
+          type="file"
+          accept="image/*"
           dir="ltr"
-          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
+          className="w-full text-sm text-ink file:me-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-primary-soft file:text-primary hover:file:bg-primary/20"
         />
       </Field>
 
