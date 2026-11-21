@@ -44,6 +44,19 @@ export async function requestMagicLinkAction(
   if (typeof rawEmail !== 'string') {
     return { ok: false, code: 'INVALID_EMAIL' }
   }
-  const result = await requestMemberAccess(getDb(), rawEmail)
+
+  const rawName = formData.get('name')
+  const rawNickname = formData.get('nickname')
+  const rawPhone = formData.get('phone')
+  const rawImage = formData.get('image')
+
+  const profile = {
+    ...(typeof rawName === 'string' ? { name: rawName } : {}),
+    ...(typeof rawNickname === 'string' ? { nickname: rawNickname } : {}),
+    ...(typeof rawPhone === 'string' ? { phone: rawPhone } : {}),
+    ...(typeof rawImage === 'string' ? { image: rawImage } : {}),
+  }
+
+  const result = await requestMemberAccess(getDb(), rawEmail, new Date(), profile)
   return toActionResult(result)
 }

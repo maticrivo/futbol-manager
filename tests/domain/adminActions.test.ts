@@ -5,6 +5,7 @@ import {
   createNextMatchAction,
   regenerateInviteAction,
   setMemberStatusAction,
+  updateMemberAction,
   updateSettingsAction,
 } from '@/app/actions/admin'
 import { matches } from '@/db/schema'
@@ -233,4 +234,31 @@ it('createNextMatchAction creates the next Tuesday when no match exists', async 
   }
 
   expect(await matchDates()).toEqual(['2027-03-30'])
+})
+
+it('updateMemberAction updates member profile fields and revalidates paths', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'OldName' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const form = new FormData()
+  form.set('memberId', String(target.id))
+  form.set('name', 'NewName')
+  form.set('nickname', 'Speedy')
+  form.set('email', 'newname@example.com')
+  form.set('phone', '+972 50 999 8888')
+  form.set('image', 'https://example.com/avatar.jpg')
+
+  const res = await updateMemberAction(null, form)
+  expect(res).toEqual({ ok: true })
+  expect(revalidatePath).toHaveBeenCalledWith('/admin/members')
+  expect(revalidatePath).toHaveBeenCalledWith('/admin')
+  expect(revalidatePath).toHaveBeenCalledWith('/')
+
+  const updatedTarget = (await listMembers(testDb)).find((m) => m.id === target.id)!
+  expect(updatedTarget.name).toBe('NewName')
+  expect(updatedTarget.nickname).toBe('Speedy')
+  expect(updatedTarget.email).toBe('newname@example.com')
+  expect(updatedTarget.phone).toBe('+972 50 999 8888')
+  expect(updatedTarget.image).toBe('https://example.com/avatar.jpg')
 })

@@ -181,9 +181,31 @@ describe('Pending status blocking and login approval', () => {
       expect(result).toEqual({ ok: true })
 
       const member = await testDb.query.members.findFirst({
-        where: (m, { eq }) => eq(m.name, 'signup@example.com'),
+        where: (m, { eq }) => eq(m.email, 'signup@example.com'),
       })
       expect(member).toBeDefined()
+      expect(member?.status).toBe('pending')
+    })
+
+    it('creates pending member with profile fields forwarded via requestMagicLinkAction', async () => {
+      const formData = new FormData()
+      formData.set('email', 'fullprofile@example.com')
+      formData.set('name', 'Full Profile User')
+      formData.set('nickname', 'FullProfile')
+      formData.set('phone', '+1 555 432 1098')
+      formData.set('image', 'https://example.com/avatar.jpg')
+
+      const result = await requestMagicLinkAction(null, formData)
+      expect(result).toEqual({ ok: true })
+
+      const member = await testDb.query.members.findFirst({
+        where: (m, { eq }) => eq(m.email, 'fullprofile@example.com'),
+      })
+      expect(member).toBeDefined()
+      expect(member?.name).toBe('Full Profile User')
+      expect(member?.nickname).toBe('FullProfile')
+      expect(member?.phone).toBe('+1 555 432 1098')
+      expect(member?.image).toBe('https://example.com/avatar.jpg')
       expect(member?.status).toBe('pending')
     })
   })

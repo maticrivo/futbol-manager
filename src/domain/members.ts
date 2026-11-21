@@ -2,7 +2,7 @@ import type { Db } from '@/db'
 import { loginTokens, members, sessions } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { generateToken, hashToken } from '@/lib/tokens'
-import { and, asc, eq, inArray, isNull, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, ne, or } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { revokeSessions, SESSION_LIFETIME_MS } from './sessions'
 import { sendMagicLinkEmail } from '@/lib/email'
@@ -22,16 +22,29 @@ export async function createMember(
     role?: 'member' | 'admin'
     locale?: string
     status?: 'active' | 'disabled' | 'pending'
+    email?: string | null
+    phone?: string | null
+    nickname?: string | null
+    image?: string | null
   }
 ): Promise<{ member: Member; inviteToken: string }> {
   const inviteToken = generateToken()
   const tokenHash = hashToken(inviteToken)
+
+  const normalizedEmail = input.email?.trim().toLowerCase() || null
+  const normalizedPhone = input.phone?.trim() || null
+  const normalizedNickname = input.nickname?.trim() || null
+  const normalizedImage = input.image?.trim() || null
 
   return await db.transaction(async (tx) => {
     const [inserted] = await tx
       .insert(members)
       .values({
         name: input.name,
+        email: normalizedEmail,
+        phone: normalizedPhone,
+        nickname: normalizedNickname,
+        image: normalizedImage,
         role: input.role ?? 'member',
         locale: input.locale ?? 'en',
         status: input.status ?? 'active',
@@ -62,6 +75,7 @@ export async function createMember(
         name: member.name,
         role: member.role,
         locale: member.locale,
+        email: member.email,
       },
     })
 
@@ -269,7 +283,13 @@ function isValidEmail(email: string): boolean {
 export async function requestMemberAccess(
   db: Db,
   email: string,
-  now: Date = new Date()
+  now: Date = new Date(),
+  profile: {
+    name?: string
+    nickname?: string
+    phone?: string
+    image?: string
+  } = {}
 ): Promise<Result<{ memberId: number; inviteToken: string; member: Member }, 'INVALID_EMAIL'>> {
   const trimmedEmail = email.trim()
   if (!isValidEmail(trimmedEmail)) {
@@ -281,13 +301,22 @@ export async function requestMemberAccess(
   const tokenHash = hashToken(inviteToken)
 
   const { member } = await db.transaction(async (tx) => {
-    // 1. Look up existing member by email/name (case-insensitive)
-    const [existing] = await tx
+    // 1. Look up existing member: first by email, then legacy name
+    let [existing] = await tx
       .select()
       .from(members)
-      .where(or(eq(members.name, trimmedEmail), eq(members.name, normalizedEmail)))
+      .where(eq(members.email, normalizedEmail))
       .for('update')
       .limit(1)
+
+    if (!existing) {
+      ;[existing] = await tx
+        .select()
+        .from(members)
+        .where(or(eq(members.name, trimmedEmail), eq(members.name, normalizedEmail)))
+        .for('update')
+        .limit(1)
+    }
 
     if (existing) {
       // Revoke outstanding unrevoked login tokens
@@ -307,7 +336,7 @@ export async function requestMemberAccess(
         entity: 'member',
         entityId: String(existing.id),
         detail: {
-          email: existing.name,
+          email: existing.email ?? existing.name,
           status: existing.status,
         },
       })
@@ -316,10 +345,20 @@ export async function requestMemberAccess(
     }
 
     // 2. Insert new pending member
+    const [localPart] = normalizedEmail.split('@')
+    const finalName = (profile.name?.trim() || localPart || 'member').slice(0, 120)
+    const finalNickname = profile.nickname?.trim() ? profile.nickname.trim().slice(0, 60) : null
+    const finalPhone = profile.phone?.trim() ? profile.phone.trim().slice(0, 40) : null
+    const finalImage = profile.image?.trim() ? profile.image.trim().slice(0, 500) : null
+
     const [inserted] = await tx
       .insert(members)
       .values({
-        name: trimmedEmail,
+        name: finalName,
+        email: normalizedEmail,
+        nickname: finalNickname,
+        phone: finalPhone,
+        image: finalImage,
         role: 'member',
         locale: 'en',
         status: 'pending',
@@ -347,7 +386,7 @@ export async function requestMemberAccess(
       entity: 'member',
       entityId: String(created.id),
       detail: {
-        email: created.name,
+        email: created.email ?? created.name,
         role: created.role,
         status: created.status,
       },
@@ -364,4 +403,206 @@ export async function requestMemberAccess(
 }
 
 export const requestMagicLink = requestMemberAccess
+
+export type MemberProfilePatch = {
+  name?: string
+  email?: string | null
+  phone?: string | null
+  nickname?: string | null
+  image?: string | null
+}
+
+export type UpdateMemberProfileError =
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'INVALID_NAME'
+  | 'INVALID_EMAIL'
+  | 'INVALID_PHONE'
+  | 'INVALID_IMAGE'
+  | 'EMAIL_TAKEN'
+
+export async function updateMemberProfile(
+  db: Db,
+  input: {
+    actorId: number
+    memberId: number
+    patch: MemberProfilePatch
+  },
+  now: Date = new Date()
+): Promise<Result<Member, UpdateMemberProfileError>> {
+  const { actorId, memberId, patch } = input
+
+  let trimmedName: string | undefined
+  if (patch.name !== undefined) {
+    trimmedName = patch.name.trim()
+    if (trimmedName.length === 0 || trimmedName.length > 120) {
+      return err('INVALID_NAME')
+    }
+  }
+
+  let normalizedNickname: string | null | undefined
+  if (patch.nickname !== undefined) {
+    if (patch.nickname === null || patch.nickname.trim() === '') {
+      normalizedNickname = null
+    } else {
+      const trimmed = patch.nickname.trim()
+      if (trimmed.length > 60) {
+        return err('INVALID_NAME')
+      }
+      normalizedNickname = trimmed
+    }
+  }
+
+  let normalizedPhone: string | null | undefined
+  if (patch.phone !== undefined) {
+    if (patch.phone === null || patch.phone.trim() === '') {
+      normalizedPhone = null
+    } else {
+      const trimmed = patch.phone.trim()
+      if (trimmed.length > 40) {
+        return err('INVALID_PHONE')
+      }
+      const digits = trimmed.match(/\d/g) ?? []
+      if (digits.length < 5) {
+        return err('INVALID_PHONE')
+      }
+      if (!/^[0-9\s+\-().\u2010\u2011\u2013\u2014]+$/.test(trimmed)) {
+        return err('INVALID_PHONE')
+      }
+      normalizedPhone = trimmed
+    }
+  }
+
+  let normalizedImage: string | null | undefined
+  if (patch.image !== undefined) {
+    if (patch.image === null || patch.image.trim() === '') {
+      normalizedImage = null
+    } else {
+      const trimmed = patch.image.trim()
+      if (trimmed.length > 500) {
+        return err('INVALID_IMAGE')
+      }
+      if (!/^https?:\/\//i.test(trimmed)) {
+        return err('INVALID_IMAGE')
+      }
+      try {
+        const parsed = new URL(trimmed)
+        if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+          return err('INVALID_IMAGE')
+        }
+      } catch {
+        return err('INVALID_IMAGE')
+      }
+      normalizedImage = trimmed
+    }
+  }
+
+  let normalizedEmail: string | null | undefined
+  if (patch.email !== undefined) {
+    if (patch.email === null || patch.email.trim() === '') {
+      normalizedEmail = null
+    } else {
+      const trimmed = patch.email.trim()
+      if (!isValidEmail(trimmed)) {
+        return err('INVALID_EMAIL')
+      }
+      normalizedEmail = trimmed.toLowerCase()
+    }
+  }
+
+  return await db.transaction(async (tx) => {
+    // Global lock order: member rows ascending by id
+    const ids = Array.from(new Set([actorId, memberId])).sort((a, b) => a - b)
+
+    const lockedMembers = await tx
+      .select()
+      .from(members)
+      .where(inArray(members.id, ids))
+      .for('update')
+      .orderBy(asc(members.id))
+
+    const actor = lockedMembers.find((m) => m.id === actorId)
+    if (!actor) {
+      return err('FORBIDDEN')
+    }
+
+    if (actor.id !== memberId && actor.role !== 'admin') {
+      return err('FORBIDDEN')
+    }
+
+    const target = lockedMembers.find((m) => m.id === memberId)
+    if (!target) {
+      return err('NOT_FOUND')
+    }
+
+    if (normalizedEmail !== undefined && normalizedEmail !== null) {
+      const [existing] = await tx
+        .select({ id: members.id })
+        .from(members)
+        .where(
+          and(
+            or(eq(members.email, normalizedEmail), eq(members.name, normalizedEmail)),
+            ne(members.id, memberId)
+          )
+        )
+        .limit(1)
+
+      if (existing) {
+        return err('EMAIL_TAKEN')
+      }
+    }
+
+    const changedFields: string[] = []
+    const updates: Partial<{
+      name: string
+      email: string | null
+      phone: string | null
+      nickname: string | null
+      image: string | null
+      updatedAt: Date
+    }> = {
+      updatedAt: now,
+    }
+
+    if (trimmedName !== undefined) {
+      if (trimmedName !== target.name) changedFields.push('name')
+      updates.name = trimmedName
+    }
+    if (normalizedEmail !== undefined) {
+      if (normalizedEmail !== target.email) changedFields.push('email')
+      updates.email = normalizedEmail
+    }
+    if (normalizedPhone !== undefined) {
+      if (normalizedPhone !== target.phone) changedFields.push('phone')
+      updates.phone = normalizedPhone
+    }
+    if (normalizedNickname !== undefined) {
+      if (normalizedNickname !== target.nickname) changedFields.push('nickname')
+      updates.nickname = normalizedNickname
+    }
+    if (normalizedImage !== undefined) {
+      if (normalizedImage !== target.image) changedFields.push('image')
+      updates.image = normalizedImage
+    }
+
+    await tx.update(members).set(updates).where(eq(members.id, memberId))
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'member.profile_update',
+      entity: 'member',
+      entityId: String(memberId),
+      detail: { fields: changedFields },
+      createdAt: now,
+    })
+
+    const [updated] = await tx
+      .select()
+      .from(members)
+      .where(eq(members.id, memberId))
+      .limit(1)
+
+    return ok(updated!)
+  })
+}
 

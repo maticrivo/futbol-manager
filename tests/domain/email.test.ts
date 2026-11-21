@@ -99,7 +99,8 @@ describe('email integration & magic links', () => {
         .where(eq(members.id, res.value.memberId))
 
       expect(dbMember).toBeDefined()
-      expect(dbMember.name).toBe('newbie@example.com')
+      expect(dbMember.name).toBe('newbie')
+      expect(dbMember.email).toBe('newbie@example.com')
       expect(dbMember.role).toBe('member')
       expect(dbMember.status).toBe('pending')
 

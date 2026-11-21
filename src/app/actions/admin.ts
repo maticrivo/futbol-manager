@@ -9,7 +9,7 @@ import { charges, entries, guestPayments } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
-import { createMember, regenerateInvite, setMemberStatus } from '@/domain/members'
+import { createMember, regenerateInvite, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
@@ -113,6 +113,63 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   }
 
   const result = await setMemberStatus(db, admin.id, memberId, statusValue)
+  if (!result.ok) {
+    return { ok: false, code: result.code }
+  }
+
+  revalidatePath('/admin/members')
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { ok: true }
+}
+
+export async function updateMemberAction(
+  prevStateOrFormData: ActionResult | null | FormData,
+  maybeFormData?: FormData
+): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const formData =
+    maybeFormData instanceof FormData
+      ? maybeFormData
+      : prevStateOrFormData instanceof FormData
+        ? prevStateOrFormData
+        : new FormData()
+
+  const memberId = positiveId(formData.get('memberId'))
+  if (memberId === null) {
+    return { ok: false, code: 'NOT_FOUND' }
+  }
+
+  const patch: MemberProfilePatch = {}
+  if (formData.has('name')) {
+    const val = formData.get('name')
+    if (typeof val === 'string') patch.name = val
+  }
+  if (formData.has('email')) {
+    const val = formData.get('email')
+    if (typeof val === 'string') patch.email = val
+  }
+  if (formData.has('phone')) {
+    const val = formData.get('phone')
+    if (typeof val === 'string') patch.phone = val
+  }
+  if (formData.has('nickname')) {
+    const val = formData.get('nickname')
+    if (typeof val === 'string') patch.nickname = val
+  }
+  if (formData.has('image')) {
+    const val = formData.get('image')
+    if (typeof val === 'string') patch.image = val
+  }
+
+  const result = await updateMemberProfile(db, {
+    actorId: admin.id,
+    memberId,
+    patch,
+  })
+
   if (!result.ok) {
     return { ok: false, code: result.code }
   }
