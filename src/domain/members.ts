@@ -537,6 +537,12 @@ export async function updateMemberProfile(
       return err('NOT_FOUND')
     }
 
+    // The email column is the login identity: it may stay empty for legacy
+    // members, but an existing email can never be cleared by a profile edit.
+    if (normalizedEmail === null && target.email !== null) {
+      return err('INVALID_EMAIL')
+    }
+
     if (normalizedEmail !== undefined && normalizedEmail !== null) {
       const [existing] = await tx
         .select({ id: members.id })

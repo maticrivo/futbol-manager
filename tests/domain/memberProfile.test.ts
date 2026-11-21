@@ -347,15 +347,27 @@ describe('updateMemberProfile validation', () => {
     })
     expect(same.ok).toBe(true)
 
-    // Blank email becomes null
-    const blank = await updateMemberProfile(testDb, {
-      actorId: member1.id,
-      memberId: member1.id,
-      patch: { email: '' },
+    // An existing email is the login identity and cannot be cleared
+    expect(
+      await updateMemberProfile(testDb, {
+        actorId: member1.id,
+        memberId: member1.id,
+        patch: { email: '' },
+      })
+    ).toEqual({ ok: false, code: 'INVALID_EMAIL' })
+
+    // Legacy members without an email may keep it empty
+    const legacy = (
+      await createMember(testDb, { name: 'Legacy Player' })
+    ).member
+    const legacyBlank = await updateMemberProfile(testDb, {
+      actorId: admin.id,
+      memberId: legacy.id,
+      patch: { email: '   ' },
     })
-    expect(blank.ok).toBe(true)
-    if (!blank.ok) throw new Error(blank.code)
-    expect(blank.value.email).toBeNull()
+    expect(legacyBlank.ok).toBe(true)
+    if (!legacyBlank.ok) throw new Error(legacyBlank.code)
+    expect(legacyBlank.value.email).toBeNull()
   })
 })
 
