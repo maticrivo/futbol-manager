@@ -276,7 +276,9 @@ export async function setMemberStatus(
 
 function isValidEmail(email: string): boolean {
   const trimmed = email.trim()
-  if (trimmed.length === 0 || trimmed.length > 120) return false
+  if (trimmed.length === 0 || trimmed.length > 254) return false
+  const localPartLength = trimmed.lastIndexOf('@')
+  if (localPartLength < 1 || localPartLength > 64) return false
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)
 }
 
