@@ -54,7 +54,9 @@
     "saving": "Saving…",
     "saved": "Profile updated."
   },
-  "home": { "placeholder": "Match details will appear here." },
+  "home": {
+    "placeholder": "Match details will appear here."
+  },
   "match": {
     "title": "This week’s match",
     "empty": "No upcoming match has been scheduled.",
@@ -90,7 +92,12 @@
       "guest": "Guest sign-ups open in",
       "lock": "Roster locks in",
       "kickoff": "Kickoff in"
-    }
+    },
+    "back": "Back to Home",
+    "kickoff": "Kickoff",
+    "venue": "Venue",
+    "costLabel": "Cost",
+    "spotsLabel": "Availability"
   },
   "queue": {
     "title": "Waiting list",
@@ -117,7 +124,11 @@
     "waived": "Waived",
     "payments": "Payments",
     "paymentsEmpty": "No payments this month.",
-    "method": { "paybox": "PayBox", "cash": "Cash", "other": "Other" }
+    "method": {
+      "paybox": "PayBox",
+      "cash": "Cash",
+      "other": "Other"
+    }
   },
   "notifications": {
     "title": "Notification settings",
@@ -197,7 +208,11 @@
       "markPaid": "Mark paid",
       "amount": "Amount (₪)",
       "methodLabel": "Method",
-      "method": { "paybox": "PayBox", "cash": "Cash", "other": "Other" },
+      "method": {
+        "paybox": "PayBox",
+        "cash": "Cash",
+        "other": "Other"
+      },
       "note": "Note",
       "targetMonth": "Target month",
       "submit": "Record payment",
@@ -387,6 +402,7 @@
     "ALREADY_CANCELLED": "This match was already cancelled.",
     "MEMBER_NOT_FOUND": "That member could not be found.",
     "TARGET_MONTH_REQUIRED": "A target month is required.",
-    "UNKNOWN": "Something went wrong. Please try again."
+    "UNKNOWN": "Something went wrong. Please try again.",
+    "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved."
   }
 }

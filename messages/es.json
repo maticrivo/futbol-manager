@@ -54,7 +54,9 @@
     "saving": "Guardando…",
     "saved": "Perfil actualizado."
   },
-  "home": { "placeholder": "Aquí aparecerán los detalles del partido." },
+  "home": {
+    "placeholder": "Aquí aparecerán los detalles del partido."
+  },
   "match": {
     "title": "Partido de esta semana",
     "empty": "No hay ningún partido programado.",
@@ -90,7 +92,12 @@
       "guest": "La inscripción de invitados abre en",
       "lock": "La lista se cierra en",
       "kickoff": "El partido empieza en"
-    }
+    },
+    "back": "Volver al inicio",
+    "kickoff": "Inicio",
+    "venue": "Lugar",
+    "costLabel": "Costo",
+    "spotsLabel": "Disponibilidad"
   },
   "queue": {
     "title": "Lista de espera",
@@ -117,7 +124,11 @@
     "waived": "Anulado",
     "payments": "Pagos",
     "paymentsEmpty": "No hay pagos este mes.",
-    "method": { "paybox": "PayBox", "cash": "Efectivo", "other": "Otro" }
+    "method": {
+      "paybox": "PayBox",
+      "cash": "Efectivo",
+      "other": "Otro"
+    }
   },
   "notifications": {
     "title": "Ajustes de notificaciones",
@@ -197,7 +208,11 @@
       "markPaid": "Marcar pagado",
       "amount": "Importe (₪)",
       "methodLabel": "Método",
-      "method": { "paybox": "PayBox", "cash": "Efectivo", "other": "Otro" },
+      "method": {
+        "paybox": "PayBox",
+        "cash": "Efectivo",
+        "other": "Otro"
+      },
       "note": "Nota",
       "targetMonth": "Mes de destino",
       "submit": "Registrar pago",
@@ -387,6 +402,7 @@
     "ALREADY_CANCELLED": "Este partido ya fue cancelado.",
     "MEMBER_NOT_FOUND": "No se encontró a ese miembro.",
     "TARGET_MONTH_REQUIRED": "Se requiere un mes de destino.",
-    "UNKNOWN": "Algo salió mal. Inténtalo de nuevo."
+    "UNKNOWN": "Algo salió mal. Inténtalo de nuevo.",
+    "NOT_FOUND_DESC": "La página que buscas no existe o ha sido movida."
   }
 }
