@@ -47,7 +47,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       dir={locale === "he" ? "rtl" : "ltr"}
       className={`${geistSans.variable} ${geistMono.variable} ${notoSansHebrew.variable} h-full antialiased`}
     >
-      <body className="min-h-full flex flex-col">
+      <body className="min-h-full flex flex-col pb-20 md:pb-0">
         <NextIntlClientProvider>
           <Nav>
             <LocaleSwitcher />

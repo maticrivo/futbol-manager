@@ -4,7 +4,13 @@
     "save": "Guardar",
     "cancel": "Cancelar",
     "copy": "Copiar",
-    "loading": "Cargando…"
+    "loading": "Cargando…",
+    "backToSignIn": "Volver a iniciar sesión"
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "description": "La página que buscas no existe.",
+    "home": "Volver al inicio"
   },
   "nav": {
     "home": "Inicio",
@@ -42,6 +48,7 @@
     "email": "Correo electrónico",
     "phone": "Teléfono",
     "image": "URL de la imagen",
+    "language": "Idioma",
     "imageHint": "Enlace directo a una foto pública o avatar (opcional).",
     "save": "Guardar perfil",
     "saving": "Guardando…",
@@ -54,6 +61,10 @@
     "venueTbd": "Lugar por confirmar",
     "cost": "Precio por persona: <bidi>{amount}</bidi>",
     "spotsLeft": "{count, plural, =0 {No quedan plazas} one {Queda # plaza} other {Quedan # plazas}}",
+    "whoIsGoing": "Quién va",
+    "capacityOf": "Capacidad de {count}",
+    "full": "Completo",
+    "payNote": "Pagado vía {method}",
     "phase": {
       "before": "Inscripción aún no disponible",
       "open": "Inscripción abierta",
@@ -87,6 +98,7 @@
     "position": "Tu puesto: {position}",
     "join": "Apuntarme a la lista de espera",
     "leave": "Salir de la lista de espera",
+    "reserved": "Reservado",
     "offered": "Hay una plaza reservada para ti.",
     "claim": "Aceptar plaza",
     "expires": "La oferta vence: <bidi>{expiration}</bidi>"
@@ -95,7 +107,9 @@
     "title": "Mi cuenta",
     "month": "Mes de facturación: <bidi>{month}</bidi>",
     "due": "Pendiente este mes: <bidi>{amount}</bidi>",
+    "amountDue": "Importe pendiente: <bidi>{amount}</bidi>",
     "settled": "No hay nada que pagar este mes.",
+    "settledChip": "Pagado",
     "balance": "Saldo pendiente: <bidi>{amount}</bidi>",
     "credit": "Saldo a favor: <bidi>{amount}</bidi>",
     "charges": "Cargos",
@@ -150,6 +164,8 @@
     },
     "dashboard": {
       "title": "Administración",
+      "manage": "Gestionar",
+      "manageMatch": "Gestionar partido",
       "upcomingMatch": "Próximo partido",
       "noMatch": "No hay ningún partido próximo.",
       "createNextMatch": "Crear siguiente partido",
@@ -161,6 +177,7 @@
     },
     "money": {
       "title": "Pagos",
+      "memberBalances": "Saldos de miembros",
       "month": "Mes de facturación",
       "show": "Ver",
       "charges": "Cargos",
@@ -255,6 +272,8 @@
     "match": {
       "title": "Partido",
       "back": "Volver a administración",
+      "schedule": "Programar partido",
+      "moneySection": "Finanzas del partido",
       "confirmed": "{count, plural, one {# jugador confirmado} other {# jugadores confirmados}}",
       "copy": {
         "title": "Compartir por WhatsApp",

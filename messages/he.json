@@ -4,7 +4,13 @@
     "save": "שמירה",
     "cancel": "ביטול",
     "copy": "העתקה",
-    "loading": "בטעינה…"
+    "loading": "בטעינה…",
+    "backToSignIn": "חזרה להתחברות"
+  },
+  "notFound": {
+    "title": "הדף לא נמצא",
+    "description": "הדף שחיפשת אינו קיים.",
+    "home": "חזרה לדף הבית"
   },
   "nav": {
     "home": "בית",
@@ -42,6 +48,7 @@
     "email": "אימייל",
     "phone": "טלפון",
     "image": "קישור לתמונה",
+    "language": "שפה",
     "imageHint": "קישור ישיר לתמונה ציבורית או אווטאר (אופציונלי).",
     "save": "שמירת פרופיל",
     "saving": "שומר…",
@@ -54,6 +61,10 @@
     "venueTbd": "המגרש טרם נקבע",
     "cost": "עלות למשתתף: <bidi>{amount}</bidi>",
     "spotsLeft": "{count, plural, =0 {לא נותרו מקומות פנויים} one {נותר מקום אחד} two {נותרו שני מקומות} other {נותרו # מקומות פנויים}}",
+    "whoIsGoing": "מי מגיע",
+    "capacityOf": "קיבולת {count}",
+    "full": "מלא",
+    "payNote": "שולם באמצעות {method}",
     "phase": {
       "before": "ההרשמה טרם נפתחה",
       "open": "ההרשמה פתוחה",
@@ -87,6 +98,7 @@
     "position": "המקום שלי ברשימה: {position}",
     "join": "הצטרפות לרשימת ההמתנה",
     "leave": "יציאה מרשימת ההמתנה",
+    "reserved": "שמור",
     "offered": "מקום נשמר עבורך.",
     "claim": "אישור המקום",
     "expires": "המקום שמור עד: <bidi>{expiration}</bidi>"
@@ -95,7 +107,9 @@
     "title": "החשבון שלי",
     "month": "חודש חיוב: <bidi>{month}</bidi>",
     "due": "לתשלום החודש: <bidi>{amount}</bidi>",
+    "amountDue": "סכום לתשלום: <bidi>{amount}</bidi>",
     "settled": "אין תשלום לחודש הזה.",
+    "settledChip": "שולם",
     "balance": "יתרה לתשלום: <bidi>{amount}</bidi>",
     "credit": "זיכוי: <bidi>{amount}</bidi>",
     "charges": "חיובים",
@@ -150,6 +164,8 @@
     },
     "dashboard": {
       "title": "ניהול",
+      "manage": "ניהול",
+      "manageMatch": "ניהול משחק",
       "upcomingMatch": "המשחק הבא",
       "noMatch": "אין משחק קרוב.",
       "createNextMatch": "יצירת המשחק הבא",
@@ -161,6 +177,7 @@
     },
     "money": {
       "title": "כספים",
+      "memberBalances": "יתרות חברים",
       "month": "חודש חיוב",
       "show": "הצגה",
       "charges": "חיובים",
@@ -255,6 +272,8 @@
     "match": {
       "title": "משחק",
       "back": "חזרה לניהול",
+      "schedule": "קביעת משחק",
+      "moneySection": "כספי משחק",
       "confirmed": "{count, plural, one {משתתף מאושר אחד} two {שני משתתפים מאושרים} other {# משתתפים מאושרים}}",
       "copy": {
         "title": "שיתוף בוואטסאפ",

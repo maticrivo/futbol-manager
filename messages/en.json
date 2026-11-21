@@ -4,7 +4,13 @@
     "save": "Save",
     "cancel": "Cancel",
     "copy": "Copy",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "backToSignIn": "Back to sign in"
+  },
+  "notFound": {
+    "title": "Page not found",
+    "description": "The page you are looking for does not exist.",
+    "home": "Back to home"
   },
   "nav": {
     "home": "Home",
@@ -42,6 +48,7 @@
     "email": "Email",
     "phone": "Phone",
     "image": "Image URL",
+    "language": "Language",
     "imageHint": "Direct link to a public photo or avatar (optional).",
     "save": "Save profile",
     "saving": "Saving…",
@@ -54,6 +61,10 @@
     "venueTbd": "Venue to be confirmed",
     "cost": "Cost per player: <bidi>{amount}</bidi>",
     "spotsLeft": "{count, plural, =0 {No spots left} one {# spot left} other {# spots left}}",
+    "whoIsGoing": "Who is going",
+    "capacityOf": "Capacity of {count}",
+    "full": "Full",
+    "payNote": "Paid via {method}",
     "phase": {
       "before": "Sign-ups not open yet",
       "open": "Sign-ups open",
@@ -87,6 +98,7 @@
     "position": "Your position: {position}",
     "join": "Join the waiting list",
     "leave": "Leave the waiting list",
+    "reserved": "Reserved",
     "offered": "A spot is reserved for you.",
     "claim": "Claim spot",
     "expires": "Offer expires: <bidi>{expiration}</bidi>"
@@ -95,7 +107,9 @@
     "title": "Your bill",
     "month": "Billing month: <bidi>{month}</bidi>",
     "due": "Due this month: <bidi>{amount}</bidi>",
+    "amountDue": "Amount due: <bidi>{amount}</bidi>",
     "settled": "Nothing due this month.",
+    "settledChip": "Settled",
     "balance": "Outstanding balance: <bidi>{amount}</bidi>",
     "credit": "Credit: <bidi>{amount}</bidi>",
     "charges": "Charges",
@@ -150,6 +164,8 @@
     },
     "dashboard": {
       "title": "Admin",
+      "manage": "Manage",
+      "manageMatch": "Manage match",
       "upcomingMatch": "Next match",
       "noMatch": "No upcoming match.",
       "createNextMatch": "Create next match",
@@ -161,6 +177,7 @@
     },
     "money": {
       "title": "Money",
+      "memberBalances": "Member balances",
       "month": "Billing month",
       "show": "Show",
       "charges": "Charges",
@@ -255,6 +272,8 @@
     "match": {
       "title": "Match",
       "back": "Back to admin",
+      "schedule": "Schedule match",
+      "moneySection": "Match money",
       "confirmed": "{count, plural, one {# confirmed player} other {# confirmed players}}",
       "copy": {
         "title": "Share on WhatsApp",
