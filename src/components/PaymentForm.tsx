@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { recordPaymentAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
+import { Field } from './ui/Field'
 
 export default function PaymentForm({
   memberId,
@@ -16,38 +17,36 @@ export default function PaymentForm({
   const [state, formAction] = useActionState(recordPaymentAction, null)
 
   return (
-    <form action={formAction} className="flex flex-wrap items-end gap-2">
+    <form action={formAction} className="flex flex-col sm:flex-row flex-wrap items-stretch sm:items-end gap-3">
       <input type="hidden" name="memberId" value={memberId} />
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.money.amount')}</span>
+      <Field label={t('admin.money.amount')} required>
         <input
           name="amountShekels"
           inputMode="decimal"
           required
           defaultValue={defaultAmountShekels}
           placeholder="0.00"
-          className="mt-1 w-24 rounded border px-2 py-2"
+          className="h-10 w-full sm:w-28 rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
         />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.money.methodLabel')}</span>
-        <select name="method" defaultValue="cash" className="mt-1 rounded border px-2 py-2">
+      </Field>
+      <Field label={t('admin.money.methodLabel')}>
+        <select name="method" defaultValue="cash" className="h-10 rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
           <option value="paybox">{t('admin.money.method.paybox')}</option>
           <option value="cash">{t('admin.money.method.cash')}</option>
           <option value="other">{t('admin.money.method.other')}</option>
         </select>
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.money.note')}</span>
-        <input name="note" dir="auto" maxLength={255} className="mt-1 rounded border px-2 py-2" />
-      </label>
-      <label className="block">
-        <span className="block text-sm font-medium">{t('admin.money.targetMonth')}</span>
-        <input type="month" name="targetMonth" className="mt-1 rounded border px-2 py-2" />
-      </label>
-      <SubmitButton label={t('admin.money.submit')} pendingLabel={t('admin.money.saving')} primary />
+      </Field>
+      <Field label={t('admin.money.note')}>
+        <input name="note" dir="auto" maxLength={255} className="h-10 rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" />
+      </Field>
+      <Field label={t('admin.money.targetMonth')}>
+        <input type="month" name="targetMonth" className="h-10 rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" />
+      </Field>
+      <div className="pt-1">
+        <SubmitButton label={t('admin.money.submit')} pendingLabel={t('admin.money.saving')} primary />
+      </div>
       {state?.ok === false && (
-        <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+        <div aria-live="polite" className="w-full text-sm text-danger">
           {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
         </div>
       )}

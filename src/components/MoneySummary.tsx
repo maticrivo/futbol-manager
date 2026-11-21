@@ -5,9 +5,11 @@ import { useTranslations } from 'next-intl'
 import { setExpenseAction } from '@/app/actions/admin'
 import { formatMoney } from '@/lib/time'
 import SubmitButton from './SubmitButton'
+import { Card } from './ui/Card'
+import { Stat } from './ui/Stat'
+import { Field } from './ui/Field'
 
 export default function MoneySummary({
-  month,
   chargesAgorot,
   memberCollectedAgorot,
   guestCollectedAgorot,
@@ -28,50 +30,52 @@ export default function MoneySummary({
   const t = useTranslations()
   const [state, formAction] = useActionState(setExpenseAction, null)
 
-  const rows = [
-    [t('admin.money.charges'), chargesAgorot],
-    [t('admin.money.memberCollected'), memberCollectedAgorot],
-    [t('admin.money.guestCollected'), guestCollectedAgorot],
-    [t('admin.money.expense'), expenseAgorot],
-    [t('admin.money.pot'), differenceAgorot],
-    [t('admin.money.outstanding'), outstandingAgorot],
+  const items = [
+    [t('admin.money.charges'), chargesAgorot, 'receipt'],
+    [t('admin.money.memberCollected'), memberCollectedAgorot, 'users'],
+    [t('admin.money.guestCollected'), guestCollectedAgorot, 'userPlus'],
+    [t('admin.money.expense'), expenseAgorot, 'card'],
+    [t('admin.money.pot'), differenceAgorot, 'wallet'],
+    [t('admin.money.outstanding'), outstandingAgorot, 'alert'],
   ] as const
 
   return (
-    <section className="space-y-4 rounded-xl border p-5">
-      <dl className="grid grid-cols-2 gap-3">
-        {rows.map(([label, agorot]) => (
-          <div key={label} className="rounded border p-3">
-            <dt className="text-sm text-neutral-600 dark:text-neutral-300">{label}</dt>
-            <dd className="text-lg font-semibold"><bdi>{formatMoney(agorot, locale)}</bdi></dd>
-          </div>
+    <Card variant="default" padding="lg" className="space-y-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {items.map(([label, agorot, icon]) => (
+          <Stat
+            key={label}
+            label={label}
+            value={formatMoney(agorot, locale)}
+            icon={icon}
+          />
         ))}
-      </dl>
+      </div>
 
-      <form action={formAction} className="space-y-2">
-        <input type="hidden" name="month" value={month} />
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.money.expenseLabel')}</span>
+      <form action={formAction} className="space-y-4 pt-4 border-t border-line">
+        <Field label={t('admin.money.expenseLabel')}>
           <input
             name="fieldCostShekels"
             inputMode="decimal"
             required
             defaultValue={(expenseAgorot / 100).toFixed(2)}
-            className="mt-1 w-40 rounded border px-3 py-2"
+            className="h-11 w-full sm:w-48 rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           />
-        </label>
-        <SubmitButton label={t('admin.money.expenseSave')} pendingLabel={t('admin.money.expenseSaving')} primary />
+        </Field>
+        <div>
+          <SubmitButton label={t('admin.money.expenseSave')} pendingLabel={t('admin.money.expenseSaving')} primary />
+        </div>
         {state?.ok === true && (
-          <div aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
+          <div aria-live="polite" className="text-sm text-primary">
             {t('admin.money.expenseSaved')}
           </div>
         )}
         {state?.ok === false && (
-          <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+          <div aria-live="polite" className="text-sm text-danger">
             {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
           </div>
         )}
       </form>
-    </section>
+    </Card>
   )
 }

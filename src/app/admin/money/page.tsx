@@ -11,6 +11,9 @@ import { requireAdmin } from '@/lib/auth'
 import { buildGroupMessage } from '@/lib/copy'
 import { requestOrigin } from '@/lib/request-origin'
 import { billingMonthOf, formatMoney } from '@/lib/time'
+import { Card } from '@/components/ui/Card'
+import { Field } from '@/components/ui/Field'
+import { Button } from '@/components/ui/Button'
 
 const MONTH_RE = /^\d{4}-(0[1-9]|1[0-2])$/
 
@@ -52,19 +55,20 @@ export default async function MoneyPage({
   const billCopy = buildGroupMessage('bill_ready', locale, { month, url: `${origin}/bill` })
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
       <AdminNav />
-      <h1 className="text-2xl font-semibold">{t('money.title')}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('money.title')}</h1>
 
-      <form method="GET" className="flex flex-wrap items-end gap-3">
-        <label className="block">
-          <span className="block text-sm font-medium">{t('money.month')}</span>
-          <input type="month" name="month" defaultValue={month} className="mt-1 rounded border px-3 py-2" />
-        </label>
-        <button type="submit" className="cursor-pointer rounded-md border px-4 py-2 font-medium">
-          {t('money.show')}
-        </button>
-      </form>
+      <Card variant="default" padding="md">
+        <form method="GET" className="flex flex-col sm:flex-row items-stretch sm:items-end gap-3">
+          <Field label={t('money.month')} className="flex-1">
+            <input type="month" name="month" defaultValue={month} className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus" />
+          </Field>
+          <Button type="submit" variant="outline" size="md">
+            {t('money.show')}
+          </Button>
+        </form>
+      </Card>
 
       <MoneySummary
         month={month}
@@ -79,11 +83,11 @@ export default async function MoneyPage({
 
       <BalanceTable rows={rows} />
 
-      <section className="space-y-2 rounded-xl border p-5">
-        <h2 className="text-xl font-semibold">{t('money.copy.title')}</h2>
-        <pre dir="auto" className="whitespace-pre-wrap break-words rounded bg-neutral-100 p-3 text-sm dark:bg-neutral-900">{billCopy}</pre>
+      <Card variant="default" padding="lg" className="space-y-4">
+        <h2 className="text-xl font-semibold text-ink">{t('money.copy.title')}</h2>
+        <pre dir="auto" className="whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface-muted border border-line p-4 text-sm text-ink font-mono">{billCopy}</pre>
         <CopyMessage text={billCopy} label={t('money.copy.button')} />
-      </section>
+      </Card>
     </main>
   )
 }

@@ -6,60 +6,60 @@ import { addMemberAction } from '@/app/actions/admin'
 import { LOCALES, LOCALE_LABELS } from '@/i18n/locale'
 import InviteLink from './InviteLink'
 import SubmitButton from './SubmitButton'
+import { Card } from './ui/Card'
+import { Field } from './ui/Field'
 
 export default function AddMemberByEmailForm() {
   const t = useTranslations()
   const [state, formAction] = useActionState(addMemberAction, null)
 
   return (
-    <section className="space-y-3 rounded-xl border p-5">
-      <h2 className="text-lg font-semibold">{t('admin.members.addTitle')}</h2>
+    <Card variant="default" padding="lg" className="space-y-4">
+      <h2 className="text-lg font-semibold text-ink">{t('admin.members.addTitle')}</h2>
       {state?.ok && <InviteLink url={state.inviteUrl} />}
-      <form action={formAction} className="space-y-3">
-        <label className="block">
-          <span className="block text-sm font-medium">{t('admin.members.emailOrName')}</span>
+      <form action={formAction} className="space-y-4">
+        <Field label={t('admin.members.emailOrName')} required>
           <input
             name="email"
             dir="auto"
             required
             maxLength={120}
             placeholder={t('auth.emailPlaceholder')}
-            className="mt-1 w-full rounded border px-3 py-2"
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
           />
-        </label>
-        <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
-          <label className="block">
-            <span className="block text-sm font-medium">{t('admin.members.role')}</span>
-            <select name="role" className="mt-1 w-full rounded border px-3 py-2">
+        </Field>
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <Field label={t('admin.members.role')}>
+            <select name="role" className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               <option value="member">{t('admin.members.roleMember')}</option>
               <option value="admin">{t('admin.members.roleAdmin')}</option>
             </select>
-          </label>
-          <label className="block">
-            <span className="block text-sm font-medium">{t('admin.members.status')}</span>
-            <select name="status" className="mt-1 w-full rounded border px-3 py-2">
+          </Field>
+          <Field label={t('admin.members.status')}>
+            <select name="status" className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               <option value="active">{t('admin.members.statusActive')}</option>
               <option value="pending">{t('admin.members.statusPending')}</option>
             </select>
-          </label>
-          <label className="block">
-            <span className="block text-sm font-medium">{t('admin.members.locale')}</span>
-            <select name="locale" className="mt-1 w-full rounded border px-3 py-2">
+          </Field>
+          <Field label={t('admin.members.locale')}>
+            <select name="locale" className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus">
               {LOCALES.map((locale) => (
                 <option key={locale} value={locale}>
                   {LOCALE_LABELS[locale]}
                 </option>
               ))}
             </select>
-          </label>
+          </Field>
         </div>
-        <SubmitButton label={t('admin.members.add')} pendingLabel={t('admin.members.adding')} primary />
+        <div className="pt-2">
+          <SubmitButton label={t('admin.members.add')} pendingLabel={t('admin.members.adding')} primary />
+        </div>
         {state?.ok === false && (
-          <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+          <div aria-live="polite" className="text-sm text-danger">
             {t.has('errors.' + state.code) ? t('errors.' + state.code) : t('errors.UNKNOWN')}
           </div>
         )}
       </form>
-    </section>
+    </Card>
   )
 }

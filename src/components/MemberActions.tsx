@@ -9,7 +9,7 @@ import SubmitButton from './SubmitButton'
 function ActionError({ code }: { code: string | null }) {
   const t = useTranslations()
   return (
-    <div aria-live="polite" className="text-sm text-red-700 dark:text-red-300">
+    <div aria-live="polite" className="text-sm text-danger mt-1">
       {code !== null && (t.has('errors.' + code) ? t('errors.' + code) : t('errors.UNKNOWN'))}
     </div>
   )
@@ -64,7 +64,7 @@ export default function MemberActions({
                 pendingLabel={t('admin.members.working')}
               />
             ) : (
-              <span className="text-sm text-neutral-500 dark:text-neutral-400">{t('admin.members.selfNote')}</span>
+              <span className="text-sm text-muted">{t('admin.members.selfNote')}</span>
             )}
           </form>
         )}

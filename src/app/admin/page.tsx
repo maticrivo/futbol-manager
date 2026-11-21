@@ -10,6 +10,9 @@ import { getUpcomingMatch } from '@/domain/matches'
 import { phaseAt } from '@/domain/matchView'
 import { requireAdmin } from '@/lib/auth'
 import { billingMonthOf, formatMatchDate, formatMoney } from '@/lib/time'
+import { Card } from '@/components/ui/Card'
+import { Stat } from '@/components/ui/Stat'
+import { Button } from '@/components/ui/Button'
 
 export default async function AdminDashboard() {
   await requireAdmin()
@@ -29,50 +32,62 @@ export default async function AdminDashboard() {
   const bidi = (chunks: ReactNode) => <bdi>{chunks}</bdi>
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
       <AdminNav />
-      <h1 className="text-2xl font-semibold">{t('dashboard.title')}</h1>
-      <p className="text-sm">
-        <Link href="/admin/money">{t('nav.money')}</Link>
-      </p>
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('dashboard.title')}</h1>
+        <Link href="/admin/money">
+          <Button variant="outline" size="sm">
+            {t('nav.money')}
+          </Button>
+        </Link>
+      </div>
 
-      <section className="space-y-3 rounded-xl border p-5">
-        <h2 className="text-lg font-semibold">{t('dashboard.upcomingMatch')}</h2>
+      <Card variant="default" padding="lg" className="space-y-4">
+        <h2 className="text-lg font-semibold text-ink">{t('dashboard.upcomingMatch')}</h2>
         {upcoming ? (
-          <div className="space-y-1">
-            <p className="text-lg font-medium">
+          <div className="space-y-2">
+            <p className="text-xl font-semibold text-ink">
               <time dateTime={upcoming.kickoffAt.toISOString()}>{formatMatchDate(upcoming.kickoffAt, locale)}</time>
             </p>
-            <p>
+            <p className="text-muted font-medium">
               <bdi>{upcoming.venue || tm('venueTbd')}</bdi>
             </p>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300">
-              {tm(`phase.${phaseAt(upcoming, now)}`)}
-            </p>
+            <div>
+              <span className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
+                {tm(`phase.${phaseAt(upcoming, now)}`)}
+              </span>
+            </div>
           </div>
         ) : (
-          <p className="text-neutral-600 dark:text-neutral-300">{t('dashboard.noMatch')}</p>
+          <p className="text-muted">{t('dashboard.noMatch')}</p>
         )}
-        <CreateNextMatchForm />
-      </section>
+        <div className="pt-2">
+          <CreateNextMatchForm />
+        </div>
+      </Card>
 
-      <section className="grid grid-cols-2 gap-3">
-        <div className="rounded-xl border p-4">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('dashboard.totalMembers')}</p>
-          <p className="text-2xl font-semibold">{members.length}</p>
-        </div>
-        <div className="rounded-xl border p-4">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('dashboard.activeMembers')}</p>
-          <p className="text-2xl font-semibold">{activeCount}</p>
-        </div>
-        <div className="rounded-xl border p-4">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('dashboard.outstandingBalance')}</p>
-          <p className="text-2xl font-semibold">{bidi(formatMoney(summary.outstandingAgorot, locale))}</p>
-        </div>
-        <div className="rounded-xl border p-4">
-          <p className="text-sm text-neutral-600 dark:text-neutral-300">{t('dashboard.pot')}</p>
-          <p className="text-2xl font-semibold">{bidi(formatMoney(summary.differenceAgorot, locale))}</p>
-        </div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Stat
+          label={t('dashboard.totalMembers')}
+          value={members.length}
+          icon="users"
+        />
+        <Stat
+          label={t('dashboard.activeMembers')}
+          value={activeCount}
+          icon="check"
+        />
+        <Stat
+          label={t('dashboard.outstandingBalance')}
+          value={bidi(formatMoney(summary.outstandingAgorot, locale))}
+          icon="alert"
+        />
+        <Stat
+          label={t('dashboard.pot')}
+          value={bidi(formatMoney(summary.differenceAgorot, locale))}
+          icon="wallet"
+        />
       </section>
     </main>
   )

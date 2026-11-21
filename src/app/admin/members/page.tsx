@@ -7,6 +7,8 @@ import { getDb } from '@/db'
 import { listMembers } from '@/domain/members'
 import { requireAdmin } from '@/lib/auth'
 import { TZ } from '@/lib/time'
+import { Card } from '@/components/ui/Card'
+import { Badge } from '@/components/ui/Badge'
 
 export default async function AdminMembers() {
   const admin = await requireAdmin()
@@ -21,82 +23,68 @@ export default async function AdminMembers() {
   const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: TZ })
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 text-start">
+    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
       <AdminNav />
-      <h1 className="text-2xl font-semibold">{t('members.title')}</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('members.title')}</h1>
 
       <AddMemberByEmailForm />
 
-      <section className="overflow-x-auto rounded-xl border">
-        <table className="w-full text-sm">
-          <thead className="border-b text-start">
-            <tr>
-              <th className="px-4 py-2 text-start font-medium">{t('members.name')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.email')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.phone')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.role')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.status')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.locale')}</th>
-              <th className="px-4 py-2 text-start font-medium">{t('members.created')}</th>
-              <th className="px-4 py-2" />
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="border-b last:border-b-0">
-                <td className="px-4 py-2 align-top">
-                  <div>
-                    <bdi>{member.name}</bdi>
-                  </div>
-                  {member.nickname ? (
-                    <div className="text-xs text-neutral-500 dark:text-neutral-400">
-                      <bdi>{member.nickname}</bdi>
-                    </div>
-                  ) : null}
-                </td>
-                <td className="px-4 py-2 align-top">
-                  {member.email ? <bdi dir="ltr">{member.email}</bdi> : '—'}
-                </td>
-                <td className="px-4 py-2 align-top">
-                  {member.phone ? <bdi dir="ltr">{member.phone}</bdi> : '—'}
-                </td>
-                <td className="px-4 py-2 align-top">
-                  {member.role === 'admin' ? t('members.roleAdmin') : t('members.roleMember')}
-                </td>
-                <td className="px-4 py-2 align-top">
-                  {member.status === 'pending' ? (
-                    <span className="inline-flex items-center rounded-full border border-amber-300 bg-amber-50 px-2.5 py-0.5 text-xs font-medium text-amber-800 dark:border-amber-700/60 dark:bg-amber-950/40 dark:text-amber-300">
-                      {t('members.statusPending')}
-                    </span>
-                  ) : member.status === 'active' ? (
-                    <span className="inline-flex items-center rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-0.5 text-xs font-medium text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-300">
-                      {t('members.statusActive')}
-                    </span>
+      <section className="space-y-4">
+        {members.map((member) => (
+          <Card key={member.id} variant="default" padding="md" className="space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-semibold text-lg text-ink"><bdi>{member.name}</bdi></span>
+                  {member.role === 'admin' ? (
+                    <Badge variant="primary" size="sm">{t('members.roleAdmin')}</Badge>
                   ) : (
-                    <span className="inline-flex items-center rounded-full border border-neutral-300 bg-neutral-100 px-2.5 py-0.5 text-xs font-medium text-neutral-600 dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-400">
-                      {t('members.statusDisabled')}
-                    </span>
+                    <Badge variant="secondary" size="sm">{t('members.roleMember')}</Badge>
                   )}
-                </td>
-                <td className="px-4 py-2 align-top"><bdi dir="ltr">{member.locale}</bdi></td>
-                <td className="px-4 py-2 align-top"><bdi>{dateFormat.format(member.createdAt)}</bdi></td>
-                <td className="px-4 py-2 align-top">
-                  <div className="space-y-2">
-                    <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
-                    <details className="text-xs">
-                      <summary className="cursor-pointer font-medium text-neutral-600 hover:text-neutral-900 dark:text-neutral-400 dark:hover:text-neutral-100">
-                        {t('members.editDetails')}
-                      </summary>
-                      <div className="mt-2 min-w-64 rounded-lg border p-3">
-                        <MemberEditForm member={member} />
-                      </div>
-                    </details>
+                  {member.status === 'pending' ? (
+                    <Badge variant="warning" size="sm">{t('members.statusPending')}</Badge>
+                  ) : member.status === 'active' ? (
+                    <Badge variant="success" size="sm">{t('members.statusActive')}</Badge>
+                  ) : (
+                    <Badge variant="secondary" size="sm">{t('members.statusDisabled')}</Badge>
+                  )}
+                </div>
+                {member.nickname ? (
+                  <div className="text-xs text-muted">
+                    <bdi>{member.nickname}</bdi>
                   </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+                ) : null}
+              </div>
+              <div className="text-xs text-muted sm:text-right space-y-0.5">
+                <div>Locale: <bdi dir="ltr">{member.locale}</bdi></div>
+                <div>Joined: <bdi>{dateFormat.format(member.createdAt)}</bdi></div>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 text-sm text-muted pt-1 border-t border-line">
+              <div>
+                <span className="font-medium text-ink">{t('members.email')}: </span>
+                {member.email ? <bdi dir="ltr">{member.email}</bdi> : '—'}
+              </div>
+              <div>
+                <span className="font-medium text-ink">{t('members.phone')}: </span>
+                {member.phone ? <bdi dir="ltr">{member.phone}</bdi> : '—'}
+              </div>
+            </div>
+
+            <div className="pt-2 border-t border-line space-y-3">
+              <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
+              <details className="text-xs group">
+                <summary className="cursor-pointer font-medium text-primary hover:underline">
+                  {t('members.editDetails')}
+                </summary>
+                <div className="mt-3 rounded-lg border border-line bg-surface-muted p-4">
+                  <MemberEditForm member={member} />
+                </div>
+              </details>
+            </div>
+          </Card>
+        ))}
       </section>
     </main>
   )
