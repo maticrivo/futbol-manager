@@ -152,6 +152,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       <EditMatchForm
         matchId={current.id}
         venue={current.venue}
+        venueUrl={current.venueUrl ?? ''}
         notes={current.notes ?? ''}
         capacity={current.capacity}
         costShekels={(current.costAgorot / 100).toFixed(2)}

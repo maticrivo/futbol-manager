@@ -22,6 +22,7 @@ export default async function AdminSettings() {
           capacity={settings.capacity}
           costShekels={(settings.costAgorot / 100).toFixed(2)}
           venue={settings.venue}
+          venueUrl={settings.venueUrl}
           kickoffTime={settings.kickoffTime}
           queueWindowMinutes={settings.queueWindowMinutes}
         />

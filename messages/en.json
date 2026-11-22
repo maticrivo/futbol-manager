@@ -272,7 +272,9 @@
       "queueWindowMinutes": "Queue window (minutes)",
       "save": "Save settings",
       "saving": "Saving…",
-      "saved": "Settings saved."
+      "saved": "Settings saved.",
+      "venueUrl": "Venue map link",
+      "venueUrlHint": "Google Maps link shown when players tap the venue (optional)."
     },
     "audit": {
       "title": "Audit log",
@@ -310,7 +312,9 @@
         "saving": "Saving…",
         "saved": "Saved.",
         "locked": "Money, capacity and the schedule are frozen after the roster locks.",
-        "finished": "This match has already been played or cancelled."
+        "finished": "This match has already been played or cancelled.",
+        "venueUrl": "Venue map link",
+        "venueUrlHint": "Google Maps link for this match (optional)."
       },
       "roster": {
         "title": "Roster",

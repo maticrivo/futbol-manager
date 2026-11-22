@@ -30,6 +30,7 @@ function OpenSignupsForm({ matchId }: { matchId: number }) {
 export default function EditMatchForm({
   matchId,
   venue,
+  venueUrl,
   notes,
   capacity,
   costShekels,
@@ -43,6 +44,7 @@ export default function EditMatchForm({
 }: {
   matchId: number
   venue: string
+  venueUrl: string
   notes: string
   capacity: number
   costShekels: string
@@ -77,6 +79,14 @@ export default function EditMatchForm({
         <Field label={t('admin.match.edit.venue')}>
           <input
             name="venue" dir="auto" maxLength={120} defaultValue={venue} disabled={finished}
+            className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
+          />
+        </Field>
+
+        <Field label={t('admin.match.edit.venueUrl')} hint={t('admin.match.edit.venueUrlHint')}>
+          <input
+            name="venueUrl" type="url" inputMode="url" dir="ltr" maxLength={500}
+            defaultValue={venueUrl} disabled={finished} placeholder="https://maps.app.goo.gl/..."
             className="h-11 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus disabled:opacity-60"
           />
         </Field>

@@ -11,7 +11,8 @@ it('provides default settings for Tuesday Football', () => {
   expect(DEFAULT_SETTINGS).toEqual({
     capacity: 14,
     costAgorot: 3500,
-    venue: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+    venue: 'Onim (אונים)',
+    venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
     kickoffTime: '20:00',
     queueWindowMinutes: 30,
   })
@@ -33,12 +34,38 @@ it('rejects invalid values with INVALID_SETTING', async () => {
 it('persists a valid update', async () => {
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
 
-  const ok = await updateSettings(testDb, admin.id, { capacity: 16, costAgorot: 4000 })
+  const ok = await updateSettings(testDb, admin.id, {
+    capacity: 16,
+    costAgorot: 4000,
+    venue: 'Hakoach',
+    venueUrl: 'https://maps.google.com/?q=Hakoach',
+  })
   expect(ok.ok).toBe(true)
 
   const settings = await getSettings(testDb)
   expect(settings.capacity).toBe(16)
   expect(settings.costAgorot).toBe(4000)
+  expect(settings.venue).toBe('Hakoach')
+  expect(settings.venueUrl).toBe('https://maps.google.com/?q=Hakoach')
+})
+
+it('splits a legacy venue value that still contains the map link', async () => {
+  await testDb.insert(settings).values({
+    key: 'venue',
+    value: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+  })
+
+  const result = await getSettings(testDb)
+  expect(result.venue).toBe('Onim (אונים)')
+  expect(result.venueUrl).toBe('https://maps.app.goo.gl/WPPALMNQFfW3MX7L6')
+})
+
+it('rejects an invalid venue map link', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  expect(await updateSettings(testDb, admin.id, { venueUrl: 'not-a-url' })).toEqual({
+    ok: false,
+    code: 'INVALID_SETTING',
+  })
 })
 
 it('does not coerce blank stored values to zero and preserves defaults while valid values still win', async () => {

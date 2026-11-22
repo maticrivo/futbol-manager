@@ -272,7 +272,9 @@
       "queueWindowMinutes": "Ventana de lista de espera (minutos)",
       "save": "Guardar ajustes",
       "saving": "Guardando…",
-      "saved": "Ajustes guardados."
+      "saved": "Ajustes guardados.",
+      "venueUrl": "Enlace del mapa del lugar",
+      "venueUrlHint": "Enlace de Google Maps que se abre al tocar el lugar (opcional)."
     },
     "audit": {
       "title": "Registro de actividad",
@@ -310,7 +312,9 @@
         "saving": "Guardando…",
         "saved": "Guardado.",
         "locked": "El precio, la capacidad y el calendario se bloquean al cerrar la lista.",
-        "finished": "Este partido ya se jugó o se canceló."
+        "finished": "Este partido ya se jugó o se canceló.",
+        "venueUrl": "Enlace del mapa del lugar",
+        "venueUrlHint": "Enlace de Google Maps para este partido (opcional)."
       },
       "roster": {
         "title": "Participantes",

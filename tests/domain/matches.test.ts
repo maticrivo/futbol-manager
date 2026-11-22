@@ -18,7 +18,8 @@ it('returns the documented defaults', async () => {
   expect(await getSettings(testDb)).toEqual({
     capacity: 14,
     costAgorot: 3500,
-    venue: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+    venue: 'Onim (אונים)',
+    venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
     kickoffTime: '20:00',
     queueWindowMinutes: 30,
   })
@@ -29,7 +30,8 @@ it('creates a Tuesday match with all phase times', async () => {
   expect(m.matchDate).toBe('2027-03-30')
   expect(m.capacity).toBe(14)
   expect(m.costAgorot).toBe(3500)
-  expect(m.venue).toBe('Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6')
+  expect(m.venue).toBe('Onim (אונים)')
+  expect(m.venueUrl).toBe('https://maps.app.goo.gl/WPPALMNQFfW3MX7L6')
   expect(m.kickoffAt.toISOString()).toBe('2027-03-30T17:00:00.000Z')
   expect(m.lockAt.toISOString()).toBe('2027-03-30T11:00:00.000Z')
 })
@@ -78,6 +80,7 @@ describe('settings management', () => {
       capacity: 16,
       costAgorot: 3500,
       venue: 'Kraft Stadium',
+      venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
       kickoffTime: '21:00',
       queueWindowMinutes: 30,
     })

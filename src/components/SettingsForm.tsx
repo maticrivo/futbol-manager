@@ -11,12 +11,14 @@ export default function SettingsForm({
   capacity,
   costShekels,
   venue,
+  venueUrl,
   kickoffTime,
   queueWindowMinutes,
 }: {
   capacity: number
   costShekels: string
   venue: string
+  venueUrl: string
   kickoffTime: string
   queueWindowMinutes: number
 }) {
@@ -51,8 +53,21 @@ export default function SettingsForm({
         <input
           name="venue"
           dir="auto"
-          maxLength={120}
+          maxLength={160}
           defaultValue={venue}
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
+        />
+      </Field>
+
+      <Field label={t('admin.settings.venueUrl')} hint={t('admin.settings.venueUrlHint')}>
+        <input
+          name="venueUrl"
+          type="url"
+          inputMode="url"
+          dir="ltr"
+          maxLength={500}
+          defaultValue={venueUrl}
+          placeholder="https://maps.app.goo.gl/..."
           className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
       </Field>

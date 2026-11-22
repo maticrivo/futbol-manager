@@ -22,8 +22,29 @@ it('freezes money fields after lock but allows venue', async () => {
   expect(venue.ok).toBe(true)
 })
 
-it('refuses a capacity below the confirmed roster before lock', async () => {
+it('sets and clears the venue map link, rejecting invalid URLs', async () => {
   const match = await createMatchForDate(testDb, '2027-03-30')
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const now = new Date('2027-03-27T10:00:00Z')
+  const base = { actorId: admin.id, matchId: match.id, now }
+
+  const saved = await updateMatch(testDb, {
+    ...base,
+    patch: { venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6' },
+  })
+  expect(saved).toMatchObject({
+    ok: true,
+    value: { venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6' },
+  })
+
+  expect(await updateMatch(testDb, { ...base, patch: { venueUrl: 'not-a-url' } }))
+    .toEqual({ ok: false, code: 'INVALID_PATCH' })
+
+  const cleared = await updateMatch(testDb, { ...base, patch: { venueUrl: '' } })
+  expect(cleared).toMatchObject({ ok: true, value: { venueUrl: null } })
+})
+
+it('refuses a capacity below the confirmed roster before lock', async () => {  const match = await createMatchForDate(testDb, '2027-03-30')
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   const a = (await createMember(testDb, { name: 'A' })).member
   const b = (await createMember(testDb, { name: 'B' })).member

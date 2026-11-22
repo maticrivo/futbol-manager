@@ -1,6 +1,7 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import type { MatchView } from '@/domain/matchView'
 import { formatMatchDate, formatMoney } from '@/lib/time'
+import { splitVenue } from '@/lib/venue'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/icons'
@@ -9,6 +10,9 @@ import { matchPhaseTone } from './MatchHero'
 export default async function MatchCard({ match, phase, spotsLeft }: Pick<MatchView, 'match' | 'phase' | 'spotsLeft'>) {
   const [locale, t] = await Promise.all([getLocale(), getTranslations('match')])
   const tone = matchPhaseTone(phase)
+  const legacyVenue = splitVenue(match.venue)
+  const venueName = match.venueUrl ? match.venue : legacyVenue.venue
+  const venueHref = match.venueUrl || legacyVenue.venueUrl
 
   return (
     <Card className="space-y-4">
@@ -39,7 +43,18 @@ export default async function MatchCard({ match, phase, spotsLeft }: Pick<MatchV
           <div>
             <p className="text-xs text-muted font-medium">{t('venue') || 'Venue'}</p>
             <p className="text-sm font-semibold">
-              <bdi>{match.venue || t('venueTbd')}</bdi>
+              {venueHref ? (
+                <a
+                  href={venueHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus rounded-sm"
+                >
+                  <bdi>{venueName || t('venueTbd')}</bdi>
+                </a>
+              ) : (
+                <bdi>{venueName || t('venueTbd')}</bdi>
+              )}
             </p>
           </div>
         </div>

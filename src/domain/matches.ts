@@ -4,6 +4,7 @@ import type { Db } from '@/db'
 import { entries, matches, members } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { TZ, weekSchedule } from '@/lib/time'
+import { isHttpUrl } from '@/lib/venue'
 import { writeAudit } from './audit'
 import { lockMatch } from './entries'
 import { getSettings, updateSettings, type Settings } from './settings'
@@ -14,6 +15,7 @@ export { getSettings, updateSettings, type Settings }
 export type UpdateMatchPatch = {
   kickoffAt?: Date
   venue?: string
+  venueUrl?: string | null
   capacity?: number
   costAgorot?: number
   signupOpensAt?: Date
@@ -23,7 +25,7 @@ export type UpdateMatchPatch = {
 }
 
 const PATCH_KEYS = new Set([
-  'kickoffAt', 'venue', 'capacity', 'costAgorot', 'signupOpensAt', 'guestPhaseAt', 'lockAt', 'notes',
+  'kickoffAt', 'venue', 'venueUrl', 'capacity', 'costAgorot', 'signupOpensAt', 'guestPhaseAt', 'lockAt', 'notes',
 ])
 const MONEY_KEYS = new Set(['costAgorot', 'capacity', 'signupOpensAt', 'guestPhaseAt', 'lockAt'])
 
@@ -65,9 +67,15 @@ export async function updateMatch(
     }
 
     const venue = patch.venue !== undefined ? patch.venue.trim() : undefined
+    const venueUrl = patch.venueUrl !== undefined
+      ? (patch.venueUrl === null || patch.venueUrl.trim() === '' ? null : patch.venueUrl.trim())
+      : undefined
     const notes = patch.notes !== undefined ? patch.notes.trim() : undefined
 
     if (venue !== undefined && venue.length > 120) return err('INVALID_PATCH')
+    if (venueUrl !== undefined && venueUrl !== null && (venueUrl.length > 500 || !isHttpUrl(venueUrl))) {
+      return err('INVALID_PATCH')
+    }
     if (notes !== undefined && [...notes].length > 2000) return err('INVALID_PATCH')
 
     if (patch.costAgorot !== undefined && (!Number.isInteger(patch.costAgorot) || patch.costAgorot <= 0)) {
@@ -105,6 +113,7 @@ export async function updateMatch(
 
     const updates: Partial<typeof matches.$inferInsert> = { updatedAt: now }
     if (venue !== undefined) updates.venue = venue
+    if (venueUrl !== undefined) updates.venueUrl = venueUrl
     if (notes !== undefined) updates.notes = notes
     if (patch.capacity !== undefined) updates.capacity = patch.capacity
     if (patch.costAgorot !== undefined) updates.costAgorot = patch.costAgorot
@@ -200,6 +209,7 @@ export async function createMatchForDateIfAbsent(
         guestPhaseAt: schedule.guestPhaseAt,
         lockAt: schedule.lockAt,
         venue: currentSettings.venue,
+        venueUrl: currentSettings.venueUrl,
         costAgorot: currentSettings.costAgorot,
         capacity: currentSettings.capacity,
         status: 'scheduled',

@@ -19,6 +19,7 @@ import { requireAdmin } from '@/lib/auth'
 import { defaultTransport } from '@/lib/push'
 import { requestOrigin } from '@/lib/request-origin'
 import { TZ } from '@/lib/time'
+import { isHttpUrl } from '@/lib/venue'
 
 function positiveId(value: FormDataEntryValue | null): number | null {
   if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) return null
@@ -231,10 +232,17 @@ export async function updateSettingsAction(_prev: ActionResult | null, formData:
 
   const venueValue = formData.get('venue')
   const venue = typeof venueValue === 'string' ? venueValue.trim() : ''
-  if (venue.length > 120) {
+  if (venue.length > 160) {
     return { ok: false, code: 'INVALID_SETTING' }
   }
   patch.venue = venue
+
+  const venueUrlValue = formData.get('venueUrl')
+  const venueUrl = typeof venueUrlValue === 'string' ? venueUrlValue.trim() : ''
+  if (venueUrl !== '' && (venueUrl.length > 500 || !isHttpUrl(venueUrl))) {
+    return { ok: false, code: 'INVALID_SETTING' }
+  }
+  patch.venueUrl = venueUrl
 
   const kickoffValue = formData.get('kickoffTime')
   const kickoffTime = typeof kickoffValue === 'string' ? kickoffValue.trim() : ''
@@ -307,6 +315,13 @@ export async function updateMatchAction(_prev: ActionResult | null, formData: Fo
     const venue = stringField(formData, 'venue').trim()
     if (venue.length > 120) return { ok: false, code: 'INVALID_PATCH' }
     patch.venue = venue
+  }
+  if (formData.has('venueUrl')) {
+    const venueUrl = stringField(formData, 'venueUrl').trim()
+    if (venueUrl !== '' && (venueUrl.length > 500 || !isHttpUrl(venueUrl))) {
+      return { ok: false, code: 'INVALID_PATCH' }
+    }
+    patch.venueUrl = venueUrl === '' ? null : venueUrl
   }
   if (formData.has('notes')) {
     const notes = stringField(formData, 'notes').trim()

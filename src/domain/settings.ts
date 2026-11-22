@@ -2,12 +2,14 @@ import { eq } from 'drizzle-orm'
 import type { Db, Executor } from '@/db'
 import { members, settings } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
+import { isHttpUrl, splitVenue } from '@/lib/venue'
 import { writeAudit } from './audit'
 
 export type Settings = {
   capacity: number
   costAgorot: number
   venue: string
+  venueUrl: string
   kickoffTime: string
   queueWindowMinutes: number
 }
@@ -15,7 +17,8 @@ export type Settings = {
 export const DEFAULT_SETTINGS: Settings = {
   capacity: 14,
   costAgorot: 3500,
-  venue: 'Onim (אונים) - https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
+  venue: 'Onim (אונים)',
+  venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
   kickoffTime: '20:00',
   queueWindowMinutes: 30,
 }
@@ -24,6 +27,7 @@ const VALID_SETTING_KEYS: Set<string> = new Set([
   'capacity',
   'costAgorot',
   'venue',
+  'venueUrl',
   'kickoffTime',
   'queueWindowMinutes',
 ])
@@ -45,13 +49,22 @@ export async function getSettings(db: Executor): Promise<Settings> {
   const capacityVal = map.get('capacity')
   const costVal = map.get('costAgorot')
   const venueVal = map.get('venue')
+  const venueUrlVal = map.get('venueUrl')
   const kickoffVal = map.get('kickoffTime')
   const queueVal = map.get('queueWindowMinutes')
+
+  const storedVenue = venueVal !== undefined ? venueVal : DEFAULT_SETTINGS.venue
+  const legacy = splitVenue(storedVenue)
+  const venue = venueUrlVal === undefined ? legacy.venue : storedVenue
+  const venueUrl = venueUrlVal !== undefined
+    ? venueUrlVal
+    : legacy.venueUrl ?? DEFAULT_SETTINGS.venueUrl
 
   return {
     capacity: parseNumericSetting(capacityVal, DEFAULT_SETTINGS.capacity),
     costAgorot: parseNumericSetting(costVal, DEFAULT_SETTINGS.costAgorot),
-    venue: venueVal !== undefined ? venueVal : DEFAULT_SETTINGS.venue,
+    venue,
+    venueUrl,
     kickoffTime: kickoffVal !== undefined ? kickoffVal : DEFAULT_SETTINGS.kickoffTime,
     queueWindowMinutes: parseNumericSetting(queueVal, DEFAULT_SETTINGS.queueWindowMinutes),
   }
@@ -122,6 +135,14 @@ export async function updateSettings(
     }
   }
 
+  if (patch.venueUrl !== undefined) {
+    if (patch.venueUrl !== null && patch.venueUrl !== '') {
+      if (typeof patch.venueUrl !== 'string' || patch.venueUrl.length > 500 || !isHttpUrl(patch.venueUrl)) {
+        return err('INVALID_SETTING')
+      }
+    }
+  }
+
   await db.transaction(async (tx) => {
     for (const [key, value] of Object.entries(patch)) {
       if (value !== undefined) {
@@ -129,11 +150,11 @@ export async function updateSettings(
           .insert(settings)
           .values({
             key,
-            value: String(value),
+            value: value !== null ? String(value) : '',
           })
           .onDuplicateKeyUpdate({
             set: {
-              value: String(value),
+              value: value !== null ? String(value) : '',
             },
           })
       }
