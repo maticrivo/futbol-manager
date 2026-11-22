@@ -40,14 +40,17 @@ it('generates unique tokens and hashes deterministically', () => {
 it('defines a dark-mode counterpart for every light-mode color token', () => {
   const rootMatch = globalsCss.match(/:root\s*\{([^}]*)\}/)
   const darkMatch = globalsCss.match(
-    /@media \(prefers-color-scheme:\s*dark\)\s*\{\s*:root\s*\{([^}]*)\}/,
+    /@media \(prefers-color-scheme:\s*dark\)\s*\{\s*:root(?::not\(\[data-theme="light"\]\))?\s*\{([^}]*)\}/,
   )
+  const explicitDarkMatch = globalsCss.match(/:root\[data-theme="dark"\]\s*\{([^}]*)\}/)
 
   const rootBlock = rootMatch?.[1] ?? ''
   const darkBlock = darkMatch?.[1] ?? ''
+  const explicitDarkBlock = explicitDarkMatch?.[1] ?? ''
 
   const lightTokens = declarationsIn(rootBlock)
   const darkTokens = declarationsIn(darkBlock)
+  const explicitDarkTokens = declarationsIn(explicitDarkBlock)
 
   for (const token of colorTokens) {
     expect(
@@ -57,6 +60,10 @@ it('defines a dark-mode counterpart for every light-mode color token', () => {
     expect(
       darkTokens.has(token),
       `missing dark token --${token} in @media (prefers-color-scheme: dark)`,
+    ).toBe(true)
+    expect(
+      explicitDarkTokens.has(token),
+      `missing dark token --${token} in :root[data-theme="dark"]`,
     ).toBe(true)
   }
 })

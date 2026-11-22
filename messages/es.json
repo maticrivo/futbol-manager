@@ -31,14 +31,15 @@
     "nameLabel": "Nombre",
     "nicknameLabel": "Apodo",
     "phoneLabel": "Teléfono",
-    "imageLabel": "URL de la imagen",
+    "imageLabel": "Foto de perfil",
     "sendLink": "Enviar enlace",
     "sendingLink": "Enviando…",
     "magicLinkSent": "Revisa tu correo para obtener tu enlace de inicio de sesión.",
     "magicLinkError": "Por favor, introduce una dirección de correo válida.",
     "pendingTitle": "Cuenta pendiente de aprobación",
     "pendingDescription": "Tu cuenta está esperando la aprobación de un administrador. Una vez aprobada, tendrás acceso a los partidos y cobros.",
-    "signOut": "Cerrar sesión"
+    "signOut": "Cerrar sesión",
+    "completeProfile": "Completa tu perfil"
   },
   "profile": {
     "title": "Tu perfil",
@@ -47,12 +48,17 @@
     "nickname": "Apodo",
     "email": "Correo electrónico",
     "phone": "Teléfono",
-    "image": "URL de la imagen",
+    "image": "Foto de perfil",
     "language": "Idioma",
-    "imageHint": "Enlace directo a una foto pública o avatar (opcional).",
+    "imageHint": "Sube una foto (opcional).",
     "save": "Guardar perfil",
     "saving": "Guardando…",
-    "saved": "Perfil actualizado."
+    "saved": "Perfil actualizado.",
+    "theme": "Apariencia",
+    "themeHint": "Elige cómo se ve la app en este dispositivo.",
+    "themeSystem": "Sistema",
+    "themeLight": "Claro",
+    "themeDark": "Oscuro"
   },
   "home": {
     "placeholder": "Aquí aparecerán los detalles del partido."
@@ -234,7 +240,7 @@
       "email": "Correo electrónico",
       "phone": "Teléfono",
       "nickname": "Apodo",
-      "image": "URL de la imagen",
+      "image": "Foto",
       "editDetails": "Editar detalles",
       "save": "Guardar",
       "saving": "Guardando…",

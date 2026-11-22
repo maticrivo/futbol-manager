@@ -20,6 +20,7 @@ import { defaultTransport } from '@/lib/push'
 import { requestOrigin } from '@/lib/request-origin'
 import { TZ } from '@/lib/time'
 import { isHttpUrl } from '@/lib/venue'
+import { parseImageEntry } from '@/lib/image-upload'
 
 function positiveId(value: FormDataEntryValue | null): number | null {
   if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) return null
@@ -135,21 +136,6 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   revalidatePath('/admin')
   revalidatePath('/')
   return { ok: true }
-}
-
-async function parseImageEntry(entry: FormDataEntryValue | null): Promise<string | null | undefined> {
-  if (!entry) return undefined
-  if (entry instanceof File && entry.size > 0) {
-    if (entry.size > 2 * 1024 * 1024) return null
-    const arrayBuffer = await entry.arrayBuffer()
-    const base64 = Buffer.from(arrayBuffer).toString('base64')
-    return `data:${entry.type || 'image/jpeg'};base64,${base64}`
-  }
-  if (typeof entry === 'string') {
-    const trimmed = entry.trim()
-    return trimmed === '' ? null : trimmed
-  }
-  return undefined
 }
 
 export async function updateMemberAction(

@@ -29,57 +29,6 @@ export default function LoginForm() {
             />
           </Field>
 
-          <details className="rounded-[var(--radius-md)] border border-line p-3.5 text-start bg-surface-muted">
-            <summary className="cursor-pointer text-sm font-medium text-ink">
-              {t('detailsSummary')}
-            </summary>
-            <div className="mt-3.5 space-y-3.5">
-              <Field label={t('nameLabel')}>
-                <input
-                  id="name"
-                  type="text"
-                  name="name"
-                  maxLength={120}
-                  dir="auto"
-                  className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
-                />
-              </Field>
-
-              <Field label={t('nicknameLabel')}>
-                <input
-                  id="nickname"
-                  type="text"
-                  name="nickname"
-                  maxLength={60}
-                  dir="auto"
-                  className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
-                />
-              </Field>
-
-              <Field label={t('phoneLabel')}>
-                <input
-                  id="phone"
-                  type="tel"
-                  name="phone"
-                  maxLength={40}
-                  dir="ltr"
-                  className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
-                />
-              </Field>
-
-              <Field label={t('imageLabel')}>
-                <input
-                  id="image"
-                  type="url"
-                  name="image"
-                  maxLength={500}
-                  dir="ltr"
-                  className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
-                />
-              </Field>
-            </div>
-          </details>
-
           {state && !state.ok && (
             <div aria-live="polite">
               <InlineMessage variant="danger">

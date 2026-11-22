@@ -1,11 +1,8 @@
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import BillTable, { type BillChargeRow, type BillPaymentRow } from '@/components/BillTable'
-import NotificationPrefs from '@/components/NotificationPrefs'
-import PushSetup from '@/components/PushSetup'
 import { getDb } from '@/db'
 import { memberBalance, memberBill } from '@/domain/billing'
-import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
 import { requireMember } from '@/lib/auth'
 import { billingMonthOf, formatMoney } from '@/lib/time'
 import { PageHeader } from '@/components/ui/PageHeader'
@@ -17,10 +14,9 @@ export default async function BillPage() {
   const db = getDb()
   const now = new Date()
   const month = billingMonthOf(now)
-  const [bill, balance, prefs, t] = await Promise.all([
+  const [bill, balance, t] = await Promise.all([
     memberBill(db, member.id, month),
     memberBalance(db, member.id),
-    listNotificationPrefs(db, member.id),
     getTranslations('bill'),
   ])
 
@@ -60,8 +56,6 @@ export default async function BillPage() {
         </div>
       </Card>
       <BillTable charges={chargeRows} payments={paymentRows} moneyLocale={member.locale} />
-      <NotificationPrefs categories={NOTIFICATION_CATEGORIES} prefs={prefs} />
-      <PushSetup />
     </main>
   )
 }

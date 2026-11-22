@@ -10,6 +10,7 @@ import { isLocale, LOCALE_COOKIE } from '@/i18n/locale'
 import { clearSessionCookie, deleteSessionByToken, getCurrentMember, SESSION_COOKIE } from '@/lib/auth'
 import { requestMemberAccess } from '@/domain/members'
 import { toActionResult, type ActionResult } from '@/lib/actions'
+import { parseImageEntry } from '@/lib/image-upload'
 
 export async function setLocaleAction(formData: FormData): Promise<void> {
   const locale = formData.get('locale')
@@ -48,13 +49,16 @@ export async function requestMagicLinkAction(
   const rawName = formData.get('name')
   const rawNickname = formData.get('nickname')
   const rawPhone = formData.get('phone')
-  const rawImage = formData.get('image')
+  const rawImage = await parseImageEntry(formData.get('image'))
+  if (rawImage === null) {
+    return { ok: false, code: 'INVALID_IMAGE' }
+  }
 
   const profile = {
     ...(typeof rawName === 'string' ? { name: rawName } : {}),
     ...(typeof rawNickname === 'string' ? { nickname: rawNickname } : {}),
     ...(typeof rawPhone === 'string' ? { phone: rawPhone } : {}),
-    ...(typeof rawImage === 'string' ? { image: rawImage } : {}),
+    ...(rawImage !== undefined ? { image: rawImage } : {}),
   }
 
   const result = await requestMemberAccess(getDb(), rawEmail, new Date(), profile)

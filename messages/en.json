@@ -31,14 +31,15 @@
     "nameLabel": "Name",
     "nicknameLabel": "Nickname",
     "phoneLabel": "Phone",
-    "imageLabel": "Image URL",
+    "imageLabel": "Profile photo",
     "sendLink": "Send sign-in link",
     "sendingLink": "Sending…",
     "magicLinkSent": "Check your email for your sign-in link.",
     "magicLinkError": "Please enter a valid email address.",
     "pendingTitle": "Account pending approval",
     "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
-    "signOut": "Sign out"
+    "signOut": "Sign out",
+    "completeProfile": "Complete your profile"
   },
   "profile": {
     "title": "Your Profile",
@@ -47,12 +48,17 @@
     "nickname": "Nickname",
     "email": "Email",
     "phone": "Phone",
-    "image": "Image URL",
+    "image": "Profile photo",
     "language": "Language",
-    "imageHint": "Direct link to a public photo or avatar (optional).",
+    "imageHint": "Upload a photo (optional).",
     "save": "Save profile",
     "saving": "Saving…",
-    "saved": "Profile updated."
+    "saved": "Profile updated.",
+    "theme": "Appearance",
+    "themeHint": "Choose how the app looks on this device.",
+    "themeSystem": "System",
+    "themeLight": "Light",
+    "themeDark": "Dark"
   },
   "home": {
     "placeholder": "Match details will appear here."
@@ -234,7 +240,7 @@
       "email": "Email",
       "phone": "Phone",
       "nickname": "Nickname",
-      "image": "Image URL",
+      "image": "Photo",
       "editDetails": "Edit details",
       "save": "Save",
       "saving": "Saving…",

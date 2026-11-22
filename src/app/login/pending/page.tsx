@@ -28,6 +28,9 @@ export default async function PendingPage() {
         <p className="text-sm text-muted">
           {t('signedInAs', { name: member.name })}
         </p>
+        <Button href="/profile" variant="primary" className="w-full">
+          {t('completeProfile')}
+        </Button>
         <form action={logoutAction}>
           <Button type="submit" variant="outline" className="w-full">
             {t('signOut')}

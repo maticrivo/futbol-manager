@@ -63,7 +63,7 @@ describe('ProfilePage & Nav integration', () => {
     expect(redirect).toHaveBeenCalledWith('/login/expired')
   })
 
-  it('ProfilePage redirects pending members to /login/pending', async () => {
+  it('ProfilePage renders for pending members so they can complete their profile', async () => {
     const res = await requestMemberAccess(testDb, 'pending-profile@example.com', now)
     if (!res.ok) throw new Error(res.code)
     const login = await loginWithInvite(testDb, res.value.inviteToken, now)
@@ -71,8 +71,9 @@ describe('ProfilePage & Nav integration', () => {
 
     mockSessionCookie(login.value.sessionToken)
 
-    await expect(ProfilePage()).rejects.toThrow('NEXT_REDIRECT:/login/pending')
-    expect(redirect).toHaveBeenCalledWith('/login/pending')
+    const element = await ProfilePage()
+    expect(element).toBeDefined()
+    expect(redirect).not.toHaveBeenCalled()
   })
 
   it('ProfilePage redirects disabled members to /login/expired', async () => {
@@ -158,17 +159,14 @@ describe('ProfilePage & Nav integration', () => {
     expect(html).toContain('required')
   })
 
-  it('LoginForm renders optional profile fields inside details', async () => {
+  it('LoginForm renders only the email field', async () => {
     const React = await import('react')
     const { renderToStaticMarkup } = await import('react-dom/server')
     const html = renderToStaticMarkup(React.createElement(LoginForm))
-    expect(html).toContain('<details')
-    expect(html).toContain('name="name"')
-    expect(html).toContain('name="nickname"')
-    expect(html).toContain('name="phone"')
-    expect(html).toContain('name="image"')
-    expect(html).toContain('type="tel"')
-    expect(html).toContain('type="url"')
+    expect(html).toContain('name="email"')
+    expect(html).not.toContain('<details')
+    expect(html).not.toContain('name="name"')
+    expect(html).not.toContain('name="phone"')
   })
 
   it('all message files (en, he, es) have identical key structure', () => {

@@ -5,6 +5,7 @@ import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/icons'
 import { MemberName } from '@/components/ui/MemberName'
+import { Avatar } from '@/components/ui/Avatar'
 
 export default async function RosterList({
   roster, matchId, myEntryId, memberId, asAdmin, phase,
@@ -40,6 +41,12 @@ export default async function RosterList({
               }`}>
                 <div className="flex items-center gap-3">
                   <span className="text-xs text-muted w-5 text-right font-mono">{index + 1}.</span>
+                  <Avatar
+                    name={entry.kind === 'guest' ? (entry.guestName ?? '') : (entry.memberNickname?.trim() || entry.memberName || '')}
+                    src={entry.kind === 'member' ? entry.memberImage : null}
+                    size="sm"
+                    aria-hidden="true"
+                  />
                   <div>
                     <span className="font-medium">
                       {entry.kind === 'guest' ? <bdi>{entry.guestName}</bdi> : <MemberName name={entry.memberName} nickname={entry.memberNickname} />}

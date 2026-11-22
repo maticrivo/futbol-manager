@@ -51,6 +51,22 @@ it('lists the guest and host names without treating the guest as the host’s ow
   expect(view.roster).toMatchObject([{ kind: 'guest', guestName: 'Noa', hostName: 'Ana' }])
 })
 
+it('includes each member nickname and image for the roster avatar', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const { member } = await createMember(testDb, {
+    name: 'Noam Levi',
+    nickname: 'Noamy',
+    image: 'data:image/png;base64,abc',
+  })
+  const now = new Date('2027-03-27T10:00:00Z')
+  await signup(testDb, { memberId: member.id, matchId: match.id, now })
+
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: member.id, now })
+  expect(view.roster).toMatchObject([
+    { memberName: 'Noam Levi', memberNickname: 'Noamy', memberImage: 'data:image/png;base64,abc' },
+  ])
+})
+
 it.each(['cancelled', 'played', 'locked'] as const)('honors persisted %s status over the clock', async status => {
   const match = await createMatchForDate(testDb, '2027-03-30')
   const { member } = await createMember(testDb, { name: 'Ana' })

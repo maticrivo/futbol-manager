@@ -27,7 +27,13 @@ export const getCurrentMember = cache(async (): Promise<Member | null> => {
 export async function requireMember(): Promise<Member> {
   const member = await getCurrentMember()
   if (!member) redirect('/login/expired')
-  if (member.status === 'pending') redirect('/login/pending')
+  if (member.status === 'pending') redirect('/profile')
+  return member
+}
+
+export async function requireSessionMember(): Promise<Member> {
+  const member = await getCurrentMember()
+  if (!member || member.status === 'disabled') redirect('/login/expired')
   return member
 }
 

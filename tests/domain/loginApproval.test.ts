@@ -91,7 +91,7 @@ describe('Pending status blocking and login approval', () => {
   })
 
   describe('Route GET /login/[token]', () => {
-    it('redirects pending member to /login/pending and sets session cookie', async () => {
+    it('redirects pending member to /profile to complete setup and sets session cookie', async () => {
       const res = await requestMemberAccess(testDb, 'new-user@example.com', now)
       if (!res.ok) throw new Error(res.code)
 
@@ -101,7 +101,7 @@ describe('Pending status blocking and login approval', () => {
       })
 
       expect(response.status).toBe(307)
-      expect(response.headers.get('location')).toBe('http://localhost:3000/login/pending')
+      expect(response.headers.get('location')).toBe('http://localhost:3000/profile')
       const cookieHeader = response.cookies.get(SESSION_COOKIE)
       expect(cookieHeader).toBeDefined()
       expect(cookieHeader?.value).toBeTruthy()
@@ -135,7 +135,7 @@ describe('Pending status blocking and login approval', () => {
   })
 
   describe('requireMember pending check', () => {
-    it('redirects pending member to /login/pending', async () => {
+    it('redirects pending member to /profile to complete setup', async () => {
       const res = await requestMemberAccess(testDb, 'guard-test@example.com', now)
       if (!res.ok) throw new Error(res.code)
 
@@ -144,8 +144,8 @@ describe('Pending status blocking and login approval', () => {
 
       mockSessionCookie(loginResult.value.sessionToken)
 
-      await expect(requireMember()).rejects.toThrow('NEXT_REDIRECT:/login/pending')
-      expect(redirect).toHaveBeenCalledWith('/login/pending')
+      await expect(requireMember()).rejects.toThrow('NEXT_REDIRECT:/profile')
+      expect(redirect).toHaveBeenCalledWith('/profile')
     })
 
     it('allows active member through', async () => {

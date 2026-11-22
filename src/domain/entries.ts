@@ -5,7 +5,7 @@ import { err, ok, type Result } from '@/lib/result'
 import type { Match } from './matches'
 
 export type Entry = typeof entries.$inferSelect
-export type EntryView = Entry & { memberName: string | null; memberNickname: string | null }
+export type EntryView = Entry & { memberName: string | null; memberNickname: string | null; memberImage: string | null }
 
 async function countByStatus(db: Db, matchId: number, status: Entry['status']): Promise<number> {
   const [row] = await db.select({ total: count() }).from(entries)
