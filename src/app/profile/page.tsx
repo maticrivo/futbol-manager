@@ -55,7 +55,7 @@ export default async function ProfilePage() {
         </div>
         <div className="border-t border-line pt-4 space-y-2">
           <label className="text-sm font-medium text-ink">{t('theme')}</label>
-          <ThemeSwitcher initialTheme={theme} />
+          <ThemeSwitcher currentTheme={theme} />
           <p className="text-xs text-muted">{t('themeHint')}</p>
         </div>
         <div className="border-t border-line pt-4">

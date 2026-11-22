@@ -35,7 +35,7 @@ export default function CopyMessage({ text, label }: { text: string; label: stri
         {label}
       </button>
       {copied && (
-        <span aria-live="polite" className="text-sm text-emerald-700 dark:text-emerald-300">
+        <span aria-live="polite" className="text-sm text-primary">
           {t('copy.copied')}
         </span>
       )}

@@ -37,7 +37,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       ghost:
         'text-ink hover:bg-surface-muted active:scale-[0.98]',
       danger:
-        'bg-danger text-white dark:bg-danger dark:text-white hover:opacity-90 shadow-sm active:scale-[0.98]',
+        'bg-danger text-white hover:opacity-90 shadow-sm active:scale-[0.98]',
     }
 
     const sizes = {

@@ -25,12 +25,17 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
-    { media: "(prefers-color-scheme: dark)", color: "#101412" },
-  ],
-};
+export async function generateViewport(): Promise<Viewport> {
+  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  if (theme === "dark") return { themeColor: "#101412" };
+  if (theme === "light") return { themeColor: "#f6f5f2" };
+  return {
+    themeColor: [
+      { media: "(prefers-color-scheme: light)", color: "#f6f5f2" },
+      { media: "(prefers-color-scheme: dark)", color: "#101412" },
+    ],
+  };
+}
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
   const locale = await getLocale();
