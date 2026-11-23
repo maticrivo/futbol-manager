@@ -4,7 +4,7 @@ import { createDb } from '../src/db'
 
 dotenv.config({ path: '.env.test', quiet: true })
 
-export const testDb = createDb(process.env.TEST_DATABASE_URL!)
+export const testDb = createDb(process.env.TEST_DATABASE_URL!, { max: 5 })
 
 const tables = [
   'notification_logs',
@@ -25,9 +25,7 @@ const tables = [
 ]
 
 export async function resetDb() {
-  await testDb.execute(sql.raw('SET FOREIGN_KEY_CHECKS=0'))
-  for (const table of tables) {
-    await testDb.execute(sql.raw(`TRUNCATE TABLE \`${table}\``))
-  }
-  await testDb.execute(sql.raw('SET FOREIGN_KEY_CHECKS=1'))
+  await testDb.execute(sql.raw(
+    `TRUNCATE TABLE ${tables.map(t => `"${t}"`).join(', ')} RESTART IDENTITY CASCADE`,
+  ))
 }

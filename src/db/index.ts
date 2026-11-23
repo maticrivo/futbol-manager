@@ -1,13 +1,13 @@
-import mysql from 'mysql2/promise'
-import { drizzle, type MySql2Database } from 'drizzle-orm/mysql2'
+import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres'
+import { Pool } from 'pg'
 import * as schema from './schema'
 
-export function createDb(url: string) {
-  const pool = mysql.createPool({ uri: url, connectionLimit: 3, enableKeepAlive: true, timezone: 'Z' })
-  return drizzle(pool, { schema, mode: 'default' })
+export function createDb(url: string, options: { max?: number } = {}) {
+  const pool = new Pool({ connectionString: url, max: options.max ?? 3 })
+  return drizzle(pool, { schema })
 }
 
-export type Db = MySql2Database<typeof schema>
+export type Db = NodePgDatabase<typeof schema>
 export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0]
 export type Executor = Db | Tx
 

@@ -1,4 +1,4 @@
-import { migrate } from 'drizzle-orm/mysql2/migrator'
+import { migrate } from 'drizzle-orm/node-postgres/migrator'
 import { createDb } from '../src/db'
 import dotenv from 'dotenv'
 
