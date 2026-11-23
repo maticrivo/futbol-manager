@@ -290,7 +290,7 @@ export async function setMonthlyExpense(
 ): Promise<Result<Expense, 'FORBIDDEN' | 'INVALID_AMOUNT'>> {
   return db.transaction(async tx => {
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
-    if (!isMonth(month) || !Number.isInteger(fieldCostAgorot) || fieldCostAgorot < 0 || fieldCostAgorot > 4294967295)
+    if (!isMonth(month) || !Number.isInteger(fieldCostAgorot) || fieldCostAgorot < 0 || fieldCostAgorot > 2147483647)
       return err('INVALID_AMOUNT')
     const values = { fieldCostAgorot, updatedBy: actorId }
     await tx.insert(expenses).values({ billingMonth: month, ...values }).onDuplicateKeyUpdate({ set: values })
