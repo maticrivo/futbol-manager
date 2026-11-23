@@ -7,7 +7,7 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
 ## Stack
 
 - **Framework**: Next.js 16 (App Router) with React 19 and TypeScript
-- **Database & ORM**: MySQL 8 with Drizzle ORM and `mysql2`
+- **Database & ORM**: PostgreSQL 17 with Drizzle ORM and `pg` (node-postgres)
 - **Styling**: Tailwind CSS v4
 - **Date & Time**: Luxon (primary timezone: `Asia/Jerusalem`)
 - **PWA & Notifications**: Web Push with Service Worker (`web-push`)
@@ -15,7 +15,7 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
 
 ## Local Quickstart
 
-1. **Start the local MySQL database**:
+1. **Start the local Postgres database**:
    ```bash
    docker compose up -d db
    ```

@@ -1,13 +1,17 @@
 import dotenv from 'dotenv'
-import mysql from 'mysql2/promise'
+import { Client } from 'pg'
 
 dotenv.config({ path: '.env.local' })
 
 async function main() {
-  const conn = await mysql.createConnection(process.env.DATABASE_URL!)
-  const [rows] = await conn.execute('SELECT VERSION() AS version')
-  console.log(rows)
-  await conn.end()
+  const conn = new Client({ connectionString: process.env.DATABASE_URL! })
+  await conn.connect()
+  try {
+    const { rows } = await conn.query('SELECT version() AS version')
+    console.log(rows)
+  } finally {
+    await conn.end()
+  }
 }
 
 main().catch((err) => {

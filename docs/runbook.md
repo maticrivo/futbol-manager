@@ -1,24 +1,22 @@
 # Deployment & Operations Runbook
 
-This runbook covers setting up, deploying, operating, and monitoring the Weekly Football Manager application across local development, DreamHost MySQL hosting, and Vercel.
+This runbook covers setting up, deploying, operating, and monitoring the Weekly Football Manager application across local development, Neon Postgres hosting, and Vercel.
 
 ---
 
-## 1. DreamHost MySQL Configuration
+## 1. Neon Postgres Configuration
 
-1. **Create Database & User**:
-   - In the DreamHost control panel, navigate to **MySQL Databases**.
-   - Create a new MySQL database (e.g. `weekly_football`) and a database user with a strong password.
-   - DreamHost provides a unique hostname for your database (e.g. `mysql.example.com`). Note the default MySQL port `3306`.
-2. **Remote MySQL Allowlist & Access**:
-   - By default, DreamHost MySQL rejects connections outside its local web servers.
-   - In **MySQL Databases > Manage MySQL User**, locate your user and add an allowlist entry under **Allowable Hosts**.
-   - **Vercel Egress IPs vs `%`**:
-     - *Best practice*: If using a Vercel Enterprise or team plan with fixed egress IP ranges, whitelist only those specific CIDR IP ranges.
-     - *Wildcard `%` Risk*: On standard Vercel serverless plans, egress IPs rotate dynamically across AWS IP ranges. Whitelisting `%` allows connections from any IP. If `%` is used, enforce a strong, randomly generated 32+ character password for the database user, avoid using `root` or shared accounts, and restrict user privileges solely to the target database.
-3. **TLS & Connection String**:
-   - Format: `mysql://<username>:<password>@<dreamhost-host>:3306/<database>?ssl={"rejectUnauthorized":true}`
-   - DreamHost MySQL supports SSL/TLS. Ensure connection strings use URL-encoded passwords if special characters are present.
+1. **Create the project**:
+   - Create a project at [neon.com](https://neon.com) in region `eu-central-1` (Frankfurt), Postgres 17.
+   - The free plan is permanent and needs no credit card: 1 GB storage per project, 100 CU-hours of compute per month, 5 GB egress, 10 branches, 6 hours of restore history.
+2. **Two connection strings**:
+   - **Pooled** (host contains `-pooler`) — this is `DATABASE_URL`, what the app uses. It survives Vercel's serverless connection fan-out.
+   - **Direct** (no `-pooler`) — this is `MIGRATE_DATABASE_URL`. DDL through PgBouncer in transaction mode is unreliable, so migrations must use the direct host.
+   - Both need `?sslmode=require`.
+3. **Compute budget**:
+   - Neon suspends compute after 5 minutes idle and bills only the time it runs. 100 CU-hours is roughly 400 awake-hours per month.
+   - The scheduler runs every 10 minutes for this reason. **Do not return it to 1 minute**: a 1-minute tick keeps compute awake continuously (~180 CU-hours/month) and suspends the database around day 17.
+   - Exceeding the CU-hour allowance suspends compute until the next billing period. It does not delete data.
 
 ---
 
@@ -28,7 +26,7 @@ This runbook covers setting up, deploying, operating, and monitoring the Weekly 
    ```bash
    docker compose up -d db
    ```
-   This starts a local MySQL 8.0 container on port 3306 with databases `futbol` and `futbol_test` (initialized via `init/01-test-db.sql`).
+   This starts a local Postgres 17 container on port 5432 with databases `futbol` and `futbol_test` (initialized via `init/01-test-db.sql`).
 2. **Configure Environment**:
    ```bash
    cp .env.example .env.local
@@ -36,8 +34,9 @@ This runbook covers setting up, deploying, operating, and monitoring the Weekly 
    Update `.env.local` with your local values.
 3. **Run Migrations**:
    ```bash
-   npm run db:migrate
+   DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol npm run db:migrate
    ```
+   `drizzle-kit` reads `MIGRATE_DATABASE_URL` first, then `DATABASE_URL`; it does not load `.env` files itself, so pass the URL inline or export it.
 4. **Seed Development Data**:
    ```bash
    npm run seed
@@ -76,20 +75,22 @@ This outputs:
    - Framework preset: **Next.js**.
 2. **Configure Environment Variables in Vercel**:
    Set the following variables for the Production environment:
-   - `DATABASE_URL`: DreamHost MySQL connection string.
+   - `DATABASE_URL`: Neon **pooled** connection string.
+   - `MIGRATE_DATABASE_URL`: Neon **direct** connection string (used only by migrations).
    - `APP_URL`: Production public URL (e.g. `https://football.example.com`).
    - `TICK_SECRET`: High-entropy random secret string for authenticating cron tick calls.
    - `VAPID_SUBJECT`: `mailto:admin@example.com`
    - `VAPID_PUBLIC_KEY`: Generated VAPID public key.
    - `VAPID_PRIVATE_KEY`: Generated VAPID private key.
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: Identical to `VAPID_PUBLIC_KEY`.
+   - Set the project's function region to **`fra1`** so functions run next to the Frankfurt database.
 3. **Build & Deploy**:
    - Deploy through Vercel Git integration or `vercel --prod`.
 4. **Apply Migrations and Seed to Production**:
-   Run migration and seed commands locally against the production database by temporarily pointing `DATABASE_URL` and `APP_URL` to production:
+   Run migration and seed commands locally against the production database, using the **direct** URL:
    ```bash
-   DATABASE_URL="<production-url>" npm run db:migrate
-   DATABASE_URL="<production-url>" APP_URL="https://football.example.com" npm run seed
+   MIGRATE_DATABASE_URL="<direct-url>" DATABASE_URL="<direct-url>" npm run db:migrate
+   MIGRATE_DATABASE_URL="<direct-url>" DATABASE_URL="<direct-url>" APP_URL="https://football.example.com" npm run seed
    ```
    Save the printed login links from the seed output securely to distribute initial admin and player invites.
 
@@ -105,7 +106,7 @@ The application handles status transitions (lock, played), queue offer expiratio
    - Use [cron-job.org](https://cron-job.org) or an equivalent HTTPS cron service.
    - **URL**: `https://<APP_URL>/api/tick`
    - **Method**: `POST`
-   - **Schedule**: Every 1 minute (`* * * * *`).
+   - **Schedule**: Every 10 minutes (`*/10 * * * *`). This cadence is required by the Neon free plan's compute budget — see section 1.
    - **Headers**:
      ```
      Authorization: Bearer <TICK_SECRET>
@@ -144,18 +145,21 @@ The application handles status transitions (lock, played), queue offer expiratio
 ## 7. Backups, Restore & Rollbacks
 
 1. **Database Backups**:
-   - DreamHost provides automatic automated snapshots, but always perform a manual dump prior to running new migrations:
+   - Neon's free plan has **no scheduled backups**. The only built-in recovery is 6 hours of restore history, so a mistake noticed the same evening can be rewound; one noticed next week cannot.
+   - Until a scheduled dump exists, take a manual dump before any migration or bulk edit:
      ```bash
-     mysqldump -h <host> -u <user> -p <database> > backup_$(date +%Y%m%d_%H%M%S).sql
+     pg_dump --no-owner --no-privileges -d "<direct-url>" -f backup_$(date +%Y%m%d_%H%M%S).sql
      ```
+   - Automated backups to Cloudflare R2 are a known, accepted gap. R2 requires a checkout flow, so it is not card-free.
 2. **Database Restore**:
-   - To restore from a SQL dump:
+   - To restore from a dump into an empty database:
      ```bash
-     mysql -h <host> -u <user> -p <database> < backup_YYYYMMDD_HHMMSS.sql
+     psql -d "<direct-url>" -f backup_YYYYMMDD_HHMMSS.sql
      ```
 3. **Forward-Only Migrations**:
    - All Drizzle migrations in `drizzle/` are forward-only. Do not edit past migration files.
    - If a migration needs to be corrected, generate and apply a new migration that patches the schema forward.
+   - Postgres enum values are added with `ALTER TYPE ... ADD VALUE`; do not re-create the type.
 4. **Vercel Rollback**:
    - If an application code bug occurs in production, navigate to **Deployments** in Vercel, select the previous stable deployment, and click **Promote to Production** (Instant Rollback).
    - Because schema migrations are backward-compatible, rolling back application code will not corrupt database state.
@@ -172,11 +176,11 @@ The application handles status transitions (lock, played), queue offer expiratio
 3. **Stuck Match SQL Query**:
    - Check if any match is stuck in `scheduled` status despite having passed its `lockAt` time:
      ```sql
-     SELECT id, matchDate, status, kickoffAt, lockAt
+     SELECT id, match_date, status, kickoff_at, lock_at
      FROM matches
-     WHERE status = 'scheduled' AND lockAt < UTC_TIMESTAMP();
+     WHERE status = 'scheduled' AND lock_at < now();
      ```
-   - Note that the application stores timestamps in UTC (`timezone: 'Z'`), so `NOW()` is wrong on a server whose session timezone is local; always use `UTC_TIMESTAMP()`.
+   - Columns are snake_case and timestamps are `timestamptz`, so `now()` compares correctly regardless of the session timezone.
    - If any rows appear, triggering `POST /api/tick` or visiting the match page in a browser will advance the match to `locked` and generate charges.
 4. **Notification Deduplication**:
    - Notifications are recorded in `notificationLog` with a unique key `(eventKey)`.
