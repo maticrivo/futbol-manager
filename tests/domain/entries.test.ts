@@ -1,5 +1,5 @@
 import { eq } from 'drizzle-orm'
-import { drizzle } from 'drizzle-orm/mysql2'
+import { drizzle } from 'drizzle-orm/node-postgres'
 import { beforeEach, expect, it } from 'vitest'
 import type { Db } from '@/db'
 import * as schema from '@/db/schema'
@@ -13,7 +13,7 @@ const guestOpen = new Date('2027-03-29T11:00:00Z')
 beforeEach(resetDb)
 
 async function makeMembers(db: Db, n: number) {
-  return db.insert(members).values(Array.from({ length: n }, (_, i) => ({ name: `P${i}` }))).$returningId()
+  return db.insert(members).values(Array.from({ length: n }, (_, i) => ({ name: `P${i}` }))).returning()
 }
 
 async function setup(count = 0) {
@@ -121,7 +121,7 @@ it('reads standalone free spots in one statement per call', async () => {
   // Observe the statement count against real MySQL without a timing-dependent race.
   let statements = 0
   const observedDb = drizzle(testDb.$client, {
-    schema, mode: 'default', logger: { logQuery: () => { statements++ } },
+    schema, logger: { logQuery: () => { statements++ } },
   })
   expect(await freeSpots(observedDb, match.id)).toBe(1)
   expect(statements).toBe(1)
@@ -130,4 +130,11 @@ it('reads standalone free spots in one statement per call', async () => {
   expect(await freeSpots(observedDb, match.id)).toBe(0)
   expect(statements).toBe(2)
   expect(await freeSpots(testDb, match.id + 1)).toBe(0)
+})
+
+it('returns counts as numbers', async () => {
+  const { match } = await setup(2)
+  expect(typeof await confirmedCount(testDb, match.id)).toBe('number')
+  expect(await confirmedCount(testDb, match.id)).toBe(2)
+  expect(typeof await freeSpots(testDb, match.id)).toBe('number')
 })

@@ -14,7 +14,7 @@ beforeEach(resetDb)
 
 async function setupMember() {
   const [admin, member] = await testDb.insert(members)
-    .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).$returningId()
+    .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).returning()
   return { adminId: admin.id, memberId: member.id }
 }
 
@@ -106,7 +106,7 @@ it('rejects unauthorized or invalid payments without ledger writes', async () =>
 
 it('serializes allocations by different admins paying the same member', async () => {
   const { adminId, memberId } = await setupMember()
-  const [second] = await testDb.insert(members).values({ name: 'Second admin', role: 'admin' }).$returningId()
+  const [second] = await testDb.insert(members).values({ name: 'Second admin', role: 'admin' }).returning()
   await addCharge(memberId, '2027-02', 7000)
   const input = { memberId, amountAgorot: 5000, paidAt: now, method: 'cash' } as const
   const results = await Promise.all([
@@ -123,7 +123,7 @@ async function setupGuest(date = '2027-03-30') {
   const match = await createMatchForDate(testDb, date)
   const [guest] = await testDb.insert(entries).values({
     matchId: match.id, guestName: 'Guest', hostMemberId: people.memberId, kind: 'guest',
-  }).$returningId()
+  }).returning()
   return { ...people, match, entryId: guest.id }
 }
 
@@ -157,7 +157,7 @@ it('records one negative refund and rejects refunding it or its original again',
 
 it('rejects invalid guest payments', async () => {
   const { adminId, memberId, match, entryId } = await setupGuest()
-  const [memberEntry] = await testDb.insert(entries).values({ matchId: match.id, memberId, kind: 'member' }).$returningId()
+  const [memberEntry] = await testDb.insert(entries).values({ matchId: match.id, memberId, kind: 'member' }).returning()
   const input = { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }
   expect(await recordGuestPayment(testDb, { ...input, actorId: memberId })).toEqual({ ok: false, code: 'FORBIDDEN' })
   expect(await recordGuestPayment(testDb, { ...input, entryId: 999 })).toEqual({ ok: false, code: 'NOT_FOUND' })
@@ -166,7 +166,7 @@ it('rejects invalid guest payments', async () => {
 
   const [paidGuest] = await testDb.insert(entries).values({
     matchId: match.id, kind: 'guest', guestName: 'Paid guest', hostMemberId: memberId,
-  }).$returningId()
+  }).returning()
   valueOf(await recordGuestPayment(testDb, { ...input, entryId: paidGuest.id }))
   const before = await monthSummary(testDb, '2027-03')
   expect(before.guestCollectedAgorot).toBe(3500)
@@ -218,7 +218,7 @@ it('excludes waived amounts from balance, bill due, and the pot’s charge total
 
 it('removes confirmed entries and expires the queue on scheduled cancellation without creating charges', async () => {
   const { adminId, memberId, match } = await setupGuest()
-  const [other] = await testDb.insert(members).values({ name: 'Other' }).$returningId()
+  const [other] = await testDb.insert(members).values({ name: 'Other' }).returning()
   await testDb.insert(entries).values([
     { matchId: match.id, memberId, kind: 'member', status: 'confirmed' },
     { matchId: match.id, memberId: adminId, kind: 'member', status: 'offered' },
@@ -287,7 +287,7 @@ it('waives charges and reverses guest money without replacing the original payme
 
 it('does not duplicate a manual guest refund racing cancellation of a locked match', async () => {
   const { adminId, match, entryId } = await setupGuest()
-  const [second] = await testDb.insert(members).values({ name: 'Second admin', role: 'admin' }).$returningId()
+  const [second] = await testDb.insert(members).values({ name: 'Second admin', role: 'admin' }).returning()
   await testDb.update(matches).set({ status: 'locked' }).where(eq(matches.id, match.id))
   const payment = valueOf(await recordGuestPayment(testDb, { actorId: adminId, entryId, amountAgorot: 3500, paidAt: now }))
   const [cancelled, manualRefund] = await Promise.all([

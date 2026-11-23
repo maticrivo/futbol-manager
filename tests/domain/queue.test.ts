@@ -14,7 +14,7 @@ beforeEach(resetDb)
 async function setup(memberCount: number) {
   const match = await createMatchForDate(testDb, '2027-03-30')
   const members = await testDb.insert(memberRows)
-    .values(Array.from({ length: 18 }, (_, i) => ({ name: `P${i}` }))).$returningId()
+    .values(Array.from({ length: 18 }, (_, i) => ({ name: `P${i}` }))).returning()
   for (const member of members.slice(0, memberCount)) {
     expect((await signup(testDb, { memberId: member.id, matchId: match.id, now })).ok).toBe(true)
   }
@@ -121,22 +121,22 @@ it('blocks guest signup during the guest phase when an offer reserves the spot',
 it('reserves a vacancy before a signup waiting behind the withdrawal can take it', async () => {
   const { match, members } = await fullMatch()
   const departingEntryId = await entryId(match.id, members[0].id)
-  const holder = await testDb.$client.getConnection()
+  const holder = await testDb.$client.connect()
   let withdrawal: ReturnType<typeof withdraw> | undefined
   let admission: ReturnType<typeof signup> | undefined
   try {
-    await holder.beginTransaction()
-    await holder.execute('SELECT id FROM matches WHERE id = ? FOR UPDATE', [match.id])
+    await holder.query('BEGIN')
+    await holder.query('SELECT id FROM matches WHERE id = $1 FOR UPDATE', [match.id])
 
     withdrawal = withdraw(testDb, { entryId: departingEntryId, actorMemberId: members[0].id, now })
     void withdrawal.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = (select \`match_id\` from \`entries\` where \`entries\`.\`id\` = ${departingEntryId})`)
+    await waitForLockWait('"matches"."id" = (select "match_id" from "entries" where "entries"."id" = $')
 
     admission = signup(testDb, { memberId: members[17].id, matchId: match.id, now })
     void admission.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = ${match.id} for update`)
+    await waitForLockWait('"matches"."id" = $1 for update')
 
-    await holder.commit()
+    await holder.query('COMMIT')
 
     const [withdrawn, signedUp] = await Promise.all([withdrawal, admission])
     expect(withdrawn).toMatchObject({ ok: true, value: { status: 'withdrawn' } })
@@ -144,7 +144,7 @@ it('reserves a vacancy before a signup waiting behind the withdrawal can take it
     expect(await pendingOffer(match.id)).toMatchObject({ memberId: members[14].id, status: 'offered' })
   } finally {
     try {
-      await holder.rollback()
+      await holder.query('ROLLBACK')
     } finally {
       holder.release()
       await Promise.allSettled([withdrawal, admission])

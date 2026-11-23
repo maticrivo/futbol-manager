@@ -4,7 +4,7 @@ import { testDb, resetDb } from '../db'
 import { charges, entries, matches, members } from '@/db/schema'
 
 async function seedMatch() {
-  const [member] = await testDb.insert(members).values({ name: 'Ana' }).$returningId()
+  const [member] = await testDb.insert(members).values({ name: 'Ana' }).returning()
   const [match] = await testDb.insert(matches).values({
     matchDate: '2027-03-30',
     kickoffAt: new Date('2027-03-30T17:30:00Z'),
@@ -14,12 +14,27 @@ async function seedMatch() {
     venue: 'Campo',
     costAgorot: 3500,
     capacity: 14,
-  }).$returningId()
+  }).returning()
   return { memberId: member.id, matchId: match.id }
 }
 
 describe('schema constraints', () => {
   beforeEach(resetDb)
+
+  it('round-trips instants across the process timezone', async () => {
+    const instant = new Date('2027-03-30T11:00:00.000Z')
+    const [row] = await testDb.insert(matches).values({
+      matchDate: '2027-04-06',
+      kickoffAt: instant,
+      signupOpensAt: instant,
+      guestPhaseAt: instant,
+      lockAt: instant,
+      venue: 'Campo',
+      costAgorot: 3500,
+      capacity: 14,
+    }).returning({ kickoffAt: matches.kickoffAt })
+    expect(row.kickoffAt.toISOString()).toBe(instant.toISOString())
+  })
 
   it('includes venueUrl column in matches table definition', () => {
     expect(matches.venueUrl).toBeDefined()
@@ -43,9 +58,9 @@ describe('schema constraints', () => {
   })
 
   it('allows members with status pending, active, and disabled', async () => {
-    const [p] = await testDb.insert(members).values({ name: 'Pending User', status: 'pending' }).$returningId()
-    const [a] = await testDb.insert(members).values({ name: 'Active User', status: 'active' }).$returningId()
-    const [d] = await testDb.insert(members).values({ name: 'Disabled User', status: 'disabled' }).$returningId()
+    const [p] = await testDb.insert(members).values({ name: 'Pending User', status: 'pending' }).returning()
+    const [a] = await testDb.insert(members).values({ name: 'Active User', status: 'active' }).returning()
+    const [d] = await testDb.insert(members).values({ name: 'Disabled User', status: 'disabled' }).returning()
 
     const rows = await testDb.select().from(members)
     const pendingMember = rows.find((r) => r.id === p.id)
@@ -64,7 +79,7 @@ describe('schema constraints', () => {
       phone: '+1 555-0199',
       nickname: 'FP',
       image: 'https://example.com/avatar.jpg',
-    }).$returningId()
+    }).returning()
 
     const [fullRow] = await testDb.select().from(members).where(eq(members.id, full.id))
     expect(fullRow.email).toBe('user@example.com')
@@ -74,7 +89,7 @@ describe('schema constraints', () => {
 
     const [minimal] = await testDb.insert(members).values({
       name: 'Minimal User',
-    }).$returningId()
+    }).returning()
 
     const [minimalRow] = await testDb.select().from(members).where(eq(members.id, minimal.id))
     expect(minimalRow.email).toBeNull()
@@ -92,7 +107,7 @@ describe('schema constraints', () => {
     // Multiple members with null email are permitted
     const [secondMinimal] = await testDb.insert(members).values({
       name: 'Second Minimal User',
-    }).$returningId()
+    }).returning()
     expect(secondMinimal.id).toBeDefined()
   })
 })

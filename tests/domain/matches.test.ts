@@ -66,7 +66,7 @@ it('creates the next match once and never recreates a cancelled date', async () 
 
 describe('settings management', () => {
   it('updates settings when called by admin and writes audit log', async () => {
-    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).$returningId()
+    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
 
     const res = await updateSettings(testDb, admin.id, {
       capacity: 16,
@@ -100,7 +100,7 @@ describe('settings management', () => {
   })
 
   it('rejects updates from non-admin or nonexistent members with FORBIDDEN', async () => {
-    const [user] = await testDb.insert(members).values({ name: 'Player', role: 'member' }).$returningId()
+    const [user] = await testDb.insert(members).values({ name: 'Player', role: 'member' }).returning()
 
     const forbiddenRes = await updateSettings(testDb, user.id, { capacity: 16 })
     expect(forbiddenRes).toEqual({ ok: false, code: 'FORBIDDEN' })
@@ -110,7 +110,7 @@ describe('settings management', () => {
   })
 
   it('validates settings boundaries and types with INVALID_SETTING', async () => {
-    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).$returningId()
+    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
 
     expect(await updateSettings(testDb, admin.id, { capacity: 0 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
     expect(await updateSettings(testDb, admin.id, { capacity: 41 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
@@ -159,4 +159,12 @@ describe('getUpcomingMatch and getMatch', () => {
     await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, m.id))
     expect(await getUpcomingMatch(testDb, fiveHoursAfter)).toBeNull()
   })
+})
+
+it('treats a concurrent create of the same date as already done', async () => {
+  const results = await Promise.all([
+    createMatchForDateIfAbsent(testDb, '2027-03-30'),
+    createMatchForDateIfAbsent(testDb, '2027-03-30'),
+  ])
+  expect(results.filter(r => r.created)).toHaveLength(1)
 })

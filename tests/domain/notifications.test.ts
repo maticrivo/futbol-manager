@@ -251,7 +251,7 @@ it('scans every live offer, skipping expired offers and disabled members', async
     { matchId: anotherMatch.id, kind: 'member', memberId: live.id, status: 'offered', offerExpiresAt: future },
     { matchId: match.id, kind: 'member', memberId: expired.id, status: 'offered', offerExpiresAt: now },
     { matchId: match.id, kind: 'member', memberId: disabled.id, status: 'offered', offerExpiresAt: future },
-  ]).$returningId()
+  ]).returning()
   for (const member of [live, expired, disabled]) {
     await savePushSubscription(testDb, { ...subscription, memberId: member.id, endpoint: `https://push/${member.id}` })
   }

@@ -13,9 +13,9 @@ const guestOpen = new Date('2027-03-29T11:00:00Z')
 beforeEach(resetDb)
 
 async function setup() {
-  const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).$returningId()
+  const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
   const players = await testDb.insert(members)
-    .values(Array.from({ length: 14 }, (_, i) => ({ name: `Player ${i}` }))).$returningId()
+    .values(Array.from({ length: 14 }, (_, i) => ({ name: `Player ${i}` }))).returning()
   const match = await createMatchForDate(testDb, '2027-03-30')
   const roster = []
   for (const { id: memberId } of players.slice(0, 3)) {
@@ -130,7 +130,7 @@ it('charges added members and waives removed members after lock even if the rost
 
 it('preserves an existing waiver when another admin removes that member', async () => {
   const { match, people, roster } = await setup()
-  const [otherAdmin] = await testDb.insert(members).values({ name: 'Other admin', role: 'admin' }).$returningId()
+  const [otherAdmin] = await testDb.insert(members).values({ name: 'Other admin', role: 'admin' }).returning()
   await lockMatch(testDb, match.id, lockTime)
   const [charge] = await matchCharges(match.id)
   const waiverTime = new Date('2027-03-30T12:00:00Z')
@@ -255,22 +255,22 @@ it('refuses an admin mutation after waiting for a concurrent demotion to commit'
   const { people, roster } = await setup()
   const actorId = people.admin.id
   const entryId = roster[0].id
-  const holder = await testDb.$client.getConnection()
+  const holder = await testDb.$client.connect()
   let attendance: ReturnType<typeof setAttendance> | undefined
   try {
-    await holder.beginTransaction()
-    await holder.execute('UPDATE members SET role = ? WHERE id = ?', ['member', actorId])
+    await holder.query('BEGIN')
+    await holder.query('UPDATE members SET role = $1 WHERE id = $2', ['member', actorId])
     attendance = setAttendance(testDb, { actorId, entryId, attended: true }, lockTime)
     void attendance.catch(() => {})
-    await waitForLockWait(`select \`role\` from \`members\` where \`members\`.\`id\` = ${actorId}`)
-    await holder.commit()
+    await waitForLockWait('from "members" where "members"."id" = $')
+    await holder.query('COMMIT')
 
     expect(await attendance).toEqual({ ok: false, code: 'FORBIDDEN' })
     expect(await testDb.select().from(entries).where(eq(entries.id, entryId))).toMatchObject([{ attended: null }])
     expect(await logs('entry.attendance')).toEqual([])
   } finally {
     try {
-      await holder.rollback()
+      await holder.query('ROLLBACK')
     } finally {
       holder.release()
       await Promise.allSettled([attendance])
@@ -285,20 +285,20 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
   expect(await signup(testDb, { memberId: actorId, matchId: match.id, now: guestOpen }))
     .toMatchObject({ ok: true, value: { status: 'confirmed', memberId: actorId } })
 
-  const holder = await testDb.$client.getConnection()
+  const holder = await testDb.$client.connect()
   let billing: ReturnType<typeof lockMatch> | undefined
   let removal: ReturnType<typeof adminRemoveEntry> | undefined
   try {
-    await holder.beginTransaction()
-    await holder.execute('SELECT id FROM matches WHERE id = ? FOR UPDATE', [match.id])
+    await holder.query('BEGIN')
+    await holder.query('SELECT id FROM matches WHERE id = $1 FOR UPDATE', [match.id])
     // Queue billing first, then removal. Both must reach the match row before release.
     billing = lockMatch(testDb, match.id, lockTime)
     void billing.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = ${match.id} for update`)
+    await waitForLockWait('"matches"."id" = $1 for update')
     removal = adminRemoveEntry(testDb, { actorId, entryId: target.id, now: lockTime, reason: 'test' })
     void removal.catch(() => {})
-    await waitForLockWait(`\`matches\`.\`id\` = (select \`match_id\` from \`entries\` where \`entries\`.\`id\` = ${target.id})`)
-    await holder.commit()
+    await waitForLockWait('"matches"."id" = (select "match_id" from "entries" where "entries"."id" = $')
+    await holder.query('COMMIT')
 
     const [locked, removed] = await Promise.allSettled([billing, removal])
     // Report the original MySQL cause if either transaction rejects, including a deadlock.
@@ -317,7 +317,7 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
     }
   } finally {
     try {
-      await holder.rollback()
+      await holder.query('ROLLBACK')
     } finally {
       holder.release()
       await Promise.allSettled([billing, removal])
@@ -329,21 +329,21 @@ it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different mat
   const first = await createMatchForDate(testDb, '2027-03-30')
   const second = await createMatchForDate(testDb, '2027-04-06')
   const [a, b] = await testDb.insert(members)
-    .values([{ name: 'Admin A', role: 'admin' }, { name: 'Admin B', role: 'admin' }]).$returningId()
-  const holder = await testDb.$client.getConnection()
+    .values([{ name: 'Admin A', role: 'admin' }, { name: 'Admin B', role: 'admin' }]).returning()
+  const holder = await testDb.$client.connect()
   let aAddsB: ReturnType<typeof adminAddEntry> | undefined
   let bAddsA: ReturnType<typeof adminAddEntry> | undefined
   try {
-    await holder.beginTransaction()
-    await holder.execute('SELECT id FROM members WHERE id = ? FOR UPDATE', [b.id])
+    await holder.query('BEGIN')
+    await holder.query('SELECT id FROM members WHERE id = $1 FOR UPDATE', [b.id])
     // B must take lower-ID A before waiting for higher-ID B. A's own add then waits for A.
     bAddsA = adminAddEntry(testDb, { actorId: b.id, matchId: second.id, memberId: a.id, now: guestOpen, reason: '' })
     void bAddsA.catch(() => {})
-    await waitForLockWait(`from \`members\` where \`members\`.\`id\` = ${b.id} for update`)
+    await waitForLockWait('from "members" where "members"."id" = $')
     aAddsB = adminAddEntry(testDb, { actorId: a.id, matchId: first.id, memberId: b.id, now: guestOpen, reason: '' })
     void aAddsB.catch(() => {})
-    await waitForLockWait(`from \`members\` where \`members\`.\`id\` = ${a.id} for update`)
-    await holder.commit()
+    await waitForLockWait('from "members" where "members"."id" = $')
+    await holder.query('COMMIT')
 
     const [addedB, addedA] = await Promise.allSettled([aAddsB, bAddsA])
     if (addedB.status === 'rejected') throw addedB.reason
@@ -352,7 +352,7 @@ it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different mat
     expect(addedA.value).toMatchObject({ ok: true, value: { matchId: second.id, memberId: a.id, status: 'confirmed' } })
   } finally {
     try {
-      await holder.rollback()
+      await holder.query('ROLLBACK')
     } finally {
       holder.release()
       await Promise.allSettled([aAddsB, bAddsA])

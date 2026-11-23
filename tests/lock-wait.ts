@@ -1,33 +1,29 @@
 import { setTimeout as delay } from 'node:timers/promises'
-import { createConnection, type RowDataPacket } from 'mysql2/promise'
+import { Client } from 'pg'
 
-interface TransactionRow extends RowDataPacket {
-  trx_query: string | null
-}
-
+/**
+ * Waits until some session is blocked on a Postgres lock and its current query
+ * contains `marker`. node-postgres sends parameters separately, so markers must
+ * match the statement shape (e.g. `"matches"."id" = $1`), never a bound value.
+ */
 export async function waitForLockWait(marker: string, timeoutMs = 3000): Promise<void> {
-  // InnoDB metadata requires PROCESS; keep it off the application account.
-  const admin = await createConnection(
-    process.env.TEST_ADMIN_DATABASE_URL ?? 'mysql://root:root@127.0.0.1:3306/futbol_test'
-  )
+  const admin = new Client({
+    connectionString: process.env.TEST_ADMIN_DATABASE_URL ?? 'postgres://futbol:futbol@127.0.0.1:5432/futbol_test',
+  })
+  await admin.connect()
 
   try {
     const deadline = performance.now() + timeoutMs
-    for (let attempt = 1; performance.now() < deadline; attempt++) {
-      const [rows] = await admin.query<TransactionRow[]>(
-        `SELECT trx_query FROM information_schema.innodb_trx
-         WHERE trx_state = 'LOCK WAIT'`
+    for (;;) {
+      const { rows } = await admin.query<{ query: string | null }>(
+        `SELECT query FROM pg_stat_activity
+         WHERE state = 'active' AND wait_event_type = 'Lock'`,
       )
-      if (rows.some(({ trx_query }) =>
-        trx_query !== null && trx_query.includes(marker) && /\bfor update\b/i.test(trx_query)
-      )) return
-
-      // InnoDB refreshes this snapshot only after >100 ms without a read.
-      // Leave periodic idle gaps so fast polling cannot pin a stale snapshot.
-      const interval = attempt % 3 === 0 ? 110 : 10
-      await delay(Math.min(interval, Math.max(0, deadline - performance.now())))
+      if (rows.some(row => row.query !== null && row.query.includes(marker))) return
+      if (performance.now() >= deadline) break
+      await delay(10)
     }
-    throw new Error(`Timed out after ${timeoutMs}ms waiting for a FOR UPDATE lock wait matching ${JSON.stringify(marker)}`)
+    throw new Error(`Timed out after ${timeoutMs}ms waiting for a lock wait matching ${JSON.stringify(marker)}`)
   } finally {
     await admin.end()
   }

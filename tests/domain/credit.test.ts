@@ -16,7 +16,7 @@ function valueOf<T>(result: Result<T>): T {
 
 async function setupMember() {
   const [admin, member] = await testDb.insert(members)
-    .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).$returningId()
+    .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).returning()
   return { adminId: admin.id, memberId: member.id }
 }
 

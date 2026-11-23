@@ -204,7 +204,7 @@ it('serializes login against concurrent invite revocation, proving login blocks 
     loginPromise = loginWithInvite(testDb, target.inviteToken, now)
     void loginPromise.catch(() => {})
 
-    await waitForLockWait(hashToken(target.inviteToken))
+    await waitForLockWait('"login_tokens"."token_hash" = $')
 
     // Allow txA to perform update and commit
     releaseGate()
@@ -280,7 +280,7 @@ it('serializes login against concurrent member status disabling, proving login b
     void loginPromise.catch(() => {})
 
     // Include the space after the id so e.g. 1 cannot match 10.
-    await waitForLockWait(`\`members\`.\`id\` = ${target.member.id} `)
+    await waitForLockWait('"members"."id" = $')
 
     releaseGate()
 

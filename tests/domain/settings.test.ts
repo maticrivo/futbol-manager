@@ -84,7 +84,7 @@ it('does not coerce blank stored values to zero and preserves defaults while val
 
   // A valid stored value still wins
   await testDb.insert(settings).values({ key: 'capacity', value: '18' })
-    .onDuplicateKeyUpdate({ set: { value: '18' } })
+    .onConflictDoUpdate({ target: settings.key, set: { value: '18' } })
 
   const updatedResult = await getSettings(testDb)
   expect(updatedResult.capacity).toBe(18)
