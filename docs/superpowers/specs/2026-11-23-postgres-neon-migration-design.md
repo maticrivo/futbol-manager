@@ -92,7 +92,11 @@ this is the constraint that set the interval.
   method, guest payment kind, notification category).
 - `int unsigned autoincrement` → `integer generatedAlwaysAsIdentity()` (15
   primary keys). Postgres has no unsigned integers.
-- `datetime({ fsp: 3 })` → `timestamp({ precision: 3, mode: 'date' })`.
+- `datetime({ fsp: 3 })` → `timestamp({ withTimezone: true, precision: 3,
+  mode: 'date' })`. `timestamptz`, not bare `timestamp`: every column here holds
+  an absolute instant (kickoff, lock, created), and `pg` parses a bare
+  `timestamp` as the *Node process's* local time — correct on Vercel (UTC),
+  silently shifted by 2–3 hours on a development machine in Asia/Jerusalem.
 - `json` → `jsonb` (`audit_logs.detail`).
 - `smallint unsigned` → `smallint` (`matches.capacity`).
 - Indexes and unique constraint names are preserved verbatim.
