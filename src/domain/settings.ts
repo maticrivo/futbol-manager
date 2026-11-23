@@ -152,7 +152,8 @@ export async function updateSettings(
             key,
             value: value !== null ? String(value) : '',
           })
-          .onDuplicateKeyUpdate({
+          .onConflictDoUpdate({
+            target: settings.key,
             set: {
               value: value !== null ? String(value) : '',
             },

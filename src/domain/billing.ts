@@ -1,5 +1,5 @@
 import { and, eq, inArray, sum } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/mysql-core'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Db, Executor, Tx } from '@/db'
 import { charges, entries, expenses, guestPayments, matches, members, paymentAllocations, payments } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
@@ -88,7 +88,7 @@ export async function recordPayment(
     if (amountAgorot < 0 && !targetMonth) return err('TARGET_MONTH_REQUIRED')
 
     const row = { memberId, amountAgorot, paidAt, method, note: note ?? null, recordedBy: actorId, createdAt: paidAt }
-    const [{ id }] = await tx.insert(payments).values(row).$returningId()
+    const [{ id }] = await tx.insert(payments).values(row).returning({ id: payments.id })
     const debts = await tx.select({ month: charges.billingMonth, total: sum(charges.amountAgorot) })
       .from(charges).where(and(eq(charges.memberId, memberId), eq(charges.status, 'charged')))
       .groupBy(charges.billingMonth).orderBy(charges.billingMonth)
@@ -152,7 +152,7 @@ type RefundInput = { actorId: number; guestPaymentId: number; now: Date; note?: 
 type RefundError = 'NOT_FOUND' | 'ALREADY_REFUNDED' | 'INVALID_AMOUNT'
 
 async function insertGuestMoney(tx: Tx, row: Omit<GuestPayment, 'id'>): Promise<GuestPayment> {
-  const [{ id }] = await tx.insert(guestPayments).values(row).$returningId()
+  const [{ id }] = await tx.insert(guestPayments).values(row).returning({ id: guestPayments.id })
   return { id, ...row }
 }
 
@@ -293,7 +293,8 @@ export async function setMonthlyExpense(
     if (!isMonth(month) || !Number.isInteger(fieldCostAgorot) || fieldCostAgorot < 0 || fieldCostAgorot > 2147483647)
       return err('INVALID_AMOUNT')
     const values = { fieldCostAgorot, updatedBy: actorId }
-    await tx.insert(expenses).values({ billingMonth: month, ...values }).onDuplicateKeyUpdate({ set: values })
+    await tx.insert(expenses).values({ billingMonth: month, ...values })
+      .onConflictDoUpdate({ target: expenses.billingMonth, set: values })
     const [expense] = await tx.select().from(expenses).where(eq(expenses.billingMonth, month))
     await writeAudit(tx, { actorId, action: 'expense.set', entity: 'expense', entityId: month, detail: { fieldCostAgorot } })
     return ok(expense)

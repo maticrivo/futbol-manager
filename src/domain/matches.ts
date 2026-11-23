@@ -86,7 +86,7 @@ export async function updateMatch(
       if (!Number.isInteger(patch.capacity) || patch.capacity < 1 || patch.capacity > 40) return err('INVALID_PATCH')
       const [row] = await tx.select({ total: count() }).from(entries)
         .where(and(eq(entries.matchId, matchId), eq(entries.status, 'confirmed')))
-      if (patch.capacity < row.total) return err('CAPACITY_BELOW_CONFIRMED')
+      if (patch.capacity < Number(row.total)) return err('CAPACITY_BELOW_CONFIRMED')
     }
 
     for (const key of ['kickoffAt', 'signupOpensAt', 'guestPhaseAt', 'lockAt'] as const) {
@@ -182,8 +182,7 @@ function isDuplicateMatchError(error: unknown): boolean {
   return (
     typeof cause === 'object' &&
     cause !== null &&
-    (('code' in cause && (cause as { code?: string }).code === 'ER_DUP_ENTRY') ||
-      ('errno' in cause && (cause as { errno?: number }).errno === 1062))
+    (cause as { code?: string }).code === '23505'
   )
 }
 
@@ -214,7 +213,7 @@ export async function createMatchForDateIfAbsent(
         capacity: currentSettings.capacity,
         status: 'scheduled',
       })
-      .$returningId()
+      .returning({ id: matches.id })
 
     const created = await getMatch(db, inserted.id)
     if (!created) {

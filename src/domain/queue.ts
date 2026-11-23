@@ -96,10 +96,10 @@ export async function expireOffers(
 ): Promise<{ expired: number; offered: Entry | null }> {
   return db.transaction(async tx => {
     if (!await lockMatch(tx, matchId)) return { expired: 0, offered: null }
-    const [result] = await tx.update(entries).set({ status: 'withdrawn', updatedAt: now })
+    const result = await tx.update(entries).set({ status: 'withdrawn', updatedAt: now })
       .where(and(eq(entries.matchId, matchId), eq(entries.status, 'offered'), lte(entries.offerExpiresAt, now)))
     const offered = await offerNext(db, matchId, now, tx)
-    return { expired: result.affectedRows, offered }
+    return { expired: result.rowCount ?? 0, offered }
   })
 }
 

@@ -95,7 +95,7 @@ export async function adminAddEntry(
         .where(eq(entries.id, existing.id))
       entryId = existing.id
     } else {
-      const [inserted] = await tx.insert(entries).values({ ...confirmed, matchId, memberId, createdAt: now }).$returningId()
+      const [inserted] = await tx.insert(entries).values({ ...confirmed, matchId, memberId, createdAt: now }).returning({ id: entries.id })
       entryId = inserted.id
     }
 

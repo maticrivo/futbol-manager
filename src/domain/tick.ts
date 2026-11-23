@@ -21,8 +21,7 @@ function isDuplicateMatch(error: unknown): boolean {
   return (
     typeof cause === 'object' &&
     cause !== null &&
-    (('code' in cause && (cause as { code?: string }).code === 'ER_DUP_ENTRY') ||
-      ('errno' in cause && (cause as { errno?: number }).errno === 1062))
+    (cause as { code?: string }).code === '23505'
   )
 }
 

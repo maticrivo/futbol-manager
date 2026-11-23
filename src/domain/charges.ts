@@ -50,17 +50,17 @@ export async function createMatchCharges(tx: Tx, match: Match, memberIds: number
   if (memberIds.length === 0) return 0
   const sortedIds = [...new Set(memberIds)].sort((a, b) => a - b)
   await tx.select().from(members).where(inArray(members.id, sortedIds)).orderBy(asc(members.id)).for('update')
-  const [result] = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
+  const result = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
   for (const memberId of sortedIds) {
     await allocateAvailableCredit(tx, memberId, now)
   }
-  return result.affectedRows
+  return result.rowCount ?? 0
 }
 
 export async function chargeAddedMember(tx: Tx, match: Match, memberId: number, now: Date): Promise<void> {
   // A member re-added after removal already has a charge; bill them again on that same row.
   await tx.insert(charges).values(newCharge(match, memberId, now))
-    .onDuplicateKeyUpdate({ set: { ...charged, updatedAt: now } })
+    .onConflictDoUpdate({ target: [charges.matchId, charges.memberId], set: { ...charged, updatedAt: now } })
   // Caller (adminAddEntry) holds the member lock.
   await allocateAvailableCredit(tx, memberId, now)
 }

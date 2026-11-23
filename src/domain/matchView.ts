@@ -1,5 +1,5 @@
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm'
-import { alias } from 'drizzle-orm/mysql-core'
+import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '@/db'
 import { entries, matches, members } from '@/db/schema'
 import type { Entry, EntryView } from './entries'

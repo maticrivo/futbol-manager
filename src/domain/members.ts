@@ -49,7 +49,7 @@ export async function createMember(
         locale: input.locale ?? 'en',
         status: input.status ?? 'active',
       })
-      .$returningId()
+      .returning({ id: members.id })
 
     const [member] = await tx
       .select()
@@ -365,7 +365,7 @@ export async function requestMemberAccess(
         locale: 'en',
         status: 'pending',
       })
-      .$returningId()
+      .returning({ id: members.id })
 
     const [created] = await tx
       .select()

@@ -16,7 +16,8 @@ type SubscriptionInput = {
 
 export async function savePushSubscription(db: Db, { endpoint, memberId, p256dh, auth, userAgent }: SubscriptionInput): Promise<void> {
   const details = { memberId, p256dh, auth, userAgent: userAgent ?? null }
-  await db.insert(pushSubscriptions).values({ endpoint, ...details }).onDuplicateKeyUpdate({ set: details })
+  await db.insert(pushSubscriptions).values({ endpoint, ...details })
+    .onConflictDoUpdate({ target: pushSubscriptions.endpoint, set: details })
 }
 
 export async function deletePushSubscription(db: Db, endpoint: string): Promise<void> {
@@ -54,8 +55,8 @@ export async function sendWebPush(
     if (statusCode >= 200 && statusCode < 300) {
       sent++
     } else if (statusCode === 404 || statusCode === 410) {
-      const [result] = await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
-      removed += result.affectedRows
+      const result = await db.delete(pushSubscriptions).where(eq(pushSubscriptions.id, subscription.id))
+      removed += result.rowCount ?? 0
     }
   }
   if (firstFailure) throw firstFailure.error

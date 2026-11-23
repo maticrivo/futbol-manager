@@ -38,7 +38,7 @@ export async function setNotificationPref(
   db: Executor, memberId: number, category: NotificationCategory, enabled: boolean,
 ): Promise<void> {
   await db.insert(notificationPrefs).values({ memberId, category, enabled })
-    .onDuplicateKeyUpdate({ set: { enabled } })
+    .onConflictDoUpdate({ target: [notificationPrefs.memberId, notificationPrefs.category], set: { enabled } })
 }
 
 type NotificationData = { matchDate?: string; venue?: string; url: string; month?: string }
@@ -79,7 +79,7 @@ export async function sendMemberNotification(
     await db.insert(notificationLog).values({ eventKey, memberId, sentAt: now })
   } catch (error) {
     const cause = error instanceof DrizzleQueryError ? error.cause : error
-    if (typeof cause === 'object' && cause !== null && 'code' in cause && cause.code === 'ER_DUP_ENTRY') {
+    if (typeof cause === 'object' && cause !== null && 'code' in cause && cause.code === '23505') {
       return false
     }
     throw error

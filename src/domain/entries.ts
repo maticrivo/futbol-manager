@@ -10,7 +10,7 @@ export type EntryView = Entry & { memberName: string | null; memberNickname: str
 async function countByStatus(db: Db, matchId: number, status: Entry['status']): Promise<number> {
   const [row] = await db.select({ total: count() }).from(entries)
     .where(and(eq(entries.matchId, matchId), eq(entries.status, status)))
-  return row.total
+  return Number(row.total)
 }
 
 export function confirmedCount(db: Db, matchId: number): Promise<number> {
@@ -40,7 +40,7 @@ export async function freeSpots(db: Db, matchId: number, executor?: Executor): P
     .leftJoin(entries, and(eq(entries.matchId, matches.id), inArray(entries.status, ['confirmed', 'offered'])))
     .where(eq(matches.id, matchId))
     .groupBy(matches.id, matches.capacity)
-  return roster ? Math.max(0, roster.capacity - roster.occupied) : 0
+  return roster ? Math.max(0, roster.capacity - Number(roster.occupied)) : 0
 }
 
 export async function lockMatch(executor: Executor, matchId: number): Promise<Match | undefined> {
@@ -92,7 +92,7 @@ export async function signup(
 
     const [inserted] = await tx.insert(entries)
       .values({ matchId, memberId, kind: 'member', status: 'confirmed', createdAt: now, updatedAt: now })
-      .$returningId()
+      .returning({ id: entries.id })
     return ok(await readEntry(tx, inserted.id))
   })
 }
@@ -136,7 +136,7 @@ export async function addGuest(
         matchId, hostMemberId, guestName, kind: 'guest', memberId: null, status: 'confirmed',
         createdAt: now, updatedAt: now,
       })
-      .$returningId()
+      .returning({ id: entries.id })
     return ok(await readEntry(tx, inserted.id))
   })
 }
