@@ -1,3 +1,1 @@
-CREATE DATABASE IF NOT EXISTS futbol_test;
-GRANT ALL PRIVILEGES ON futbol_test.* TO 'futbol'@'%';
-FLUSH PRIVILEGES;
+CREATE DATABASE futbol_test;

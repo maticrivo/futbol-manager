@@ -1,14 +1,19 @@
 services:
   db:
-    image: mysql:8.0
-    ports: ["3306:3306"]
+    image: postgres:17-alpine
+    ports: ["5432:5432"]
     environment:
-      MYSQL_ROOT_PASSWORD: root
-      MYSQL_DATABASE: futbol
-      MYSQL_USER: futbol
-      MYSQL_PASSWORD: futbol
+      POSTGRES_USER: futbol
+      POSTGRES_PASSWORD: futbol
+      POSTGRES_DB: futbol
+      TZ: UTC
     volumes:
-      - futbol-data:/var/lib/mysql
+      - futbol-pg-data:/var/lib/postgresql/data
       - ./init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U futbol -d futbol"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
 volumes:
-  futbol-data:
+  futbol-pg-data:
