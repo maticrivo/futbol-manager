@@ -2,19 +2,23 @@
 
 import { useEffect, useState } from 'react'
 import { useTranslations } from 'next-intl'
-import { urlBase64ToUint8Array } from '@/lib/push-client'
+import { classifyPushSupport, urlBase64ToUint8Array, withTimeout } from '@/lib/push-client'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
 import { InlineMessage } from '@/components/ui/InlineMessage'
 
+const READY_TIMEOUT_MS = 3000
+
 type Status =
   | 'loading'
+  | 'insecure'
   | 'unsupported'
   | 'ios-install'
   | 'denied'
   | 'subscribed'
   | 'not-subscribed'
   | 'misconfigured'
+  | 'error'
 
 function isIOS(): boolean {
   return (
@@ -30,6 +34,29 @@ function isStandalone(): boolean {
   )
 }
 
+/**
+ * Returns a registration whose `pushManager` can be queried. The classic
+ * `navigator.serviceWorker.ready` promise waits indefinitely when no worker
+ * ever activates, so it is always raced against a timeout and the
+ * registration from `register()` is used as the fallback.
+ */
+async function resolveRegistration(): Promise<ServiceWorkerRegistration | null> {
+  const existing = await navigator.serviceWorker.getRegistration()
+  if (existing?.active) return existing
+  try {
+    const registered = await withTimeout<ServiceWorkerRegistration | null>(
+      navigator.serviceWorker.register('/sw.js'),
+      READY_TIMEOUT_MS,
+      null,
+    )
+    if (!registered) return existing ?? null
+    if (registered.active) return registered
+    return withTimeout(navigator.serviceWorker.ready, READY_TIMEOUT_MS, registered)
+  } catch {
+    return existing ?? null
+  }
+}
+
 export default function PushSetup() {
   const t = useTranslations()
   const [status, setStatus] = useState<Status>('loading')
@@ -37,26 +64,33 @@ export default function PushSetup() {
 
   const publicKey = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY
 
+  const [attempt, setAttempt] = useState(0)
+
   useEffect(() => {
     let cancelled = false
 
     async function init() {
-      if (!('serviceWorker' in navigator) || !('PushManager' in window) || !('Notification' in window)) {
-        if (!cancelled) setStatus('unsupported')
-        return
-      }
-      if (!publicKey) {
-        if (!cancelled) setStatus('misconfigured')
-        return
-      }
-      if (isIOS() && !isStandalone()) {
-        if (!cancelled) setStatus('ios-install')
+      const support = classifyPushSupport({
+        hasServiceWorker: 'serviceWorker' in navigator,
+        hasPushManager: 'PushManager' in window,
+        hasNotification: 'Notification' in window,
+        publicKey,
+        isIos: isIOS(),
+        isStandalone: isStandalone(),
+        isSecureContext: window.isSecureContext,
+      })
+      if (support !== 'supported') {
+        if (!cancelled) setStatus(support)
         return
       }
       try {
-        await navigator.serviceWorker.register('/sw.js')
-        const registration = await navigator.serviceWorker.ready
-        const subscription = await registration.pushManager.getSubscription()
+        const registration = await resolveRegistration()
+        if (!registration) throw new Error('no service worker registration')
+        const subscription = await withTimeout(
+          registration.pushManager.getSubscription(),
+          READY_TIMEOUT_MS,
+          null,
+        )
         if (!cancelled) {
           setStatus(
             subscription
@@ -67,7 +101,7 @@ export default function PushSetup() {
           )
         }
       } catch {
-        if (!cancelled) setStatus('unsupported')
+        if (!cancelled) setStatus('error')
       }
     }
 
@@ -75,11 +109,20 @@ export default function PushSetup() {
     return () => {
       cancelled = true
     }
-  }, [publicKey])
+  }, [publicKey, attempt])
+
+  function retry() {
+    setStatus('loading')
+    setAttempt((value) => value + 1)
+  }
 
   async function enable() {
-    if (!publicKey || !('Notification' in window)) {
-      if (!('Notification' in window)) setStatus('unsupported')
+    if (!publicKey) {
+      setStatus('misconfigured')
+      return
+    }
+    if (!('Notification' in window)) {
+      setStatus('unsupported')
       return
     }
     setBusy(true)
@@ -89,7 +132,10 @@ export default function PushSetup() {
         setStatus('denied')
         return
       }
-      const registration = await navigator.serviceWorker.ready
+      const registration = await resolveRegistration()
+      if (!registration?.active) {
+        throw new Error('service worker is not active')
+      }
       const subscription = await registration.pushManager.subscribe({
         userVisibleOnly: true,
         applicationServerKey: urlBase64ToUint8Array(publicKey),
@@ -105,7 +151,7 @@ export default function PushSetup() {
       }
       setStatus('subscribed')
     } catch {
-      setStatus('not-subscribed')
+      setStatus('error')
     } finally {
       setBusy(false)
     }
@@ -114,8 +160,16 @@ export default function PushSetup() {
   async function disable() {
     setBusy(true)
     try {
-      const registration = await navigator.serviceWorker.ready
-      const subscription = await registration.pushManager.getSubscription()
+      const registration = await resolveRegistration()
+      if (!registration) {
+        setStatus('not-subscribed')
+        return
+      }
+      const subscription = await withTimeout(
+        registration.pushManager.getSubscription(),
+        READY_TIMEOUT_MS,
+        null,
+      )
       if (subscription) {
         await subscription.unsubscribe()
         await fetch('/api/push/subscribe', {
@@ -125,6 +179,8 @@ export default function PushSetup() {
         })
       }
       setStatus('not-subscribed')
+    } catch {
+      setStatus('error')
     } finally {
       setBusy(false)
     }
@@ -141,9 +197,27 @@ export default function PushSetup() {
         <p className="text-sm text-muted">{t('notifications.push.loading')}</p>
       )}
 
+      {status === 'insecure' && (
+        <InlineMessage variant="warning">{t('notifications.push.insecure')}</InlineMessage>
+      )}
+
       {status === 'unsupported' && <InlineMessage variant="info">{t('notifications.push.unsupported')}</InlineMessage>}
 
       {status === 'misconfigured' && <InlineMessage variant="warning">{t('notifications.push.misconfigured')}</InlineMessage>}
+
+      {status === 'error' && (
+        <div className="space-y-3">
+          <InlineMessage variant="warning">{t('notifications.push.error')}</InlineMessage>
+          <Button
+            type="button"
+            onClick={retry}
+            variant="outline"
+            size="sm"
+          >
+            {t('notifications.push.retry')}
+          </Button>
+        </div>
+      )}
 
       {status === 'ios-install' && (
         <InlineMessage variant="info" title={t('notifications.push.iosInstallTitle')}>
