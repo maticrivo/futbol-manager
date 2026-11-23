@@ -342,7 +342,9 @@ it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different mat
     await waitForLockWait('from "members" where "members"."id" = $')
     aAddsB = adminAddEntry(testDb, { actorId: a.id, matchId: first.id, memberId: b.id, now: guestOpen, reason: '' })
     void aAddsB.catch(() => {})
-    await waitForLockWait('from "members" where "members"."id" = $')
+    // Both admin adds must be blocked at once: bAddsA on B (the holder) and
+    // aAddsB on A (held by bAddsA). One waiter would not prove the second.
+    await waitForLockWait('from "members" where "members"."id" = $', 3000, 2)
     await holder.query('COMMIT')
 
     const [addedB, addedA] = await Promise.allSettled([aAddsB, bAddsA])

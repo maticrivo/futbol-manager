@@ -7,6 +7,7 @@ import {
   updateMemberProfile,
 } from '@/domain/members'
 import { testDb, resetDb } from '../db'
+import { waitForLockWait } from '../lock-wait'
 
 const now = new Date('2027-03-27T10:00:00Z')
 
@@ -475,5 +476,51 @@ describe('requestMemberAccess profile creation and legacy lookup', () => {
     const [reloaded] = await testDb.select().from(members).where(eq(members.id, legacy.id))
     expect(reloaded.name).toBe('legacy@example.com')
     expect(reloaded.nickname).toBe('OriginalLegacy')
+  })
+})
+
+describe('requestMemberAccess races and legacy lookup', () => {
+  it('issues one member when two requests race for the same new email', async () => {
+    // EXCLUSIVE blocks both transactions at their first locking read, so both
+    // reach the insert having seen no row. Releasing lets them race for real.
+    const holder = await testDb.$client.connect()
+    let a: Awaited<ReturnType<typeof requestMemberAccess>> | undefined
+    let b: Awaited<ReturnType<typeof requestMemberAccess>> | undefined
+    try {
+      await holder.query('BEGIN')
+      await holder.query('LOCK TABLE members IN EXCLUSIVE MODE')
+
+      const pa = requestMemberAccess(testDb, 'race@example.com', now)
+      const pb = requestMemberAccess(testDb, 'race@example.com', now)
+      void pa.catch(() => {})
+      void pb.catch(() => {})
+
+      await waitForLockWait('from "members"', 3000, 2)
+      await holder.query('COMMIT')
+
+      ;[a, b] = await Promise.all([pa, pb])
+    } finally {
+      await holder.query('ROLLBACK').catch(() => {})
+      holder.release()
+    }
+
+    expect(a?.ok).toBe(true)
+    expect(b?.ok).toBe(true)
+    if (!a?.ok || !b?.ok) throw new Error('expected both requests to succeed')
+    expect(a.value.memberId).toBe(b.value.memberId)
+    const rows = await testDb.select().from(members).where(eq(members.email, 'race@example.com'))
+    expect(rows).toHaveLength(1)
+  })
+
+  it('legacy lookup by name is case-insensitive', async () => {
+    const legacy = (await createMember(testDb, { name: 'Bob@Example.com' })).member
+    await testDb.update(members).set({ email: null }).where(eq(members.id, legacy.id))
+
+    const res = await requestMemberAccess(testDb, 'bob@example.com', now)
+    expect(res.ok).toBe(true)
+    if (!res.ok) throw new Error(res.code)
+    expect(res.value.memberId).toBe(legacy.id)
+    const rows = await testDb.select().from(members)
+    expect(rows).toHaveLength(1)
   })
 })

@@ -156,9 +156,7 @@ export const expenses = pgTable('expenses', {
   billingMonth: char('billing_month', { length: 7 }).notNull().unique(),
   fieldCostAgorot: integer('field_cost_agorot').notNull(),
   updatedBy: integer('updated_by').notNull().references(() => members.id),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3, mode: 'date' })
-    .$defaultFn(() => new Date())
-    .$onUpdate(() => new Date()),
+  updatedAt: updatedAt(),
 })
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
@@ -201,9 +199,7 @@ export const notificationLog = pgTable('notification_logs', {
 export const settings = pgTable('settings', {
   key: varchar('key', { length: 80 }).primaryKey(),
   value: varchar('value', { length: 255 }).notNull(),
-  updatedAt: timestamp('updated_at', { withTimezone: true, precision: 3, mode: 'date' })
-    .$defaultFn(() => new Date())
-    .$onUpdate(() => new Date()),
+  updatedAt: updatedAt(),
 })
 
 export const auditLog = pgTable('audit_logs', {

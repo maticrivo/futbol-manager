@@ -3,7 +3,14 @@ import { Pool } from 'pg'
 import * as schema from './schema'
 
 export function createDb(url: string, options: { max?: number } = {}) {
-  const pool = new Pool({ connectionString: url, max: options.max ?? 3 })
+  const pool = new Pool({
+    connectionString: url,
+    max: options.max ?? 3,
+    connectionTimeoutMillis: 5_000,
+  })
+  // pg-pool re-emits idle-client errors on the pool; an unhandled 'error' event
+  // would crash the whole serverless invocation instead of failing one query.
+  pool.on('error', (err) => { console.error('idle pg client error', err) })
   return drizzle(pool, { schema })
 }
 

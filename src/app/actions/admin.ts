@@ -1,6 +1,6 @@
 'use server'
 
-import { and, eq, or } from 'drizzle-orm'
+import { and, eq, or, sql } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
@@ -75,7 +75,7 @@ export async function addMemberAction(_prev: InviteActionResult | null, formData
     const [existing] = await db
       .select({ id: members.id })
       .from(members)
-      .where(or(eq(members.email, email), eq(members.name, email)))
+      .where(or(eq(members.email, email), sql`lower(${members.name}) = ${email}`))
       .limit(1)
     if (existing) {
       return { ok: false, code: 'EMAIL_TAKEN' }

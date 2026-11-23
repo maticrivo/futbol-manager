@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb, resetDb } from '../db'
-import { charges, entries, matches, members } from '@/db/schema'
+import { charges, entries, expenses, matches, members, settings } from '@/db/schema'
 
 async function seedMatch() {
   const [member] = await testDb.insert(members).values({ name: 'Ana' }).returning()
@@ -20,6 +20,11 @@ async function seedMatch() {
 
 describe('schema constraints', () => {
   beforeEach(resetDb)
+
+  it('keeps every timestamp column NOT NULL where the MySQL schema had it', () => {
+    expect(expenses.updatedAt.notNull).toBe(true)
+    expect(settings.updatedAt.notNull).toBe(true)
+  })
 
   it('round-trips instants across the process timezone', async () => {
     const instant = new Date('2027-03-30T11:00:00.000Z')

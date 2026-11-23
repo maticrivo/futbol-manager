@@ -52,7 +52,7 @@ CREATE TABLE "expenses" (
 	"billing_month" char(7) NOT NULL,
 	"field_cost_agorot" integer NOT NULL,
 	"updated_by" integer NOT NULL,
-	"updated_at" timestamp (3) with time zone,
+	"updated_at" timestamp (3) with time zone NOT NULL,
 	CONSTRAINT "expenses_billing_month_unique" UNIQUE("billing_month")
 );
 --> statement-breakpoint
@@ -170,7 +170,7 @@ CREATE TABLE "sessions" (
 CREATE TABLE "settings" (
 	"key" varchar(80) PRIMARY KEY NOT NULL,
 	"value" varchar(255) NOT NULL,
-	"updated_at" timestamp (3) with time zone
+	"updated_at" timestamp (3) with time zone NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_actor_id_members_id_fk" FOREIGN KEY ("actor_id") REFERENCES "public"."members"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint

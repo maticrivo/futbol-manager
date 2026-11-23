@@ -2,7 +2,7 @@ import type { Db } from '@/db'
 import { loginTokens, members, sessions } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { generateToken, hashToken } from '@/lib/tokens'
-import { and, asc, eq, inArray, isNull, ne, or } from 'drizzle-orm'
+import { and, asc, eq, inArray, isNull, ne, or, sql } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { revokeSessions, SESSION_LIFETIME_MS } from './sessions'
 import { sendMagicLinkEmail } from '@/lib/email'
@@ -303,24 +303,7 @@ export async function requestMemberAccess(
   const tokenHash = hashToken(inviteToken)
 
   const { member } = await db.transaction(async (tx) => {
-    // 1. Look up existing member: first by email, then legacy name
-    let [existing] = await tx
-      .select()
-      .from(members)
-      .where(eq(members.email, normalizedEmail))
-      .for('update')
-      .limit(1)
-
-    if (!existing) {
-      ;[existing] = await tx
-        .select()
-        .from(members)
-        .where(or(eq(members.name, trimmedEmail), eq(members.name, normalizedEmail)))
-        .for('update')
-        .limit(1)
-    }
-
-    if (existing) {
+    const issueForExisting = async (existing: Member) => {
       // Revoke outstanding unrevoked login tokens
       await tx
         .update(loginTokens)
@@ -346,6 +329,26 @@ export async function requestMemberAccess(
       return { member: existing }
     }
 
+    // 1. Look up existing member: first by email, then legacy name. The legacy
+    // comparison is case-insensitive because the MySQL collation it came from was.
+    let [existing] = await tx
+      .select()
+      .from(members)
+      .where(eq(members.email, normalizedEmail))
+      .for('update')
+      .limit(1)
+
+    if (!existing) {
+      ;[existing] = await tx
+        .select()
+        .from(members)
+        .where(sql`lower(${members.name}) = ${normalizedEmail}`)
+        .for('update')
+        .limit(1)
+    }
+
+    if (existing) return issueForExisting(existing)
+
     // 2. Insert new pending member
     const [localPart] = normalizedEmail.split('@')
     const finalName = (profile.name?.trim() || localPart || 'member').slice(0, 120)
@@ -365,7 +368,23 @@ export async function requestMemberAccess(
         locale: 'en',
         status: 'pending',
       })
+      .onConflictDoNothing({ target: members.email })
       .returning({ id: members.id })
+
+    if (!inserted) {
+      // A concurrent request created this member while we were inserting. Its row
+      // is committed by now (the unique index waits for the other transaction),
+      // so re-read it and issue the link instead of surfacing a 23505.
+      const [winner] = await tx
+        .select()
+        .from(members)
+        .where(eq(members.email, normalizedEmail))
+        .limit(1)
+      if (!winner) {
+        throw new Error(`Concurrent member creation lost the race for ${normalizedEmail}`)
+      }
+      return issueForExisting(winner)
+    }
 
     const [created] = await tx
       .select()
@@ -553,7 +572,7 @@ export async function updateMemberProfile(
         .from(members)
         .where(
           and(
-            or(eq(members.email, normalizedEmail), eq(members.name, normalizedEmail)),
+            or(eq(members.email, normalizedEmail), sql`lower(${members.name}) = ${normalizedEmail}`),
             ne(members.id, memberId)
           )
         )
