@@ -85,14 +85,14 @@ https://tuesday-football.nulldev.app
    Si aparece "Abrir como app web", déjenla activada. Toquen "Agregar".
 3. Abran la app desde el ícono en la pantalla de inicio.
 4. Entren a "Perfil" → "Notificaciones push" → "Activar notificaciones" → "Permitir".
-5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar ajustes".
+5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar cambios".
 
 🤖 Android — Chrome:
 1. Abran el link en Chrome (no dentro de WhatsApp).
 2. Menú ⋮ → "Instalar app" (o "Agregar a pantalla de inicio") → "Instalar".
 3. Abran la app desde el ícono en la pantalla de inicio.
 4. Entren a "Perfil" → "Notificaciones push" → "Activar notificaciones" → "Permitir".
-5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar ajustes".
+5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar cambios".
 
 ⚠️ Importante:
 • En el iPhone se necesita iOS 16.4 o superior, y las notificaciones solo se pueden activar después de instalar la app.

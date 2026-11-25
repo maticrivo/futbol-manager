@@ -11,12 +11,12 @@ const copy: Record<CopyEvent, Record<'en' | 'he' | 'es', { emoji: string; text: 
   signup_open: {
     he: { emoji: '⚽', text: 'ההרשמה נפתחה! אפשר להירשם למשחק ב־{{date}}. {{venue}}' },
     en: { emoji: '⚽', text: 'Sign-up is open! Join the match on {{date}}. {{venue}}' },
-    es: { emoji: '⚽', text: '¡Inscripciones abiertas! Apúntate al partido del {{date}}. {{venue}}' },
+    es: { emoji: '⚽', text: '¡Inscripciones abiertas! Anotate al partido del {{date}}. {{venue}}' },
   },
   lock_reminder: {
     he: { emoji: '🔒', text: 'תזכורת: ההרשמה נסגרת בקרוב. עדכנו את ההרשמה למשחק ב־{{date}}.' },
     en: { emoji: '🔒', text: 'Reminder: sign-up closes soon. Update your sign-up for the match on {{date}}.' },
-    es: { emoji: '🔒', text: 'Recordatorio: la inscripción cierra pronto. Actualiza tu inscripción al partido del {{date}}.' },
+    es: { emoji: '🔒', text: 'Recordatorio: la inscripción cierra pronto. Actualizá tu inscripción al partido del {{date}}.' },
   },
   bill_ready: {
     he: { emoji: '🧾', text: 'החשבון החודשי של {{month}} מוכן לצפייה.' },
