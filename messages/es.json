@@ -37,7 +37,10 @@
     "pendingDescription": "Tu cuenta está esperando la aprobación de un administrador. Cuando la aprueben, podrás acceder a los partidos y a la facturación.",
     "signOut": "Cerrar sesión",
     "completeProfile": "Completar tu perfil",
-    "accountLinkedElsewhere": "Esa cuenta ya está conectada a otro miembro. Pide a un administrador que la vincule."
+    "accountLinkedElsewhere": "Esa cuenta ya está conectada a otro miembro. Pide a un administrador que la vincule.",
+    "privacyPolicy": "Privacidad",
+    "dataDeletion": "Eliminación de datos",
+    "termsOfService": "Términos"
   },
   "profile": {
     "title": "Tu perfil",

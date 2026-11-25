@@ -1,4 +1,5 @@
 import { getTranslations } from 'next-intl/server'
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import SocialLoginButtons from '@/components/SocialLoginButtons'
 import { getCurrentMember } from '@/lib/auth'
@@ -59,6 +60,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
         ) : (
           <SocialLoginButtons />
         )}
+
+        <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-line pt-4 text-xs text-muted">
+          <Link href="/privacy" className="hover:underline">
+            {t('privacyPolicy')}
+          </Link>
+          <Link href="/terms" className="hover:underline">
+            {t('termsOfService')}
+          </Link>
+          <Link href="/data-deletion" className="hover:underline">
+            {t('dataDeletion')}
+          </Link>
+        </div>
       </Card>
     </main>
   )

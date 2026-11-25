@@ -37,7 +37,10 @@
     "pendingDescription": "החשבון שלך ממתין לאישור מנהל. לאחר האישור תוכל להצטרף למשחקים ולצפות בתשלומים.",
     "signOut": "התנתקות",
     "completeProfile": "השלמת הפרופיל",
-    "accountLinkedElsewhere": "החשבון הזה כבר מקושר לחבר אחר. בקשו ממנהל לקשר אותו."
+    "accountLinkedElsewhere": "החשבון הזה כבר מקושר לחבר אחר. בקשו ממנהל לקשר אותו.",
+    "privacyPolicy": "פרטיות",
+    "dataDeletion": "מחיקת נתונים",
+    "termsOfService": "תנאים"
   },
   "profile": {
     "title": "הפרופיל שלך",

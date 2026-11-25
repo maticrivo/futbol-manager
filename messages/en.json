@@ -37,7 +37,10 @@
     "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
     "signOut": "Sign out",
     "completeProfile": "Complete your profile",
-    "accountLinkedElsewhere": "That account is already connected to another member. Ask an admin to link it."
+    "accountLinkedElsewhere": "That account is already connected to another member. Ask an admin to link it.",
+    "privacyPolicy": "Privacy",
+    "dataDeletion": "Data deletion",
+    "termsOfService": "Terms"
   },
   "profile": {
     "title": "Your Profile",
