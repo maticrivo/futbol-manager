@@ -262,7 +262,13 @@
       "add": "Add member",
       "adding": "Adding…",
       "working": "Working…",
-      "emailReadOnly": "Email comes from the member's social account."
+      "emailReadOnly": "Email comes from the member's social account.",
+      "linkTo": "Link to an existing member",
+      "linkTarget": "Existing member",
+      "chooseTarget": "Choose a member…",
+      "link": "Link account",
+      "linking": "Linking…",
+      "linked": "Account linked."
     },
     "settings": {
       "title": "Settings",
@@ -408,6 +414,9 @@
     "MEMBER_NOT_FOUND": "That member could not be found.",
     "TARGET_MONTH_REQUIRED": "A target month is required.",
     "UNKNOWN": "Something went wrong. Please try again.",
-    "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved."
+    "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved.",
+    "NOT_PENDING": "Only pending members can be linked.",
+    "TARGET_NOT_ACTIVE": "Choose an active member.",
+    "SAME_MEMBER": "Choose a different member."
   }
 }

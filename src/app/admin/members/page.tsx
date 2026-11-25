@@ -3,6 +3,7 @@ import AddMemberByEmailForm from '@/components/AddMemberByEmailForm'
 import AdminNav from '@/components/AdminNav'
 import MemberActions from '@/components/MemberActions'
 import MemberEditForm from '@/components/MemberEditForm'
+import LinkMemberForm from '@/components/LinkMemberForm'
 import { getDb } from '@/db'
 import { listMembers } from '@/domain/members'
 import { requireAdmin } from '@/lib/auth'
@@ -21,6 +22,9 @@ export default async function AdminMembers() {
   ])
 
   const dateFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeZone: TZ })
+  const activeTargets = members
+    .filter((member) => member.status === 'active')
+    .map((member) => ({ id: member.id, name: member.name }))
 
   return (
     <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
@@ -74,6 +78,14 @@ export default async function AdminMembers() {
 
             <div className="pt-2 border-t border-line space-y-3">
               <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
+              {member.status === 'pending' && (
+                activeTargets.some((target) => target.id !== member.id) ? (
+                  <LinkMemberForm
+                    pendingId={member.id}
+                    targets={activeTargets.filter((target) => target.id !== member.id)}
+                  />
+                ) : null
+              )}
               <details className="text-xs group">
                 <summary className="cursor-pointer font-medium text-primary hover:underline">
                   {t('members.editDetails')}

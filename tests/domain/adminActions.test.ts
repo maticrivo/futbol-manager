@@ -3,6 +3,7 @@ import { revalidatePath } from 'next/cache'
 import {
   addMemberAction,
   createNextMatchAction,
+  linkMemberAction,
   setMemberStatusAction,
   updateMemberAction,
   updateSettingsAction,
@@ -205,6 +206,21 @@ it('createNextMatchAction creates the next Tuesday when no match exists', async 
   }
 
   expect(await matchDates()).toEqual(['2027-03-30'])
+})
+
+it('linkMemberAction links a pending duplicate to an active member', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'Target', email: 'target@example.com' })).member
+  const pending = (await createMember(testDb, { name: 'Duplicate', email: 'duplicate@example.com', status: 'pending' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const form = new FormData()
+  form.set('pendingId', pending.id)
+  form.set('targetId', target.id)
+
+  expect(await linkMemberAction(null, form)).toEqual({ ok: true })
+  expect((await listMembers(testDb)).find((member) => member.id === pending.id)).toBeUndefined()
+  expect(revalidatePath).toHaveBeenCalledWith('/admin/members')
 })
 
 it('updateMemberAction updates profile fields and leaves email unchanged', async () => {

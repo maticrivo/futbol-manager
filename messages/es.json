@@ -262,7 +262,13 @@
       "add": "Añadir miembro",
       "adding": "Añadiendo…",
       "working": "Procesando…",
-      "emailReadOnly": "El correo proviene de la cuenta social del miembro."
+      "emailReadOnly": "El correo proviene de la cuenta social del miembro.",
+      "linkTo": "Vincular a un miembro existente",
+      "linkTarget": "Miembro existente",
+      "chooseTarget": "Elige un miembro…",
+      "link": "Vincular cuenta",
+      "linking": "Vinculando…",
+      "linked": "Cuenta vinculada."
     },
     "settings": {
       "title": "Ajustes",
@@ -408,6 +414,9 @@
     "MEMBER_NOT_FOUND": "No se encontró a ese miembro.",
     "TARGET_MONTH_REQUIRED": "Se requiere un mes de destino.",
     "UNKNOWN": "Algo salió mal. Inténtalo de nuevo.",
-    "NOT_FOUND_DESC": "La página que buscas no existe o ha sido movida."
+    "NOT_FOUND_DESC": "La página que buscas no existe o ha sido movida.",
+    "NOT_PENDING": "Solo se pueden vincular miembros pendientes.",
+    "TARGET_NOT_ACTIVE": "Elige un miembro activo.",
+    "SAME_MEMBER": "Elige un miembro diferente."
   }
 }

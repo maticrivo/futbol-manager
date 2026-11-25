@@ -1,5 +1,5 @@
 import type { Db } from '@/db'
-import { users } from '@/db/schema'
+import { accounts, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { writeAudit } from './audit'
@@ -335,5 +335,71 @@ export async function updateMemberProfile(
       .limit(1)
 
     return ok(toMember(updated!))
+  })
+}
+
+export type LinkPendingMemberError =
+  | 'FORBIDDEN'
+  | 'NOT_FOUND'
+  | 'NOT_PENDING'
+  | 'TARGET_NOT_ACTIVE'
+  | 'SAME_MEMBER'
+
+export async function linkPendingMemberToMember(
+  db: Db,
+  input: { actorId: string; pendingId: string; targetId: string },
+  now: Date = new Date()
+): Promise<Result<Member, LinkPendingMemberError>> {
+  const { actorId, pendingId, targetId } = input
+
+  return await db.transaction(async (tx) => {
+    const ids = Array.from(new Set([actorId, pendingId, targetId])).sort()
+    const lockedMembers = await tx
+      .select()
+      .from(users)
+      .where(inArray(users.id, ids))
+      .for('update')
+      .orderBy(asc(users.id))
+
+    const actor = lockedMembers.find((member) => member.id === actorId)
+    if (!actor || actor.role !== 'admin') {
+      return err('FORBIDDEN')
+    }
+
+    if (pendingId === targetId) {
+      return err('SAME_MEMBER')
+    }
+
+    const pending = lockedMembers.find((member) => member.id === pendingId)
+    const target = lockedMembers.find((member) => member.id === targetId)
+    if (!pending || !target) {
+      return err('NOT_FOUND')
+    }
+    if (pending.status !== 'pending') {
+      return err('NOT_PENDING')
+    }
+    if (target.status !== 'active') {
+      return err('TARGET_NOT_ACTIVE')
+    }
+
+    const accountRows = await tx
+      .select({ provider: accounts.provider })
+      .from(accounts)
+      .where(eq(accounts.userId, pendingId))
+    const providers = Array.from(new Set(accountRows.map((row) => row.provider)))
+
+    await tx.update(accounts).set({ userId: targetId }).where(eq(accounts.userId, pendingId))
+    await tx.delete(users).where(eq(users.id, pendingId))
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'member.link_account',
+      entity: 'member',
+      entityId: targetId,
+      detail: { pendingId, targetId, providers },
+      createdAt: now,
+    })
+
+    return ok(toMember(target))
   })
 }
