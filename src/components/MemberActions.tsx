@@ -2,7 +2,7 @@
 
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
-import { setMemberStatusAction } from '@/app/actions/admin'
+import { setMemberRoleAction, setMemberStatusAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
 
 function ActionError({ code }: { code: string | null }) {
@@ -18,13 +18,18 @@ export default function MemberActions({
   memberId,
   isSelf,
   status,
+  role,
+  isSuperuser,
 }: {
   memberId: string
   isSelf: boolean
   status: 'active' | 'disabled' | 'pending'
+  role: 'member' | 'admin'
+  isSuperuser: boolean
 }) {
   const t = useTranslations()
   const [statusState, statusAction] = useActionState(setMemberStatusAction, null)
+  const [roleState, roleAction] = useActionState(setMemberRoleAction, null)
 
   const canDisable = !(isSelf && status === 'active')
 
@@ -78,6 +83,35 @@ export default function MemberActions({
         )}
       </div>
       <ActionError code={statusState?.ok === false ? statusState.code : null} />
+
+      <div className="flex flex-wrap items-center gap-2">
+        {role === 'admin' ? (
+          isSuperuser ? (
+            <span className="text-sm text-muted">{t('admin.members.superuserNote')}</span>
+          ) : isSelf ? (
+            <span className="text-sm text-muted">{t('admin.members.selfRoleNote')}</span>
+          ) : (
+            <form action={roleAction}>
+              <input type="hidden" name="memberId" value={memberId} />
+              <input type="hidden" name="role" value="member" />
+              <SubmitButton
+                label={t('admin.members.removeAdmin')}
+                pendingLabel={t('admin.members.working')}
+              />
+            </form>
+          )
+        ) : status === 'active' ? (
+          <form action={roleAction}>
+            <input type="hidden" name="memberId" value={memberId} />
+            <input type="hidden" name="role" value="admin" />
+            <SubmitButton
+              label={t('admin.members.makeAdmin')}
+              pendingLabel={t('admin.members.working')}
+            />
+          </form>
+        ) : null}
+      </div>
+      <ActionError code={roleState?.ok === false ? roleState.code : null} />
     </div>
   )
 }

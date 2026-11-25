@@ -6,6 +6,7 @@ import MemberEditForm from '@/components/MemberEditForm'
 import LinkMemberForm from '@/components/LinkMemberForm'
 import { getDb } from '@/db'
 import { listMembers } from '@/domain/members'
+import { isConfiguredAdminEmail } from '@/domain/oauth'
 import { requireAdmin } from '@/lib/auth'
 import { TZ } from '@/lib/time'
 import { Card } from '@/components/ui/Card'
@@ -41,7 +42,9 @@ export default async function AdminMembers() {
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="font-semibold text-lg text-ink"><bdi>{member.name}</bdi></span>
                   {member.role === 'admin' ? (
-                    <Badge variant="primary" size="sm">{t('members.roleAdmin')}</Badge>
+                    <Badge variant="primary" size="sm">
+                      {isConfiguredAdminEmail(member.email) ? t('members.roleSuperuser') : t('members.roleAdmin')}
+                    </Badge>
                   ) : (
                     <Badge variant="secondary" size="sm">{t('members.roleMember')}</Badge>
                   )}
@@ -77,7 +80,13 @@ export default async function AdminMembers() {
             </div>
 
             <div className="pt-2 border-t border-line space-y-3">
-              <MemberActions memberId={member.id} isSelf={member.id === admin.id} status={member.status} />
+              <MemberActions
+                memberId={member.id}
+                isSelf={member.id === admin.id}
+                status={member.status}
+                role={member.role}
+                isSuperuser={isConfiguredAdminEmail(member.email)}
+              />
               {member.status === 'pending' && (
                 activeTargets.some((target) => target.id !== member.id) ? (
                   <LinkMemberForm
