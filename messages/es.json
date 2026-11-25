@@ -40,7 +40,9 @@
     "accountLinkedElsewhere": "Esa cuenta ya está conectada a otro miembro. Pide a un administrador que la vincule.",
     "privacyPolicy": "Privacidad",
     "dataDeletion": "Eliminación de datos",
-    "termsOfService": "Términos"
+    "termsOfService": "Términos",
+    "noProvidersTitle": "El inicio de sesión no está configurado",
+    "noProvidersDescription": "No hay ningún proveedor de inicio de sesión social habilitado en este servidor. Pide a un administrador que configure Google o Facebook."
   },
   "profile": {
     "title": "Tu perfil",

@@ -8,13 +8,22 @@ import { Badge } from './ui/Badge'
 
 const PROVIDERS: OAuthProvider[] = ['google', 'facebook']
 
-export default function ConnectedAccounts({ linked }: { linked: OAuthProvider[] }) {
+export default function ConnectedAccounts({
+  linked,
+  available,
+}: {
+  linked: OAuthProvider[]
+  available: OAuthProvider[]
+}) {
   const t = useTranslations('profile.connectedAccounts')
+  const providers = PROVIDERS.filter((provider) => available.includes(provider))
+
+  if (providers.length === 0) return null
 
   return (
     <div className="space-y-3">
       <h2 className="text-lg font-semibold text-ink">{t('title')}</h2>
-      {PROVIDERS.map((provider) => {
+      {providers.map((provider) => {
         const connected = linked.includes(provider)
         return (
           <div key={provider} className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

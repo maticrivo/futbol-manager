@@ -3,6 +3,7 @@ import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import SocialLoginButtons from '@/components/SocialLoginButtons'
 import { getCurrentMember } from '@/lib/auth'
+import { configuredOAuthProviders } from '@/lib/oauth-providers'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Button } from '@/components/ui/Button'
@@ -35,6 +36,7 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
 
   const t = await getTranslations('auth')
   const errorKey = authErrorMessage(params.error)
+  const providers = configuredOAuthProviders()
 
   return (
     <main className="mx-auto w-full max-w-md space-y-6 px-4 py-12 text-start">
@@ -57,8 +59,12 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
           <Button href="/profile" variant="primary" className="w-full">
             {t('backToProfile')}
           </Button>
+        ) : providers.length > 0 ? (
+          <SocialLoginButtons providers={providers} />
         ) : (
-          <SocialLoginButtons />
+          <InlineMessage variant="warning" title={t('noProvidersTitle')}>
+            {t('noProvidersDescription')}
+          </InlineMessage>
         )}
 
         <div className="flex flex-wrap justify-center gap-x-4 gap-y-2 border-t border-line pt-4 text-xs text-muted">

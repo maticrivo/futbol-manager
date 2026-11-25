@@ -40,7 +40,9 @@
     "accountLinkedElsewhere": "החשבון הזה כבר מקושר לחבר אחר. בקשו ממנהל לקשר אותו.",
     "privacyPolicy": "פרטיות",
     "dataDeletion": "מחיקת נתונים",
-    "termsOfService": "תנאים"
+    "termsOfService": "תנאים",
+    "noProvidersTitle": "ההתחברות אינה מוגדרת",
+    "noProvidersDescription": "לא הופעל ספק התחברות חברתית בשרת הזה. בקשו ממנהל להגדיר Google או Facebook."
   },
   "profile": {
     "title": "הפרופיל שלך",

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { auth, signIn } from '@/auth'
 import { signInWithProviderAction } from '@/app/actions/auth'
@@ -46,6 +46,10 @@ vi.mock('@/db', async (importOriginal) => ({
 beforeEach(async () => {
   await resetDb()
   vi.clearAllMocks()
+})
+
+afterEach(() => {
+  vi.unstubAllEnvs()
 })
 
 describe('social login page', () => {
@@ -100,5 +104,29 @@ describe('social login page', () => {
 
     expect(html).toContain('accountLinkedElsewhere')
     expect(html).toContain('href="/profile"')
+  })
+
+  it('hides a provider whose env vars are missing', async () => {
+    vi.mocked(auth).mockResolvedValue(null as never)
+    vi.stubEnv('AUTH_FACEBOOK_ID', '')
+    vi.stubEnv('AUTH_FACEBOOK_SECRET', '')
+
+    const html = renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve({}) }))
+
+    expect(html).toContain('value="google"')
+    expect(html).not.toContain('value="facebook"')
+  })
+
+  it('shows a configuration message when no provider is configured', async () => {
+    vi.mocked(auth).mockResolvedValue(null as never)
+    vi.stubEnv('AUTH_GOOGLE_ID', '')
+    vi.stubEnv('AUTH_GOOGLE_SECRET', '')
+    vi.stubEnv('AUTH_FACEBOOK_ID', '')
+    vi.stubEnv('AUTH_FACEBOOK_SECRET', '')
+
+    const html = renderToStaticMarkup(await LoginPage({ searchParams: Promise.resolve({}) }))
+
+    expect(html).toContain('noProvidersTitle')
+    expect(html).not.toContain('name="provider"')
   })
 })

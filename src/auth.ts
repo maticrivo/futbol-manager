@@ -11,6 +11,7 @@ import {
   onLinkOAuthAccount,
   onOAuthSignIn,
 } from '@/domain/oauth'
+import { isOAuthProviderConfigured } from '@/lib/oauth-providers'
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(getDb(), {
@@ -27,8 +28,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     error: '/login',
   },
   providers: [
-    Google({ allowDangerousEmailAccountLinking: true }),
-    Facebook({ allowDangerousEmailAccountLinking: true }),
+    ...(isOAuthProviderConfigured('google')
+      ? [Google({ allowDangerousEmailAccountLinking: true })]
+      : []),
+    ...(isOAuthProviderConfigured('facebook')
+      ? [Facebook({ allowDangerousEmailAccountLinking: true })]
+      : []),
   ],
   callbacks: {
     async signIn({ user }) {

@@ -103,11 +103,25 @@ describe('ProfilePage & Nav integration', () => {
     const { renderToStaticMarkup } = await import('react-dom/server')
     const ConnectedAccounts = (await import('@/components/ConnectedAccounts')).default
 
-    const html = renderToStaticMarkup(React.createElement(ConnectedAccounts, { linked: ['google'] }))
+    const html = renderToStaticMarkup(
+      React.createElement(ConnectedAccounts, { linked: ['google'], available: ['google', 'facebook'] }),
+    )
     expect(html).toContain('title')
     expect(html).toContain('connected')
     expect(html).toContain('connectProvider')
     expect(html).toContain('value="facebook"')
+  })
+
+  it('ConnectedAccounts hides a provider that is not configured', async () => {
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const ConnectedAccounts = (await import('@/components/ConnectedAccounts')).default
+
+    const html = renderToStaticMarkup(
+      React.createElement(ConnectedAccounts, { linked: ['google'], available: ['google'] }),
+    )
+    expect(html).toContain('connected')
+    expect(html).not.toContain('value="facebook"')
   })
 
   it('Nav renders profile link for active members', async () => {

@@ -40,7 +40,9 @@
     "accountLinkedElsewhere": "That account is already connected to another member. Ask an admin to link it.",
     "privacyPolicy": "Privacy",
     "dataDeletion": "Data deletion",
-    "termsOfService": "Terms"
+    "termsOfService": "Terms",
+    "noProvidersTitle": "Sign-in isn't configured",
+    "noProvidersDescription": "No social sign-in provider is enabled on this server. Ask an administrator to configure Google or Facebook."
   },
   "profile": {
     "title": "Your Profile",

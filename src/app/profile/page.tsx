@@ -16,6 +16,7 @@ import NotificationPrefs from '@/components/NotificationPrefs'
 import PushSetup from '@/components/PushSetup'
 import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
 import { listLinkedProviders } from '@/domain/oauth'
+import { configuredOAuthProviders } from '@/lib/oauth-providers'
 import { parseTheme, THEME_COOKIE } from '@/lib/theme'
 
 export default async function ProfilePage() {
@@ -32,6 +33,7 @@ export default async function ProfilePage() {
     listLinkedProviders(db, member.id),
   ])
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value)
+  const availableProviders = configuredOAuthProviders()
 
   return (
     <main className="mx-auto w-full max-w-xl space-y-6 px-4 py-8 pb-28 md:pb-8 text-start">
@@ -56,9 +58,11 @@ export default async function ProfilePage() {
         <div className="border-t border-line pt-4">
           <ProfileForm member={member} />
         </div>
-        <div className="border-t border-line pt-4">
-          <ConnectedAccounts linked={linkedProviders} />
-        </div>
+        {availableProviders.length > 0 && (
+          <div className="border-t border-line pt-4">
+            <ConnectedAccounts linked={linkedProviders} available={availableProviders} />
+          </div>
+        )}
       </Card>
 
       <NotificationPrefs categories={NOTIFICATION_CATEGORIES} prefs={prefs} />
