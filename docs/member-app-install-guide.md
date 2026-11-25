@@ -14,7 +14,7 @@ Copy this into the WhatsApp group:
 
 ```text
 היי חברים 👋
-"Tuesday Football" היא האפליקציה של הקבוצה: נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
+"כדורגל שלישי" היא האפליקציה של הקבוצה: נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
 כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה על המסך הראשי:
 
 📱 אייפון / אייפד — מומלץ דרך Safari:
@@ -74,7 +74,7 @@ Link: https://tuesday-football.nulldev.app
 
 ```text
 ¡Hola a todos 👋
-"Tuesday Football" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
+"Fútbol de los martes" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
 Instálenla en la pantalla de inicio para usarla como una app y recibir notificaciones:
 
 📱 iPhone / iPad — recomendado Safari:
