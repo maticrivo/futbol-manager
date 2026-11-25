@@ -72,7 +72,7 @@ https://tuesday-football.nulldev.app
 
 ```text
 ¡Hola a todos 👋
-"Fútbol de los martes" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
+"Fútbol Martes" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
 Instálenla desde este enlace para usarla como una app y recibir notificaciones:
 https://tuesday-football.nulldev.app
 
