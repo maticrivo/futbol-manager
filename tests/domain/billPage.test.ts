@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from 'react-dom/server'
 import { charges } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { createMember } from '@/domain/members'
+import { recordPayment } from '@/domain/billing'
 import { updateSettings } from '@/domain/settings'
 import { requireMember } from '@/lib/auth'
 import { billingMonthOf } from '@/lib/time'
@@ -34,6 +35,15 @@ async function signInMember(chargeAgorot?: number) {
     await testDb.insert(charges).values({ matchId: match.id, memberId: member.id, billingMonth: month, amountAgorot: chargeAgorot })
   }
   vi.mocked(requireMember).mockResolvedValue({ ...member, locale: 'en' } as never)
+  return member
+}
+
+async function pay(memberId: string, amountAgorot: number) {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const result = await recordPayment(testDb, {
+    actorId: admin.id, memberId, amountAgorot, paidAt: new Date(), method: 'paybox',
+  })
+  expect(result.ok).toBe(true)
 }
 
 async function configurePaybox() {
@@ -68,4 +78,24 @@ it('hides the Paybox link when no link is configured', async () => {
 
   expect(html).not.toContain('payOnPaybox')
   expect(html).not.toContain('href=""')
+})
+
+it('hides the Paybox link when the member has advance credit', async () => {
+  const member = await signInMember(3500)
+  await configurePaybox()
+  await pay(member.id, 5000)
+
+  const html = renderToStaticMarkup(await BillPage())
+
+  expect(html).not.toContain('link.payboxapp.com')
+})
+
+it('hides the Paybox link when the month is exactly settled', async () => {
+  const member = await signInMember(3500)
+  await configurePaybox()
+  await pay(member.id, 3500)
+
+  const html = renderToStaticMarkup(await BillPage())
+
+  expect(html).not.toContain('link.payboxapp.com')
 })
