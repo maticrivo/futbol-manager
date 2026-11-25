@@ -14,7 +14,8 @@ Copy this into the WhatsApp group:
 
 ```text
 היי חברים 👋
-כדי להתקין את "Tuesday Football" על המסך הראשי ולקבל התראות (פתיחת הרשמה, תזכורות וחשבון):
+"Tuesday Football" היא האפליקציה של הקבוצה: נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
+כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה על המסך הראשי:
 
 📱 אייפון / אייפד — מומלץ דרך Safari:
 1. פותחים את הקישור ב-Safari. אם הגעתם מוואטסאפ: ⋯ ← "פתיחה ב-Safari".
@@ -43,7 +44,8 @@ Copy this into the WhatsApp group:
 
 ```text
 Hi everyone 👋
-Install "Tuesday Football" on your home screen to get notifications (sign-ups opening, reminders and bills):
+"Tuesday Football" is our team app: sign up for the weekly match, see who's playing, join the waitlist, and get reminders plus your monthly bill.
+Install it on your home screen to use it like an app and receive notifications:
 
 📱 iPhone / iPad — Safari recommended:
 1. Open the link in Safari. Coming from WhatsApp: ··· → "Open in Safari".
@@ -72,7 +74,8 @@ Link: https://tuesday-football.nulldev.app
 
 ```text
 ¡Hola a todos 👋
-Instalen "Tuesday Football" en la pantalla de inicio para recibir notificaciones (apertura de inscripción, recordatorios y cuenta):
+"Tuesday Football" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
+Instálenla en la pantalla de inicio para usarla como una app y recibir notificaciones:
 
 📱 iPhone / iPad — recomendado Safari:
 1. Abran el enlace en Safari. Si llega por WhatsApp: ··· → "Abrir en Safari".
