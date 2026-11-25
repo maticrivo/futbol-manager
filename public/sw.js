@@ -1,7 +1,7 @@
 self.addEventListener('push', (event) => {
   const data = event.data?.json() ?? {}
   event.waitUntil(self.registration.showNotification(data.title ?? 'Football', {
-    body: data.body, icon: '/icon-192.png', data: { url: data.url ?? '/' },
+    body: data.body, icon: '/icon-192.png', badge: '/badge-72.png', data: { url: data.url ?? '/' },
   }))
 })
 self.addEventListener('notificationclick', (event) => {

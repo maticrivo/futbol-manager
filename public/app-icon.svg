@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="32%" cy="18%" r="95%">
+      <stop offset="0" stop-color="#1B4A30"/>
+      <stop offset=".55" stop-color="#113320"/>
+      <stop offset="1" stop-color="#091D13"/>
+    </radialGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="50%">
+      <stop offset="0" stop-color="#3FBF83" stop-opacity=".24"/>
+      <stop offset="1" stop-color="#3FBF83" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="ballShade" cx="34%" cy="26%" r="82%">
+      <stop offset="0" stop-color="#FFFFFF"/>
+      <stop offset=".56" stop-color="#F5F2E9"/>
+      <stop offset="1" stop-color="#D9DAD0"/>
+    </radialGradient>
+    <clipPath id="ballClip">
+      <circle cx="256" cy="250" r="165"/>
+    </clipPath>
+  </defs>
+
+  <rect width="512" height="512" fill="url(#bg)"/>
+  <circle cx="256" cy="252" r="250" fill="url(#glow)"/>
+
+  <g opacity=".06" stroke="#F6F5F2" fill="none">
+    <circle cx="256" cy="256" r="214" stroke-width="3"/>
+    <line x1="256" y1="0" x2="256" y2="512" stroke-width="3"/>
+  </g>
+
+  <circle cx="240.6" cy="267.6" r="167" fill="#3FBF83"/>
+
+  <g transform="rotate(-8 256 250)">
+    <circle cx="256" cy="250" r="165" fill="url(#ballShade)"/>
+    <g clip-path="url(#ballClip)">
+      <g stroke="#10281B" stroke-width="11" stroke-linecap="round">
+        <line x1="312.68" y1="268.42" x2="431.95" y2="307.17"/>
+        <line x1="256.00" y1="309.60" x2="256.00" y2="435.00"/>
+        <line x1="199.32" y1="268.42" x2="80.05" y2="307.17"/>
+        <line x1="220.97" y1="201.78" x2="147.26" y2="100.33"/>
+        <line x1="291.03" y1="201.78" x2="364.74" y2="100.33"/>
+      </g>
+      <g fill="#10281B">
+        <polygon points="327.14,273.11 379.45,235.11 431.76,273.11 411.78,334.61 347.12,334.61"/>
+        <polygon points="256.00,324.80 308.31,362.80 288.33,424.30 223.67,424.30 203.69,362.80"/>
+        <polygon points="184.86,273.11 164.88,334.61 100.22,334.61 80.24,273.11 132.55,235.11"/>
+        <polygon points="212.03,189.49 147.38,189.49 127.40,127.99 179.71,89.99 232.01,127.99"/>
+        <polygon points="299.97,189.49 279.99,127.99 332.29,89.99 384.60,127.99 364.62,189.49"/>
+      </g>
+    </g>
+    <polygon points="314.59,269.04 256.00,311.60 197.41,269.04 219.79,200.16 292.21,200.16" fill="#10281B"/>
+    <circle cx="256" cy="250" r="164" fill="none" stroke="#0B2216" stroke-opacity=".18" stroke-width="2"/>
+  </g>
+</svg>

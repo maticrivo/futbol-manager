@@ -37,7 +37,7 @@ This runbook covers setting up, deploying, operating, and monitoring the Weekly 
    - `AUTH_FACEBOOK_ID` / `AUTH_FACEBOOK_SECRET`.
    - `AUTH_TRUST_HOST=true` for local/hosted Next.js.
    - `ADMIN_EMAIL` — the Google/Facebook email that becomes the first admin.
-   Register `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/facebook` with the providers. Facebook Login requires HTTPS redirect URIs and app review/test users before people outside the app's testers can sign in; an HTTPS tunnel may be needed for local Facebook testing. Facebook app settings also require public:
+   Register `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/facebook` with the providers. Upload `public/icon-1024.png` as the Google OAuth consent-screen logo and the Facebook app icon so the provider consent screens show the app mark. Facebook Login requires HTTPS redirect URIs and app review/test users before people outside the app's testers can sign in; an HTTPS tunnel may be needed for local Facebook testing. Facebook app settings also require public:
    - Privacy Policy URL: `https://<APP_URL>/privacy`
    - User Data Deletion Instructions URL: `https://<APP_URL>/data-deletion`
    - Terms of Service: `https://<APP_URL>/terms` (not required by Facebook, but linked in the app)
