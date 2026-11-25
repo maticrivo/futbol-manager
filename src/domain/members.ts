@@ -3,6 +3,7 @@ import { accounts, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { asc, eq, inArray, sql } from 'drizzle-orm'
 import { writeAudit } from './audit'
+import { isConfiguredAdminEmail } from './oauth'
 import { revokeUserSessions } from './sessions'
 
 export type MemberRow = typeof users.$inferSelect
@@ -125,6 +126,69 @@ export async function setMemberStatus(
       entity: 'member',
       entityId: memberId,
       detail: { status },
+    })
+
+    const [updated] = await tx
+      .select()
+      .from(users)
+      .where(eq(users.id, memberId))
+      .limit(1)
+
+    return ok(toMember(updated!))
+  })
+}
+
+export type SetMemberRoleError = 'FORBIDDEN' | 'NOT_FOUND' | 'MEMBER_NOT_ACTIVE'
+
+export async function setMemberRole(
+  db: Db,
+  actorId: string,
+  memberId: string,
+  role: 'member' | 'admin'
+): Promise<Result<Member, SetMemberRoleError>> {
+  return await db.transaction(async (tx) => {
+    // Global lock order: user rows first, in ascending text-id order.
+    const ids = Array.from(new Set([actorId, memberId])).sort()
+
+    const lockedMembers = await tx
+      .select()
+      .from(users)
+      .where(inArray(users.id, ids))
+      .for('update')
+      .orderBy(asc(users.id))
+
+    const actor = lockedMembers.find((m) => m.id === actorId)
+    if (!actor || actor.role !== 'admin') {
+      return err('FORBIDDEN')
+    }
+
+    const target = lockedMembers.find((m) => m.id === memberId)
+    if (!target) {
+      return err('NOT_FOUND')
+    }
+
+    // Nothing to change, and nothing to audit.
+    if (target.role === role) {
+      return ok(toMember(target))
+    }
+
+    if (role === 'member') {
+      if (actorId === memberId) return err('FORBIDDEN')
+      if (isConfiguredAdminEmail(target.email)) return err('FORBIDDEN')
+    }
+
+    if (role === 'admin' && target.status !== 'active') {
+      return err('MEMBER_NOT_ACTIVE')
+    }
+
+    await tx.update(users).set({ role }).where(eq(users.id, memberId))
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'member.role',
+      entity: 'member',
+      entityId: memberId,
+      detail: { role },
     })
 
     const [updated] = await tx

@@ -1,15 +1,17 @@
-import { beforeEach, expect, it, vi } from 'vitest'
+import { and, eq } from 'drizzle-orm'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import { revalidatePath } from 'next/cache'
 import {
   addMemberAction,
   createNextMatchAction,
   linkMemberAction,
+  setMemberRoleAction,
   setMemberStatusAction,
   updateMemberAction,
   updateSettingsAction,
 } from '@/app/actions/admin'
-import { matches } from '@/db/schema'
-import { createMember, listMembers } from '@/domain/members'
+import { auditLog, matches } from '@/db/schema'
+import { createMember, listMembers, setMemberRole } from '@/domain/members'
 import { createMatchForDate, getSettings } from '@/domain/matches'
 import { requireAdmin } from '@/lib/auth'
 import { resetDb, testDb } from '../db'
@@ -21,9 +23,17 @@ vi.mock('@/db', async importOriginal => ({
   getDb: () => testDb,
 }))
 
+const originalAdminEmail = process.env.ADMIN_EMAIL
+
 beforeEach(async () => {
   vi.clearAllMocks()
+  delete process.env.ADMIN_EMAIL
   await resetDb()
+})
+
+afterEach(() => {
+  if (originalAdminEmail === undefined) delete process.env.ADMIN_EMAIL
+  else process.env.ADMIN_EMAIL = originalAdminEmail
 })
 
 function idForm(memberId: string) {
@@ -35,6 +45,12 @@ function idForm(memberId: string) {
 function statusForm(memberId: string, status: string) {
   const data = idForm(memberId)
   data.set('status', status)
+  return data
+}
+
+function roleForm(memberId: string, role: string) {
+  const data = idForm(memberId)
+  data.set('role', role)
   return data
 }
 
@@ -248,4 +264,94 @@ it('updateMemberAction updates profile fields and leaves email unchanged', async
   expect(updatedTarget.email).toBe('old@example.com')
   expect(updatedTarget.phone).toBe('+972 50 999 8888')
   expect(updatedTarget.image).toBe('https://example.com/avatar.jpg')
+})
+
+it('setMemberRoleAction promotes an active member and audits the change', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await setMemberRoleAction(null, roleForm(target.id, 'admin'))).toEqual({ ok: true })
+  expect((await listMembers(testDb)).find((m) => m.id === target.id)!.role).toBe('admin')
+
+  const audits = await testDb
+    .select()
+    .from(auditLog)
+    .where(and(eq(auditLog.action, 'member.role'), eq(auditLog.entityId, target.id)))
+  expect(audits).toHaveLength(1)
+  expect(audits[0].actorId).toBe(admin.id)
+  expect(audits[0].detail).toEqual({ role: 'admin' })
+  expect(revalidatePath).toHaveBeenCalledWith('/admin/members')
+})
+
+it('setMemberRoleAction rejects promoting pending and disabled members', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const pending = (await createMember(testDb, { name: 'Pending', email: 'pending@example.com', status: 'pending' })).member
+  const disabled = (await createMember(testDb, { name: 'Off', email: 'off@example.com', status: 'disabled' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await setMemberRoleAction(null, roleForm(pending.id, 'admin'))).toEqual({ ok: false, code: 'MEMBER_NOT_ACTIVE' })
+  expect(await setMemberRoleAction(null, roleForm(disabled.id, 'admin'))).toEqual({ ok: false, code: 'MEMBER_NOT_ACTIVE' })
+  expect((await listMembers(testDb)).find((m) => m.id === pending.id)!.role).toBe('member')
+  expect((await listMembers(testDb)).find((m) => m.id === disabled.id)!.role).toBe('member')
+})
+
+it('setMemberRoleAction demotes another admin but not yourself', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const other = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await setMemberRoleAction(null, roleForm(other.id, 'member'))).toEqual({ ok: true })
+  expect((await listMembers(testDb)).find((m) => m.id === other.id)!.role).toBe('member')
+
+  expect(await setMemberRoleAction(null, roleForm(admin.id, 'member'))).toEqual({ ok: false, code: 'FORBIDDEN' })
+  expect((await listMembers(testDb)).find((m) => m.id === admin.id)!.role).toBe('admin')
+
+  // The just-demoted admin cannot demote anyone else.
+  expect(await setMemberRole(testDb, other.id, admin.id, 'member')).toEqual({ ok: false, code: 'FORBIDDEN' })
+})
+
+it('setMemberRoleAction refuses to demote the configured superuser', async () => {
+  process.env.ADMIN_EMAIL = ' BOSS@Example.com '
+  const superuser = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const other = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(other)
+
+  expect(await setMemberRoleAction(null, roleForm(superuser.id, 'member'))).toEqual({ ok: false, code: 'FORBIDDEN' })
+  expect((await listMembers(testDb)).find((m) => m.id === superuser.id)!.role).toBe('admin')
+
+  // Regular promotions still work while ADMIN_EMAIL is set.
+  const player = (await createMember(testDb, { name: 'Player', email: 'player@example.com' })).member
+  expect(await setMemberRoleAction(null, roleForm(player.id, 'admin'))).toEqual({ ok: true })
+})
+
+it('setMemberRoleAction rejects malformed role changes', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await setMemberRoleAction(null, roleForm(target.id, 'owner'))).toEqual({ ok: false, code: 'NOT_FOUND' })
+  expect(await setMemberRoleAction(null, idForm(target.id))).toEqual({ ok: false, code: 'NOT_FOUND' })
+  expect(await setMemberRoleAction(null, roleForm('not-a-uuid', 'admin'))).toEqual({ ok: false, code: 'NOT_FOUND' })
+  expect(await setMemberRoleAction(null, roleForm(crypto.randomUUID(), 'admin'))).toEqual({ ok: false, code: 'NOT_FOUND' })
+
+  expect((await listMembers(testDb)).find((m) => m.id === target.id)!.role).toBe('member')
+  expect(await testDb.select().from(auditLog).where(eq(auditLog.action, 'member.role'))).toHaveLength(0)
+})
+
+it('setMemberRoleAction rejects when the admin authorization check fails', async () => {
+  const target = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com' })).member
+  vi.mocked(requireAdmin).mockRejectedValueOnce(new Error('NEXT_REDIRECT'))
+
+  await expect(setMemberRoleAction(null, roleForm(target.id, 'admin'))).rejects.toThrow('NEXT_REDIRECT')
+  expect((await listMembers(testDb)).find((m) => m.id === target.id)!.role).toBe('member')
+})
+
+it('setMemberRoleAction treats an unchanged role as a no-op with no audit entry', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'Ana', email: 'ana@example.com', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await setMemberRoleAction(null, roleForm(target.id, 'admin'))).toEqual({ ok: true })
+  expect(await testDb.select().from(auditLog).where(eq(auditLog.action, 'member.role'))).toHaveLength(0)
 })

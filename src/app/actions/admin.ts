@@ -9,7 +9,7 @@ import { charges, entries, guestPayments, users } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
-import { createMember, isValidEmail, linkPendingMemberToMember, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
+import { createMember, isValidEmail, linkPendingMemberToMember, setMemberRole, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, deleteMatch, getLastUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
@@ -97,6 +97,31 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   }
 
   const result = await setMemberStatus(db, admin.id, memberId, statusValue)
+  if (!result.ok) {
+    return { ok: false, code: result.code }
+  }
+
+  revalidatePath('/admin/members')
+  revalidatePath('/admin')
+  revalidatePath('/')
+  return { ok: true }
+}
+
+export async function setMemberRoleAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const memberId = parseUserId(formData.get('memberId'))
+  if (memberId === null) {
+    return { ok: false, code: 'NOT_FOUND' }
+  }
+
+  const roleValue = formData.get('role')
+  if (roleValue !== 'admin' && roleValue !== 'member') {
+    return { ok: false, code: 'NOT_FOUND' }
+  }
+
+  const result = await setMemberRole(db, admin.id, memberId, roleValue)
   if (!result.ok) {
     return { ok: false, code: result.code }
   }
