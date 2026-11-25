@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import type { Db, Executor } from '@/db'
-import { members, settings } from '@/db/schema'
+import { users, settings } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { isHttpUrl, splitVenue } from '@/lib/venue'
 import { writeAudit } from './audit'
@@ -72,13 +72,13 @@ export async function getSettings(db: Executor): Promise<Settings> {
 
 export async function updateSettings(
   db: Db,
-  actorId: number,
+  actorId: string,
   patch: Partial<Settings>
 ): Promise<Result<Settings, 'FORBIDDEN' | 'INVALID_SETTING'>> {
   const [actor] = await db
-    .select({ role: members.role })
-    .from(members)
-    .where(eq(members.id, actorId))
+    .select({ role: users.role })
+    .from(users)
+    .where(eq(users.id, actorId))
 
   if (!actor || actor.role !== 'admin') {
     return err('FORBIDDEN')

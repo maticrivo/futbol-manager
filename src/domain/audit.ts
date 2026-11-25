@@ -1,9 +1,9 @@
 import { desc, eq } from 'drizzle-orm'
 import type { Db, Executor } from '@/db'
-import { auditLog, members } from '@/db/schema'
+import { auditLog, users } from '@/db/schema'
 
 export type WriteAuditInput = {
-  actorId?: number
+  actorId?: string
   action: string
   entity: string
   entityId?: string
@@ -43,10 +43,10 @@ export async function getAuditLog(db: Db, limit = 200): Promise<AuditLogEntry[]>
       entityId: auditLog.entityId,
       detail: auditLog.detail,
       createdAt: auditLog.createdAt,
-      actorName: members.name,
+      actorName: users.name,
     })
     .from(auditLog)
-    .leftJoin(members, eq(members.id, auditLog.actorId))
+    .leftJoin(users, eq(users.id, auditLog.actorId))
     .orderBy(desc(auditLog.createdAt), desc(auditLog.id))
     .limit(clamped)
 }

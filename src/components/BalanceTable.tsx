@@ -10,7 +10,7 @@ import { Button } from './ui/Button'
 import { Badge } from './ui/Badge'
 
 export type BalanceRow = {
-  id: number
+  id: string
   name: string
   balanceAgorot: number
   balanceLabel: string

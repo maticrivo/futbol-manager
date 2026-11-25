@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
-import { auditLog, charges, entries, matches, members } from '@/db/schema'
+import { auditLog, charges, entries, matches, users } from '@/db/schema'
 import { addGuest, signup, withdraw } from '@/domain/entries'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, lockMatch, restoreCharge, setAttendance, waiveCharge } from '@/domain/lock'
 import { createMatchForDate, getMatch } from '@/domain/matches'
@@ -13,8 +13,8 @@ const guestOpen = new Date('2027-03-29T11:00:00Z')
 beforeEach(resetDb)
 
 async function setup() {
-  const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
-  const players = await testDb.insert(members)
+  const [admin] = await testDb.insert(users).values({ name: 'Admin', role: 'admin' }).returning()
+  const players = await testDb.insert(users)
     .values(Array.from({ length: 14 }, (_, i) => ({ name: `Player ${i}` }))).returning()
   const match = await createMatchForDate(testDb, '2027-03-30')
   const roster = []
@@ -29,14 +29,14 @@ async function setup() {
 }
 
 function matchCharges(matchId: number) {
-  return testDb.select().from(charges).where(eq(charges.matchId, matchId)).orderBy(charges.memberId)
+  return testDb.select().from(charges).where(eq(charges.matchId, matchId)).orderBy(charges.id)
 }
 
 function logs(action: string) {
   return testDb.select().from(auditLog).where(eq(auditLog.action, action)).orderBy(auditLog.id)
 }
 
-it('charges confirmed members once, including no-shows, and never guests', async () => {
+it('charges confirmed users once, including no-shows, and never guests', async () => {
   const { match, roster } = await setup()
   await testDb.update(entries).set({ attended: false }).where(eq(entries.id, roster[0].id))
   const first = await lockMatch(testDb, match.id, lockTime)
@@ -95,7 +95,7 @@ it('requires a reason and an admin to waive, and audits it', async () => {
   }])
 })
 
-it('charges added members and waives removed members after lock even if the roster was full', async () => {
+it('charges added users and waives removed users after lock even if the roster was full', async () => {
   const { match, people } = await setup()
   await testDb.update(matches).set({ capacity: 4 }).where(eq(matches.id, match.id))
   const input = { actorId: people.admin.id, matchId: match.id, memberId: people.extra.id, now: guestOpen, reason: '' }
@@ -130,7 +130,7 @@ it('charges added members and waives removed members after lock even if the rost
 
 it('preserves an existing waiver when another admin removes that member', async () => {
   const { match, people, roster } = await setup()
-  const [otherAdmin] = await testDb.insert(members).values({ name: 'Other admin', role: 'admin' }).returning()
+  const [otherAdmin] = await testDb.insert(users).values({ name: 'Other admin', role: 'admin' }).returning()
   await lockMatch(testDb, match.id, lockTime)
   const [charge] = await matchCharges(match.id)
   const waiverTime = new Date('2027-03-30T12:00:00Z')
@@ -259,10 +259,10 @@ it('refuses an admin mutation after waiting for a concurrent demotion to commit'
   let attendance: ReturnType<typeof setAttendance> | undefined
   try {
     await holder.query('BEGIN')
-    await holder.query('UPDATE members SET role = $1 WHERE id = $2', ['member', actorId])
+    await holder.query('UPDATE "user" SET role = $1 WHERE id = $2', ['member', actorId])
     attendance = setAttendance(testDb, { actorId, entryId, attended: true }, lockTime)
     void attendance.catch(() => {})
-    await waitForLockWait('from "members" where "members"."id" = $')
+    await waitForLockWait('from "user" where "user"."id" = $')
     await holder.query('COMMIT')
 
     expect(await attendance).toEqual({ ok: false, code: 'FORBIDDEN' })
@@ -310,8 +310,8 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
     const targetCharge = rows.find(charge => charge.memberId === target.memberId)
     expect(locked.value).toEqual({ ok: true, value: { chargesCreated: targetCharge ? 4 : 3, transitioned: true } })
     expect(rows).toHaveLength(targetCharge ? 4 : 3)
-    expect(rows.filter(charge => charge.status === 'charged').map(charge => charge.memberId))
-      .toEqual([actorId, ...roster.slice(1).map(entry => entry.memberId)])
+    expect(rows.filter(charge => charge.status === 'charged').map(charge => charge.memberId).sort())
+      .toEqual([actorId, ...roster.slice(1).map(entry => entry.memberId)].sort())
     if (targetCharge) {
       expect(targetCharge).toMatchObject({ status: 'waived', waivedBy: actorId, waiveReason: 'test' })
     }
@@ -328,23 +328,23 @@ it.each([1, 2, 3, 4, 5])('serializes billing and removal by a billed admin (run 
 it.each([1, 2, 3, 4, 5])('serializes reciprocal admin additions on different matches (run %i)', async () => {
   const first = await createMatchForDate(testDb, '2027-03-30')
   const second = await createMatchForDate(testDb, '2027-04-06')
-  const [a, b] = await testDb.insert(members)
+  const [a, b] = await testDb.insert(users)
     .values([{ name: 'Admin A', role: 'admin' }, { name: 'Admin B', role: 'admin' }]).returning()
   const holder = await testDb.$client.connect()
   let aAddsB: ReturnType<typeof adminAddEntry> | undefined
   let bAddsA: ReturnType<typeof adminAddEntry> | undefined
   try {
     await holder.query('BEGIN')
-    await holder.query('SELECT id FROM members WHERE id = $1 FOR UPDATE', [b.id])
+    await holder.query('SELECT id FROM "user" WHERE id = $1 FOR UPDATE', [b.id])
     // B must take lower-ID A before waiting for higher-ID B. A's own add then waits for A.
     bAddsA = adminAddEntry(testDb, { actorId: b.id, matchId: second.id, memberId: a.id, now: guestOpen, reason: '' })
     void bAddsA.catch(() => {})
-    await waitForLockWait('from "members" where "members"."id" = $')
+    await waitForLockWait('from "user" where "user"."id" = $')
     aAddsB = adminAddEntry(testDb, { actorId: a.id, matchId: first.id, memberId: b.id, now: guestOpen, reason: '' })
     void aAddsB.catch(() => {})
     // Both admin adds must be blocked at once: bAddsA on B (the holder) and
     // aAddsB on A (held by bAddsA). One waiter would not prove the second.
-    await waitForLockWait('from "members" where "members"."id" = $', 3000, 2)
+    await waitForLockWait('from "user" where "user"."id" = $', 3000, 2)
     await holder.query('COMMIT')
 
     const [addedB, addedA] = await Promise.allSettled([aAddsB, bAddsA])

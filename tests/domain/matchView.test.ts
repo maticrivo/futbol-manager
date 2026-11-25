@@ -100,7 +100,7 @@ it('reports the caller’s offer and counts it against the last available spot',
 })
 
 it('rejects a nonexistent match', async () => {
-  await expect(getMatchView(testDb, { matchId: 1, memberId: 1, now: new Date('2027-03-30') }))
+  await expect(getMatchView(testDb, { matchId: 1, memberId: '00000000-0000-4000-8000-000000000000', now: new Date('2027-03-30') }))
     .rejects.toThrow('Match 1 not found')
 })
 

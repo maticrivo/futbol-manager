@@ -29,12 +29,12 @@ beforeEach(async () => {
   await resetDb()
 })
 
-async function addCharge(memberId: number, month: string, amountAgorot: number) {
+async function addCharge(memberId: string, month: string, amountAgorot: number) {
   const match = await createMatchForDate(testDb, `${month}-12`)
   await testDb.insert(charges).values({ matchId: match.id, memberId, billingMonth: month, amountAgorot })
 }
 
-function paymentForm(memberId: number, overrides: Record<string, string> = {}) {
+function paymentForm(memberId: string, overrides: Record<string, string> = {}) {
   const data = new FormData()
   data.set('memberId', String(memberId))
   data.set('amountShekels', '35.5')

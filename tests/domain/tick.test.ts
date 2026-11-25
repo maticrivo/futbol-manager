@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { charges, entries, matches, members, notificationPrefs } from '@/db/schema'
+import { charges, entries, matches, users, notificationPrefs } from '@/db/schema'
 import { signup } from '@/domain/entries'
 import { advanceMatch, lockMatch } from '@/domain/lock'
 import { createMatchForDate, getMatch } from '@/domain/matches'
@@ -20,8 +20,8 @@ beforeEach(() => {
 
 async function confirmMembers(matchId: number, n: number): Promise<void> {
   const created = await testDb
-    .insert(members)
-    .values(Array.from({ length: n }, (_, i) => ({ name: `Player ${i}` })))
+    .insert(users)
+    .values(Array.from({ length: n }, (_, i) => ({ name: `Player ${i}`, status: 'active' as const })))
     .returning()
   for (const { id } of created) {
     const result = await signup(testDb, { memberId: id, matchId, now: signupNow })
@@ -31,8 +31,8 @@ async function confirmMembers(matchId: number, n: number): Promise<void> {
 
 async function subscribeThreeMembers(): Promise<void> {
   const created = await testDb
-    .insert(members)
-    .values([{ name: 'Ana' }, { name: 'Ben' }, { name: 'Dana' }])
+    .insert(users)
+    .values([{ name: 'Ana', status: 'active' as const }, { name: 'Ben', status: 'active' as const }, { name: 'Dana', status: 'active' as const }])
     .returning()
   for (const { id } of created) {
     await savePushSubscription(testDb, { memberId: id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' })
@@ -229,7 +229,7 @@ it('repairs a played-only table by scheduling the week after the latest match', 
 
 it('expires an expired offer before lock and counts it once', async () => {
   const match = await createMatchForDate(testDb, '2027-03-30')
-  const [member] = await testDb.insert(members).values({ name: 'Only' }).returning()
+  const [member] = await testDb.insert(users).values({ name: 'Only' }).returning()
   const now = new Date('2027-03-29T10:00:00Z')
   await testDb.insert(entries).values([
     { matchId: match.id, kind: 'member', memberId: member.id, status: 'offered', offerExpiresAt: now },

@@ -17,14 +17,14 @@ beforeEach(async () => {
   await resetDb()
 })
 
-it('updateOwnProfileAction updates current member profile and revalidates /profile and /', async () => {
-  const member = (await createMember(testDb, { name: 'SelfUser' })).member
+it('updateOwnProfileAction updates app-managed profile fields and revalidates', async () => {
+  const member = (await createMember(testDb, { name: 'SelfUser', email: 'self@example.com' })).member
   vi.mocked(requireSessionMember).mockResolvedValue(member)
 
   const form = new FormData()
   form.set('name', 'SelfUser Renamed')
   form.set('nickname', 'Selfie')
-  form.set('email', 'self@example.com')
+  form.set('email', 'other@example.com')
   form.set('phone', '+1 555 123 4567')
   form.set('image', 'https://example.com/me.png')
 
@@ -41,13 +41,13 @@ it('updateOwnProfileAction updates current member profile and revalidates /profi
   expect(updated.image).toBe('https://example.com/me.png')
 })
 
-it('updateOwnProfileAction returns error if validation fails', async () => {
-  const member = (await createMember(testDb, { name: 'SelfUser' })).member
+it('updateOwnProfileAction returns an error if name validation fails', async () => {
+  const member = (await createMember(testDb, { name: 'SelfUser', email: 'self@example.com' })).member
   vi.mocked(requireSessionMember).mockResolvedValue(member)
 
   const form = new FormData()
-  form.set('email', 'not-valid-email')
+  form.set('name', '   ')
 
   const res = await updateOwnProfileAction(null, form)
-  expect(res).toEqual({ ok: false, code: 'INVALID_EMAIL' })
+  expect(res).toEqual({ ok: false, code: 'INVALID_NAME' })
 })

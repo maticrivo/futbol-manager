@@ -2,7 +2,7 @@ import { and, eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
 import { testDb, resetDb } from '../db'
 import { waitForLockWait } from '../lock-wait'
-import { entries, matches, members as memberRows } from '@/db/schema'
+import { entries, matches, users as memberRows } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { claimOffer, joinQueue, leaveQueue, expireOffers, offerNext } from '@/domain/queue'
 import { addGuest, freeSpots, removeGuest, signup, withdraw } from '@/domain/entries'
@@ -32,7 +32,7 @@ async function fullMatch() {
   return { match, members }
 }
 
-async function entryId(matchId: number, memberId: number) {
+async function entryId(matchId: number, memberId: string) {
   const [entry] = await testDb.select({ id: entries.id }).from(entries)
     .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId)))
   if (!entry) throw new Error(`No entry for member ${memberId} in match ${matchId}`)

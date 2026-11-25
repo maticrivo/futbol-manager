@@ -21,25 +21,23 @@
   },
   "auth": {
     "signedInAs": "Signed in as {name}",
-    "invalidLink": "Link expired or revoked",
-    "askAdmin": "Ask an admin for a new link",
     "signInTitle": "Sign in / Sign up",
-    "signInSubtitle": "Enter your email to receive a magic sign-in link.",
-    "emailLabel": "Email",
+    "signInSubtitle": "Sign in or create your account with Google or Facebook.",
+    "continueWithGoogle": "Continue with Google",
+    "continueWithFacebook": "Continue with Facebook",
+    "signInError": "Sign-in failed. Please try again.",
+    "emailMissing": "That account did not share an email address. Try another sign-in method or add an email to the account.",
+    "accessDenied": "Sign-in was cancelled or not allowed.",
+    "backToProfile": "Back to profile",
+    "sessionExpiredTitle": "Session expired",
+    "sessionExpiredDescription": "Please sign in again.",
+    "signInAgain": "Sign in",
     "emailPlaceholder": "player@example.com",
-    "detailsSummary": "Add your details (optional)",
-    "nameLabel": "Name",
-    "nicknameLabel": "Nickname",
-    "phoneLabel": "Phone",
-    "imageLabel": "Profile photo",
-    "sendLink": "Send sign-in link",
-    "sendingLink": "Sending…",
-    "magicLinkSent": "Check your email for your sign-in link.",
-    "magicLinkError": "Please enter a valid email address.",
     "pendingTitle": "Account pending approval",
     "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
     "signOut": "Sign out",
-    "completeProfile": "Complete your profile"
+    "completeProfile": "Complete your profile",
+    "accountLinkedElsewhere": "That account is already connected to another member. Ask an admin to link it."
   },
   "profile": {
     "title": "Your Profile",
@@ -58,7 +56,15 @@
     "themeHint": "Choose how the app looks on this device.",
     "themeSystem": "System",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "emailReadOnly": "Email comes from your social account and can't be changed here.",
+    "connectedAccounts": {
+      "title": "Connected accounts",
+      "google": "Google",
+      "facebook": "Facebook",
+      "connected": "Connected",
+      "connectProvider": "Connect {provider}"
+    }
   },
   "home": {
     "placeholder": "Match details will appear here."
@@ -259,8 +265,7 @@
       "role": "Role",
       "status": "Status",
       "locale": "Language",
-      "created": "Created",
-      "regenerate": "Regenerate link",
+      "created": "Member added.",
       "disable": "Disable",
       "enable": "Enable",
       "approve": "Approve",
@@ -270,15 +275,16 @@
       "statusActive": "Active",
       "statusDisabled": "Disabled",
       "statusPending": "Pending",
-      "emailOrName": "Email or name",
       "add": "Add member",
       "adding": "Adding…",
-      "working": "Working…"
-    },
-    "invite": {
-      "heading": "Invite link",
-      "copy": "Copy",
-      "copied": "Copied!"
+      "working": "Working…",
+      "emailReadOnly": "Email comes from the member's social account.",
+      "linkTo": "Link to an existing member",
+      "linkTarget": "Existing member",
+      "chooseTarget": "Choose a member…",
+      "link": "Link account",
+      "linking": "Linking…",
+      "linked": "Account linked."
     },
     "settings": {
       "title": "Settings",
@@ -430,6 +436,9 @@
     "MEMBER_NOT_FOUND": "That member could not be found.",
     "TARGET_MONTH_REQUIRED": "A target month is required.",
     "UNKNOWN": "Something went wrong. Please try again.",
-    "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved."
+    "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved.",
+    "NOT_PENDING": "Only pending members can be linked.",
+    "TARGET_NOT_ACTIVE": "Choose an active member.",
+    "SAME_MEMBER": "Choose a different member."
   }
 }

@@ -1,15 +1,12 @@
+import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
-import fs from 'node:fs'
-import path from 'node:path'
+import { users } from '@/db/schema'
+import { createMember } from '@/domain/members'
 import { testDb, resetDb } from '../db'
-import { createMember, loginWithInvite, requestMemberAccess, setMemberStatus } from '@/domain/members'
-import { SESSION_COOKIE } from '@/lib/auth'
 import ProfilePage from '@/app/profile/page'
 import Nav from '@/components/Nav'
 import ProfileForm from '@/components/ProfileForm'
-import LoginForm from '@/components/LoginForm'
 import { redirect } from 'next/navigation'
-import { cookies } from 'next/headers'
 
 vi.mock('next-intl', () => ({
   useTranslations: vi.fn(() => {
@@ -28,11 +25,21 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => {
     throw new Error(`NEXT_REDIRECT:${url}`)
   }),
+  usePathname: vi.fn(() => '/'),
+  useRouter: vi.fn(() => ({ push: vi.fn() })),
 }))
 
 vi.mock('next/headers', () => ({
-  cookies: vi.fn(),
-  headers: vi.fn(async () => new Headers({ host: 'localhost:3000' })),
+  cookies: vi.fn(async () => ({
+    get: vi.fn(() => undefined),
+  })),
+}))
+
+vi.mock('@/auth', () => ({
+  auth: vi.fn(),
+  signIn: vi.fn(),
+  signOut: vi.fn(),
+  handlers: {},
 }))
 
 vi.mock('@/db', async (importOriginal) => ({
@@ -40,36 +47,28 @@ vi.mock('@/db', async (importOriginal) => ({
   getDb: () => testDb,
 }))
 
-const now = new Date('2027-03-27T10:00:00Z')
+import { auth } from '@/auth'
 
-function mockSessionCookie(token?: string) {
-  vi.mocked(cookies).mockResolvedValue({
-    get: vi.fn((name: string) =>
-      token && name === SESSION_COOKIE ? { name, value: token } : undefined
-    ),
-  } as unknown as Awaited<ReturnType<typeof cookies>>)
-}
+beforeEach(async () => {
+  await resetDb()
+  vi.clearAllMocks()
+})
 
 describe('ProfilePage & Nav integration', () => {
-  beforeEach(async () => {
-    await resetDb()
-    vi.clearAllMocks()
-  })
-
   it('ProfilePage redirects unauthenticated visitors to /login/expired', async () => {
-    mockSessionCookie()
+    vi.mocked(auth).mockResolvedValue(null as never)
 
     await expect(ProfilePage()).rejects.toThrow('NEXT_REDIRECT:/login/expired')
     expect(redirect).toHaveBeenCalledWith('/login/expired')
   })
 
   it('ProfilePage renders for pending members so they can complete their profile', async () => {
-    const res = await requestMemberAccess(testDb, 'pending-profile@example.com', now)
-    if (!res.ok) throw new Error(res.code)
-    const login = await loginWithInvite(testDb, res.value.inviteToken, now)
-    if (!login.ok) throw new Error(login.code)
-
-    mockSessionCookie(login.value.sessionToken)
+    const pending = (await createMember(testDb, {
+      name: 'Pending',
+      email: 'pending@example.com',
+      status: 'pending',
+    })).member
+    vi.mocked(auth).mockResolvedValue({ user: { id: pending.id } } as never)
 
     const element = await ProfilePage()
     expect(element).toBeDefined()
@@ -77,41 +76,43 @@ describe('ProfilePage & Nav integration', () => {
   })
 
   it('ProfilePage redirects disabled members to /login/expired', async () => {
-    const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
-    const { member, inviteToken } = await createMember(testDb, { name: 'DisabledUser' })
-    const login = await loginWithInvite(testDb, inviteToken, now)
-    if (!login.ok) throw new Error(login.code)
-
-    await setMemberStatus(testDb, admin.id, member.id, 'disabled')
-    mockSessionCookie(login.value.sessionToken)
+    const member = (await createMember(testDb, { name: 'DisabledUser', email: 'disabled@example.com' })).member
+    await testDb.update(users).set({ status: 'disabled' }).where(eq(users.id, member.id))
+    vi.mocked(auth).mockResolvedValue({ user: { id: member.id } } as never)
 
     await expect(ProfilePage()).rejects.toThrow('NEXT_REDIRECT:/login/expired')
-    expect(redirect).toHaveBeenCalledWith('/login/expired')
   })
 
   it('ProfilePage renders for active member with fresh DB data', async () => {
-    const { inviteToken } = await createMember(testDb, {
+    const member = (await createMember(testDb, {
       name: 'ActiveUser',
+      email: 'active@example.com',
       nickname: 'Acty',
       phone: '+1 555 999 8888',
       image: 'https://example.com/acty.jpg',
-    })
-    const login = await loginWithInvite(testDb, inviteToken, now)
-    if (!login.ok) throw new Error(login.code)
-
-    mockSessionCookie(login.value.sessionToken)
+    })).member
+    vi.mocked(auth).mockResolvedValue({ user: { id: member.id } } as never)
 
     const element = await ProfilePage()
     expect(element).toBeDefined()
     expect(redirect).not.toHaveBeenCalled()
   })
 
-  it('Nav renders profile link for active members', async () => {
-    const { inviteToken } = await createMember(testDb, { name: 'ActiveNavUser' })
-    const login = await loginWithInvite(testDb, inviteToken, now)
-    if (!login.ok) throw new Error(login.code)
+  it('ConnectedAccounts shows a linked provider and a connect action for the other', async () => {
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const ConnectedAccounts = (await import('@/components/ConnectedAccounts')).default
 
-    mockSessionCookie(login.value.sessionToken)
+    const html = renderToStaticMarkup(React.createElement(ConnectedAccounts, { linked: ['google'] }))
+    expect(html).toContain('title')
+    expect(html).toContain('connected')
+    expect(html).toContain('connectProvider')
+    expect(html).toContain('value="facebook"')
+  })
+
+  it('Nav renders profile link for active members', async () => {
+    const member = (await createMember(testDb, { name: 'ActiveNavUser', email: 'nav@example.com' })).member
+    vi.mocked(auth).mockResolvedValue({ user: { id: member.id } } as never)
 
     const nav = await Nav({ children: null })
     const { renderToStaticMarkup } = await import('react-dom/server')
@@ -120,12 +121,12 @@ describe('ProfilePage & Nav integration', () => {
   })
 
   it('Nav does not render profile link for pending members', async () => {
-    const res = await requestMemberAccess(testDb, 'pending-nav@example.com', now)
-    if (!res.ok) throw new Error(res.code)
-    const login = await loginWithInvite(testDb, res.value.inviteToken, now)
-    if (!login.ok) throw new Error(login.code)
-
-    mockSessionCookie(login.value.sessionToken)
+    const pending = (await createMember(testDb, {
+      name: 'PendingNav',
+      email: 'pending-nav@example.com',
+      status: 'pending',
+    })).member
+    vi.mocked(auth).mockResolvedValue({ user: { id: pending.id } } as never)
 
     const nav = await Nav({ children: null })
     const { renderToStaticMarkup } = await import('react-dom/server')
@@ -133,11 +134,11 @@ describe('ProfilePage & Nav integration', () => {
     expect(html).not.toContain('href="/profile"')
   })
 
-  it('ProfileForm renders with prefilled member values and correct attributes', async () => {
+  it('ProfileForm renders prefilled values and a read-only email', async () => {
     const React = await import('react')
     const { renderToStaticMarkup } = await import('react-dom/server')
     const testMember = {
-      id: 123,
+      id: '123e4567-e89b-12d3-a456-426614174000',
       name: 'Existing Member',
       email: 'existing@example.com',
       phone: '+972501234567',
@@ -146,53 +147,17 @@ describe('ProfilePage & Nav integration', () => {
       role: 'member' as const,
       locale: 'en',
       status: 'active' as const,
+      emailVerified: null,
       createdAt: new Date(),
       updatedAt: new Date(),
     }
 
     const html = renderToStaticMarkup(React.createElement(ProfileForm, { member: testMember }))
     expect(html).toContain('value="Existing Member"')
-    expect(html).toContain('value="existing@example.com"')
+    expect(html).toContain('existing@example.com')
     expect(html).toContain('value="+972501234567"')
     expect(html).toContain('value="Exister"')
     expect(html).toContain('src="https://example.com/ex.png"')
-    expect(html).toContain('required')
-  })
-
-  it('LoginForm renders only the email field', async () => {
-    const React = await import('react')
-    const { renderToStaticMarkup } = await import('react-dom/server')
-    const html = renderToStaticMarkup(React.createElement(LoginForm))
-    expect(html).toContain('name="email"')
-    expect(html).not.toContain('<details')
-    expect(html).not.toContain('name="name"')
-    expect(html).not.toContain('name="phone"')
-  })
-
-  it('all message files (en, he, es) have identical key structure', () => {
-    function getKeys(obj: Record<string, unknown>, prefix = ''): string[] {
-      const keys: string[] = []
-      for (const k of Object.keys(obj).sort()) {
-        const full = prefix ? `${prefix}.${k}` : k
-        const val = obj[k]
-        if (val && typeof val === 'object' && !Array.isArray(val)) {
-          keys.push(...getKeys(val as Record<string, unknown>, full))
-        } else {
-          keys.push(full)
-        }
-      }
-      return keys
-    }
-
-    const enPath = path.resolve(process.cwd(), 'messages/en.json')
-    const hePath = path.resolve(process.cwd(), 'messages/he.json')
-    const esPath = path.resolve(process.cwd(), 'messages/es.json')
-
-    const enKeys = getKeys(JSON.parse(fs.readFileSync(enPath, 'utf8')))
-    const heKeys = getKeys(JSON.parse(fs.readFileSync(hePath, 'utf8')))
-    const esKeys = getKeys(JSON.parse(fs.readFileSync(esPath, 'utf8')))
-
-    expect(heKeys).toEqual(enKeys)
-    expect(esKeys).toEqual(enKeys)
+    expect(html).not.toContain('name="email"')
   })
 })

@@ -48,17 +48,13 @@ export default function ProfileForm({ member }: { member: Member }) {
         />
       </Field>
 
-      <Field label={t('profile.email')} required>
-        <input
-          id="email"
-          name="email"
-          type="email"
-          required
-          maxLength={254}
-          defaultValue={member.email ?? ''}
+      <Field label={t('profile.email')} hint={t('profile.emailReadOnly')}>
+        <p
           dir="ltr"
-          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
-        />
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface-muted px-3.5 py-2.5 text-sm text-muted"
+        >
+          {member.email || '—'}
+        </p>
       </Field>
 
       <Field label={t('profile.phone')}>

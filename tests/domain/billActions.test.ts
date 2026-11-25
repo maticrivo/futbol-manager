@@ -5,11 +5,11 @@ import { savePrefsAction } from '@/app/actions/bill'
 import { notificationPrefs } from '@/db/schema'
 import { createMember } from '@/domain/members'
 import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
-import { requireMember } from '@/lib/auth'
+import { requireSessionMember } from '@/lib/auth'
 import { resetDb, testDb } from '../db'
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
-vi.mock('@/lib/auth', () => ({ requireMember: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ requireSessionMember: vi.fn() }))
 vi.mock('@/db', async importOriginal => ({
   ...await importOriginal<typeof import('@/db')>(),
   getDb: () => testDb,
@@ -32,7 +32,7 @@ const checked = ['lock_reminder', 'bill_ready'] as const
 
 it('enables checked categories, disables the rest, and revalidates the bill once', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
-  vi.mocked(requireMember).mockResolvedValue(member)
+  vi.mocked(requireSessionMember).mockResolvedValue(member)
 
   expect(await savePrefsAction(null, form(checked))).toEqual({ ok: true })
   expect(revalidatePath).toHaveBeenCalledExactlyOnceWith('/bill')
@@ -43,9 +43,20 @@ it('enables checked categories, disables the rest, and revalidates the bill once
   }
 })
 
+it('lets a pending member save notification preferences', async () => {
+  const { member } = await createMember(testDb, { name: 'Pending', status: 'pending' })
+  vi.mocked(requireSessionMember).mockResolvedValue(member)
+
+  expect(await savePrefsAction(null, form(checked))).toEqual({ ok: true })
+
+  const prefs = await listNotificationPrefs(testDb, member.id)
+  expect(prefs.bill_ready).toBe(true)
+  expect(prefs.signup_open).toBe(false)
+})
+
 it('stays at six rows when the same form is submitted twice', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
-  vi.mocked(requireMember).mockResolvedValue(member)
+  vi.mocked(requireSessionMember).mockResolvedValue(member)
 
   await savePrefsAction(null, form(checked))
   await savePrefsAction(null, form(checked))
@@ -57,7 +68,7 @@ it('stays at six rows when the same form is submitted twice', async () => {
 
 it('rolls back a failed save, returns UNKNOWN, and does not revalidate', async () => {
   const { member } = await createMember(testDb, { name: 'Ghost' })
-  vi.mocked(requireMember).mockResolvedValue({ ...member, id: 999999 })
+  vi.mocked(requireSessionMember).mockResolvedValue({ ...member, id: '00000000-0000-4000-8000-000000000000' })
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
   try {

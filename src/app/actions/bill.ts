@@ -5,10 +5,10 @@ import { revalidatePath } from 'next/cache'
 import { getDb } from '@/db'
 import { NOTIFICATION_CATEGORIES, setNotificationPref } from '@/domain/notifications'
 import type { ActionResult } from '@/lib/actions'
-import { requireMember } from '@/lib/auth'
+import { requireSessionMember } from '@/lib/auth'
 
 export async function savePrefsAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
-  const member = await requireMember()
+  const member = await requireSessionMember()
   const db = getDb()
 
   try {

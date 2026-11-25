@@ -1,6 +1,6 @@
 import { and, eq, inArray } from 'drizzle-orm'
 import type { Db, Tx } from '@/db'
-import { entries, matches, members } from '@/db/schema'
+import { entries, matches, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { writeAudit } from './audit'
 import { chargeAddedMember, createMatchCharges, isValidReason, lockAdminActor, waiveRemovedMember } from './charges'
@@ -23,6 +23,7 @@ export async function lockMatch(
       .where(and(eq(entries.matchId, matchId), inArray(entries.status, ['queued', 'offered'])))
     const confirmed = await tx.select({ memberId: entries.memberId }).from(entries)
       .where(and(eq(entries.matchId, matchId), eq(entries.status, 'confirmed'), eq(entries.kind, 'member')))
+      .orderBy(entries.id)
       .for('update')
     const memberIds = confirmed.flatMap(({ memberId }) => memberId === null ? [] : [memberId])
     const chargesCreated = await createMatchCharges(tx, match, memberIds, now)
@@ -65,16 +66,16 @@ function rosterEntry(tx: Tx, match: Match, entryId: number) {
 
 export async function adminAddEntry(
   db: Db,
-  input: { actorId: number; matchId: number; memberId: number; now: Date; reason: string },
+  input: { actorId: string; matchId: number; memberId: string; now: Date; reason: string },
 ): Promise<Result<Entry, 'FORBIDDEN' | 'MATCH_CANCELLED' | 'FULL' | 'ALREADY_IN_MATCH' | 'INVALID_REASON'>> {
   const { actorId, matchId, memberId, now } = input
   return db.transaction(async tx => {
     const match = await lockMatchRow(tx, matchId)
     // Reciprocal additions on different matches must take member locks in the same order.
-    const memberIds = [...new Set([actorId, memberId])].sort((a, b) => a - b)
-    let actorRole: (typeof members.$inferSelect)['role'] | undefined
+    const memberIds = [...new Set([actorId, memberId])].sort()
+    let actorRole: (typeof users.$inferSelect)['role'] | undefined
     for (const id of memberIds) {
-      const [member] = await tx.select({ role: members.role }).from(members).where(eq(members.id, id)).for('update')
+      const [member] = await tx.select({ role: users.role }).from(users).where(eq(users.id, id)).for('update')
       if (id === actorId) actorRole = member?.role
     }
     if (actorRole !== 'admin') return err('FORBIDDEN')
@@ -108,7 +109,7 @@ export async function adminAddEntry(
   })
 }
 
-type EditEntry = { actorId: number; entryId: number }
+type EditEntry = { actorId: string; entryId: number }
 
 export async function adminRemoveEntry(
   db: Db,

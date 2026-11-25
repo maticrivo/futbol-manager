@@ -1,7 +1,7 @@
 import { and, asc, count, desc, DrizzleQueryError, eq, gte, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
-import { charges, entries, guestPayments, matches, members } from '@/db/schema'
+import { charges, entries, guestPayments, matches, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { TZ, weekSchedule } from '@/lib/time'
 import { isHttpUrl } from '@/lib/venue'
@@ -32,7 +32,7 @@ const MONEY_KEYS = new Set(['costAgorot', 'capacity', 'signupOpensAt', 'guestPha
 export async function updateMatch(
   db: Db,
   input: {
-    actorId: number
+    actorId: string
     matchId: number
     now: Date
     patch: UpdateMatchPatch
@@ -47,7 +47,7 @@ export async function updateMatch(
     // Lock order: match row first, then the actor member row.
     const match = await lockMatch(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
     if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
 
     if (match.status === 'played' || match.status === 'cancelled') return err('MATCH_FINISHED')
@@ -138,7 +138,7 @@ export async function updateMatch(
 export async function openSignupsNow(
   db: Db,
   input: {
-    actorId: number
+    actorId: string
     matchId: number
     now: Date
   },
@@ -149,7 +149,7 @@ export async function openSignupsNow(
     // Lock order: match row first, then the actor member row.
     const match = await lockMatch(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
     if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
 
     if (match.status !== 'scheduled') return err('MATCH_FINISHED')
@@ -313,7 +313,7 @@ export async function listUpcomingMatches(db: Db, now: Date): Promise<Match[]> {
 
 export async function deleteMatch(
   db: Db,
-  input: { actorId: number; matchId: number; now: Date },
+  input: { actorId: string; matchId: number; now: Date },
 ): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND'>> {
   const { actorId, matchId, now } = input
 
@@ -321,7 +321,7 @@ export async function deleteMatch(
     // Lock order: match row first, then the actor member row.
     const match = await lockMatch(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
     if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
 
     await writeAudit(tx, {

@@ -26,10 +26,6 @@ export async function updateOwnProfileAction(
     const val = formData.get('name')
     if (typeof val === 'string') patch.name = val
   }
-  if (formData.has('email')) {
-    const val = formData.get('email')
-    if (typeof val === 'string') patch.email = val
-  }
   if (formData.has('phone')) {
     const val = formData.get('phone')
     if (typeof val === 'string') patch.phone = val

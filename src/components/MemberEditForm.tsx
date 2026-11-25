@@ -44,16 +44,13 @@ export default function MemberEditForm({ member }: { member: Member }) {
         />
       </Field>
 
-      <Field label={t('admin.members.email')} required>
-        <input
-          name="email"
-          type="email"
-          required
-          maxLength={254}
-          defaultValue={member.email ?? ''}
+      <Field label={t('admin.members.email')} hint={t('admin.members.emailReadOnly')}>
+        <p
           dir="ltr"
-          className="h-10 w-full rounded-[var(--radius-md)] border border-line bg-surface px-3 py-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
-        />
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface-muted px-3 py-2 text-sm text-muted"
+        >
+          {member.email || '—'}
+        </p>
       </Field>
 
       <Field label={t('admin.members.phone')}>

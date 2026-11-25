@@ -176,7 +176,7 @@ it('requires an admin actor and an existing match', async () => {
 
   expect(await updateMatch(testDb, { actorId: member.id, matchId: match.id, now, patch: { venue: 'X' } }))
     .toEqual({ ok: false, code: 'FORBIDDEN' })
-  expect(await updateMatch(testDb, { actorId: 999999, matchId: match.id, now, patch: { venue: 'X' } }))
+  expect(await updateMatch(testDb, { actorId: '00000000-0000-4000-8000-000000000000', matchId: match.id, now, patch: { venue: 'X' } }))
     .toEqual({ ok: false, code: 'FORBIDDEN' })
   expect(await updateMatch(testDb, { actorId: admin.id, matchId: 999999, now, patch: { venue: 'X' } }))
     .toEqual({ ok: false, code: 'NOT_FOUND' })
@@ -230,7 +230,7 @@ it('openSignupsNow rejects non-admin, non-existing and finished matches', async 
 
   expect(await openSignupsNow(testDb, { actorId: member.id, matchId: match.id, now }))
     .toEqual({ ok: false, code: 'FORBIDDEN' })
-  expect(await openSignupsNow(testDb, { actorId: 999999, matchId: match.id, now }))
+  expect(await openSignupsNow(testDb, { actorId: '00000000-0000-4000-8000-000000000000', matchId: match.id, now }))
     .toEqual({ ok: false, code: 'FORBIDDEN' })
   expect(await openSignupsNow(testDb, { actorId: admin.id, matchId: 999999, now }))
     .toEqual({ ok: false, code: 'NOT_FOUND' })
