@@ -6,10 +6,11 @@ import CreateNextMatchForm from '@/components/CreateNextMatchForm'
 import { getDb } from '@/db'
 import { monthSummary } from '@/domain/billing'
 import { listMembers } from '@/domain/members'
-import { getUpcomingMatch } from '@/domain/matches'
+import { listUpcomingMatches } from '@/domain/matches'
 import { phaseAt } from '@/domain/matchView'
 import { requireAdmin } from '@/lib/auth'
 import { billingMonthOf, formatMatchDate, formatMoney } from '@/lib/time'
+import { Badge } from '@/components/ui/Badge'
 import { Card } from '@/components/ui/Card'
 import { Stat } from '@/components/ui/Stat'
 import { Button } from '@/components/ui/Button'
@@ -19,9 +20,9 @@ export default async function AdminDashboard() {
   const db = getDb()
   const now = new Date()
 
-  const [members, upcoming, summary, locale, t, tm] = await Promise.all([
+  const [members, upcomingMatches, summary, locale, t, tm] = await Promise.all([
     listMembers(db),
-    getUpcomingMatch(db, now),
+    listUpcomingMatches(db, now),
     monthSummary(db, billingMonthOf(now)),
     getLocale(),
     getTranslations('admin'),
@@ -36,35 +37,43 @@ export default async function AdminDashboard() {
       <AdminNav />
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('dashboard.title')}</h1>
-        <Link href="/admin/money">
-          <Button variant="outline" size="sm">
-            {t('nav.money')}
-          </Button>
-        </Link>
+        <CreateNextMatchForm />
       </div>
 
       <Card variant="default" padding="lg" className="space-y-4">
-        <h2 className="text-lg font-semibold text-ink">{t('dashboard.upcomingMatch')}</h2>
-        {upcoming ? (
-          <div className="space-y-2">
-            <p className="text-xl font-semibold text-ink">
-              <time dateTime={upcoming.kickoffAt.toISOString()}>{formatMatchDate(upcoming.kickoffAt, locale)}</time>
-            </p>
-            <p className="text-muted font-medium">
-              <bdi>{upcoming.venue || tm('venueTbd')}</bdi>
-            </p>
-            <div>
-              <span className="inline-flex items-center rounded-full bg-primary-soft px-2.5 py-1 text-xs font-medium text-primary">
-                {tm(`phase.${phaseAt(upcoming, now)}`)}
-              </span>
-            </div>
-          </div>
+        <h2 className="text-lg font-semibold text-ink">{t('dashboard.upcomingMatches')}</h2>
+        {upcomingMatches.length > 0 ? (
+          <ul className="space-y-3">
+            {upcomingMatches.map((match) => {
+              const phase = phaseAt(match, now)
+              return (
+                <li
+                  key={match.id}
+                  className="flex flex-col gap-3 rounded-[var(--radius-md)] border border-line bg-surface p-3 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="space-y-1">
+                    <p className="text-lg font-semibold text-ink">
+                      <time dateTime={match.kickoffAt.toISOString()}>{formatMatchDate(match.kickoffAt, locale)}</time>
+                    </p>
+                    <p className="text-sm font-medium text-muted">
+                      <bdi>{match.venue || tm('venueTbd')}</bdi>
+                    </p>
+                    <Badge variant={phase === 'cancelled' ? 'danger' : 'primary'}>
+                      {tm(`phase.${phase}`)}
+                    </Badge>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button asChild variant="outline" size="sm">
+                      <Link href={`/admin/matches/${match.id}`}>{t('dashboard.manageMatch')}</Link>
+                    </Button>
+                  </div>
+                </li>
+              )
+            })}
+          </ul>
         ) : (
           <p className="text-muted">{t('dashboard.noMatch')}</p>
         )}
-        <div className="pt-2">
-          <CreateNextMatchForm />
-        </div>
       </Card>
 
       <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">

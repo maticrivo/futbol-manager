@@ -1,5 +1,41 @@
 export type Transition = { at: number; label: string }
 
+export type CountdownUnit = 'day' | 'hour' | 'minute' | 'second'
+export type CountdownPart = { unit: CountdownUnit; value: number }
+
+const SECONDS_PER_MINUTE = 60
+const SECONDS_PER_HOUR = 60 * SECONDS_PER_MINUTE
+const SECONDS_PER_DAY = 24 * SECONDS_PER_HOUR
+const SHOW_SECONDS_BELOW = 3 * SECONDS_PER_MINUTE
+
+/**
+ * Breaks the remaining time into at most two friendly parts, e.g. "2 days and
+ * 16 hours" or "2 hours and 17 minutes". Seconds are only included when less
+ * than three minutes remain.
+ */
+export function countdownParts(msRemaining: number): CountdownPart[] {
+  const total = Math.max(0, Math.ceil(msRemaining / 1000))
+  const days = Math.floor(total / SECONDS_PER_DAY)
+  const hours = Math.floor(total / SECONDS_PER_HOUR) % 24
+  const minutes = Math.floor(total / SECONDS_PER_MINUTE) % 60
+  const seconds = total % SECONDS_PER_MINUTE
+
+  if (days > 0) {
+    return hours > 0
+      ? [{ unit: 'day', value: days }, { unit: 'hour', value: hours }]
+      : [{ unit: 'day', value: days }]
+  }
+  if (hours > 0) {
+    return minutes > 0
+      ? [{ unit: 'hour', value: hours }, { unit: 'minute', value: minutes }]
+      : [{ unit: 'hour', value: hours }]
+  }
+  if (total >= SHOW_SECONDS_BELOW) return [{ unit: 'minute', value: minutes }]
+  return minutes > 0
+    ? [{ unit: 'minute', value: minutes }, { unit: 'second', value: seconds }]
+    : [{ unit: 'second', value: seconds }]
+}
+
 export function nextTransition(transitions: Transition[], now: number): Transition | null {
   let next: Transition | null = null
   for (const transition of transitions) {

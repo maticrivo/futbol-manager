@@ -9,6 +9,7 @@ import AdminRoster from '@/components/AdminRoster'
 import AttendanceList from '@/components/AttendanceList'
 import CancelMatchForm from '@/components/CancelMatchForm'
 import CopyMessage from '@/components/CopyMessage'
+import DeleteMatchForm from '@/components/DeleteMatchForm'
 import EditMatchForm from '@/components/EditMatchForm'
 import GuestPayments from '@/components/GuestPayments'
 import { getDb } from '@/db'
@@ -136,10 +137,11 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
           <p>{tm('spotsLeft', { count: spotsLeft })}</p>
           <p>{t('match.confirmed', { count: roster.length })}</p>
         </div>
-        <div>
+        <div className="flex flex-wrap items-center gap-2">
           <Button asChild variant="outline" size="sm">
             <Link href="/admin">{t('match.back')}</Link>
           </Button>
+          <DeleteMatchForm matchId={current.id} redirectTo="/admin" />
         </div>
       </Card>
 

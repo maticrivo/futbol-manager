@@ -4,6 +4,7 @@ import { and, eq, or, sql } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { getDb } from '@/db'
 import { charges, entries, guestPayments, members } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
@@ -12,7 +13,7 @@ import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/
 import { createMember, isValidEmail, regenerateInvite, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
-  createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
+  createMatchForDate, createNextMatch, deleteMatch, getLastUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
 import type { ActionResult, InviteActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
@@ -38,9 +39,10 @@ export async function createNextMatchAction(_prev: ActionResult | null, _formDat
   await requireAdmin()
   const db = getDb()
   const now = new Date()
-  const upcoming = await getUpcomingMatch(db, now)
-  if (upcoming) {
-    await createNextMatch(db, upcoming.id)
+  // Chain from the furthest upcoming match so every click adds one more week.
+  const latest = await getLastUpcomingMatch(db, now)
+  if (latest) {
+    await createNextMatch(db, latest.id)
   } else {
     const today = DateTime.fromJSDate(now, { zone: TZ })
     const weekday = today.weekday
@@ -357,6 +359,27 @@ export async function cancelMatchAction(_prev: ActionResult | null, formData: Fo
   if (!result.ok) return { ok: false, code: result.code }
 
   revalidateMatch(matchId)
+  return { ok: true }
+}
+
+export async function deleteMatchAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const matchId = positiveId(formData.get('matchId'))
+  if (matchId === null) return { ok: false, code: 'NOT_FOUND' }
+
+  const result = await deleteMatch(db, { actorId: admin.id, matchId, now: new Date() })
+  if (!result.ok) return { ok: false, code: result.code }
+
+  revalidatePath('/')
+  revalidatePath('/admin')
+  revalidatePath('/admin/money')
+  revalidatePath('/bill')
+
+  const redirectTo = stringField(formData, 'redirectTo')
+  if (redirectTo.startsWith('/') && !redirectTo.startsWith('//')) redirect(redirectTo)
+
   return { ok: true }
 }
 

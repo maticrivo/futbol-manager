@@ -97,7 +97,14 @@
       "signup": "Sign-ups open in",
       "guest": "Guest sign-ups open in",
       "lock": "Roster locks in",
-      "kickoff": "Kickoff in"
+      "kickoff": "Kickoff in",
+      "units": {
+        "day": "{count, plural, one {# day} other {# days}}",
+        "hour": "{count, plural, one {# hour} other {# hours}}",
+        "minute": "{count, plural, one {# minute} other {# minutes}}",
+        "second": "{count, plural, one {# second} other {# seconds}}"
+      },
+      "join": "{first} and {second}"
     },
     "back": "Back to Home",
     "kickoff": "Kickoff",
@@ -187,6 +194,7 @@
       "manage": "Manage",
       "manageMatch": "Manage match",
       "upcomingMatch": "Next match",
+      "upcomingMatches": "Upcoming matches",
       "noMatch": "No upcoming match.",
       "createNextMatch": "Create next match",
       "creating": "Creating…",
@@ -373,6 +381,12 @@
         "submitting": "Cancelling…",
         "finished": "This match has already been played.",
         "disabled": "This match has already been cancelled."
+      },
+      "delete": {
+        "open": "Delete match",
+        "confirm": "Delete this match and all its signups?",
+        "submit": "Delete",
+        "submitting": "Deleting…"
       }
     }
   },

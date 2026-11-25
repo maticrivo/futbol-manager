@@ -23,6 +23,7 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
       disabled,
       children,
       href,
+      asChild = false,
       ...props
     },
     ref
@@ -65,6 +66,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         {!isLoading && rightIcon}
       </>
     )
+
+    if (asChild && React.isValidElement<{ className?: string }>(children)) {
+      return React.cloneElement(children, {
+        className: cn(combinedClassName, children.props.className),
+      })
+    }
 
     if (href) {
       return (

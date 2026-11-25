@@ -1,7 +1,7 @@
-import { and, asc, count, DrizzleQueryError, eq, gte, inArray } from 'drizzle-orm'
+import { and, asc, count, desc, DrizzleQueryError, eq, gte, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
-import { entries, matches, members } from '@/db/schema'
+import { charges, entries, guestPayments, matches, members } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { TZ, weekSchedule } from '@/lib/time'
 import { isHttpUrl } from '@/lib/venue'
@@ -271,4 +271,74 @@ export async function getUpcomingMatch(db: Db, now: Date): Promise<Match | null>
     .limit(1)
 
   return match ?? null
+}
+
+/** The furthest upcoming match, used as the base for creating successive weeks. */
+export async function getLastUpcomingMatch(db: Db, now: Date): Promise<Match | null> {
+  const threshold = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+
+  const [match] = await db
+    .select()
+    .from(matches)
+    .where(
+      and(
+        inArray(matches.status, ['scheduled', 'locked']),
+        gte(matches.kickoffAt, threshold)
+      )
+    )
+    .orderBy(desc(matches.kickoffAt))
+    .limit(1)
+
+  return match ?? null
+}
+
+/**
+ * All matches still relevant to admins: upcoming scheduled/locked matches plus
+ * future cancelled ones, which are kept visible so they can be deleted.
+ */
+export async function listUpcomingMatches(db: Db, now: Date): Promise<Match[]> {
+  const threshold = new Date(now.getTime() - 6 * 60 * 60 * 1000)
+
+  return db
+    .select()
+    .from(matches)
+    .where(
+      and(
+        inArray(matches.status, ['scheduled', 'locked', 'cancelled']),
+        gte(matches.kickoffAt, threshold)
+      )
+    )
+    .orderBy(asc(matches.kickoffAt))
+}
+
+export async function deleteMatch(
+  db: Db,
+  input: { actorId: number; matchId: number; now: Date },
+): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND'>> {
+  const { actorId, matchId, now } = input
+
+  return db.transaction(async tx => {
+    // Lock order: match row first, then the actor member row.
+    const match = await lockMatch(tx, matchId)
+    if (!match) return err('NOT_FOUND')
+    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'match.delete',
+      entity: 'match',
+      entityId: String(matchId),
+      detail: { matchDate: match.matchDate, status: match.status, kickoffAt: match.kickoffAt },
+      createdAt: now,
+    })
+
+    const matchGuests = tx.select({ id: entries.id }).from(entries).where(eq(entries.matchId, matchId))
+    await tx.delete(guestPayments).where(inArray(guestPayments.entryId, matchGuests))
+    await tx.delete(charges).where(eq(charges.matchId, matchId))
+    await tx.delete(entries).where(eq(entries.matchId, matchId))
+    await tx.delete(matches).where(eq(matches.id, matchId))
+
+    return ok(match)
+  })
 }

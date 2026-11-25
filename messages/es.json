@@ -97,7 +97,14 @@
       "signup": "La inscripción abre en",
       "guest": "La inscripción de invitados abre en",
       "lock": "La lista se cierra en",
-      "kickoff": "El partido empieza en"
+      "kickoff": "El partido empieza en",
+      "units": {
+        "day": "{count, plural, one {# día} other {# días}}",
+        "hour": "{count, plural, one {# hora} other {# horas}}",
+        "minute": "{count, plural, one {# minuto} other {# minutos}}",
+        "second": "{count, plural, one {# segundo} other {# segundos}}"
+      },
+      "join": "{first} y {second}"
     },
     "back": "Volver al inicio",
     "kickoff": "Inicio",
@@ -187,6 +194,7 @@
       "manage": "Gestionar",
       "manageMatch": "Gestionar partido",
       "upcomingMatch": "Próximo partido",
+      "upcomingMatches": "Próximos partidos",
       "noMatch": "No hay ningún partido próximo.",
       "createNextMatch": "Crear siguiente partido",
       "creating": "Creando…",
@@ -373,6 +381,12 @@
         "submitting": "Cancelando…",
         "finished": "Este partido ya se ha jugado.",
         "disabled": "Este partido ya ha sido cancelado."
+      },
+      "delete": {
+        "open": "Eliminar partido",
+        "confirm": "¿Eliminar este partido y todas sus inscripciones?",
+        "submit": "Eliminar",
+        "submitting": "Eliminando…"
       }
     }
   },

@@ -228,7 +228,7 @@ it('updateSettingsAction persists venue, kickoff and capacity', async () => {
   expect(settings.capacity).toBe(16)
 })
 
-it('createNextMatchAction creates the following Tuesday when a match exists and is idempotent', async () => {
+it('createNextMatchAction keeps adding successive weeks from the furthest upcoming match', async () => {
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   vi.mocked(requireAdmin).mockResolvedValue(admin)
 
@@ -238,7 +238,7 @@ it('createNextMatchAction creates the following Tuesday when a match exists and 
   expect(await matchDates()).toEqual(['2027-03-30', '2027-04-06'])
 
   expect(await createNextMatchAction(null, new FormData())).toEqual({ ok: true })
-  expect(await matchDates()).toEqual(['2027-03-30', '2027-04-06'])
+  expect(await matchDates()).toEqual(['2027-03-30', '2027-04-06', '2027-04-13'])
 })
 
 it('createNextMatchAction creates the next Tuesday when no match exists', async () => {

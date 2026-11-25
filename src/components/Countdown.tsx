@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { latestPassedBoundary, nextTransition, shouldRequestRefresh } from '@/lib/countdown'
+import { useTranslations } from 'next-intl'
+import { countdownParts, latestPassedBoundary, nextTransition, shouldRequestRefresh } from '@/lib/countdown'
 import { Card } from '@/components/ui/Card'
 import { Icon } from '@/components/ui/icons'
 
@@ -20,6 +21,7 @@ export default function Countdown({
   kickoffLabel: string
 }) {
   const router = useRouter()
+  const t = useTranslations('match.countdown')
   const [now, setNow] = useState<number | null>(null)
   const transitions = useMemo(() => [
     { at: Date.parse(signupAt), label: signupLabel },
@@ -66,9 +68,11 @@ export default function Countdown({
   const next = nextTransition(transitions, now)
   if (!next) return null
 
-  const total = Math.ceil((next.at - now) / 1000)
-  const clock = [Math.floor(total / 3600), Math.floor(total / 60) % 60, total % 60]
-    .map(value => String(value).padStart(2, '0')).join(':')
+  const parts = countdownParts(next.at - now)
+  const partLabel = (part: (typeof parts)[number]) => t(`units.${part.unit}`, { count: part.value })
+  const remaining = parts.length > 1
+    ? t('join', { first: partLabel(parts[0]), second: partLabel(parts[1]) })
+    : partLabel(parts[0])
 
   return (
     <Card padding="sm" className="bg-surface-muted/60 flex items-center justify-between gap-3 px-4 py-3">
@@ -76,7 +80,7 @@ export default function Countdown({
         <Icon name="clock" size={16} className="text-primary" />
         <span>{next.label}</span>
       </div>
-      <bdi className="font-mono text-base font-bold tabular-nums text-ink tracking-tight">{clock}</bdi>
+      <span className="text-sm font-semibold text-ink text-end">{remaining}</span>
     </Card>
   )
 }

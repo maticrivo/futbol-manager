@@ -1,15 +1,17 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb, resetDb } from '../db'
-import { auditLog, matches, members } from '@/db/schema'
+import { auditLog, charges, entries, guestPayments, matches, members } from '@/db/schema'
 import {
   getSettings,
   updateSettings,
   createMatchForDate,
   createMatchForDateIfAbsent,
   createNextMatch,
+  deleteMatch,
   getUpcomingMatch,
   getMatch,
+  listUpcomingMatches,
 } from '@/domain/matches'
 
 beforeEach(resetDb)
@@ -167,4 +169,65 @@ it('treats a concurrent create of the same date as already done', async () => {
     createMatchForDateIfAbsent(testDb, '2027-03-30'),
   ])
   expect(results.filter(r => r.created)).toHaveLength(1)
+})
+
+describe('listUpcomingMatches', () => {
+  it('lists every upcoming match in kickoff order, including cancelled ones', async () => {
+    const past = await createMatchForDate(testDb, '2027-02-23')
+    const first = await createMatchForDate(testDb, '2027-03-30')
+    const second = await createMatchForDate(testDb, '2027-04-06')
+    const cancelled = await createMatchForDate(testDb, '2027-04-13')
+    await testDb.update(matches).set({ status: 'cancelled' }).where(eq(matches.id, cancelled.id))
+
+    const now = new Date('2027-03-01T00:00:00Z')
+    const list = await listUpcomingMatches(testDb, now)
+
+    expect(list.map(m => m.id)).toEqual([first.id, second.id, cancelled.id])
+    expect(list.map(m => m.id)).not.toContain(past.id)
+  })
+})
+
+describe('deleteMatch', () => {
+  it('removes the match with its entries, charges and guest payments, and writes an audit log', async () => {
+    const [admin, member] = await testDb.insert(members)
+      .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).returning()
+    const match = await createMatchForDate(testDb, '2027-03-30')
+
+    await testDb.insert(entries).values({ matchId: match.id, kind: 'member', memberId: member.id })
+    const [guest] = await testDb.insert(entries)
+      .values({ matchId: match.id, kind: 'guest', guestName: 'Guest', hostMemberId: member.id }).returning()
+    await testDb.insert(charges).values({
+      matchId: match.id, memberId: member.id, billingMonth: '2027-03', amountAgorot: 3500,
+    })
+    await testDb.insert(guestPayments).values({
+      entryId: guest.id, amountAgorot: 3500, kind: 'payment', paidAt: new Date(), recordedBy: admin.id,
+    })
+
+    const result = await deleteMatch(testDb, { actorId: admin.id, matchId: match.id, now: new Date() })
+    expect(result.ok).toBe(true)
+
+    expect(await getMatch(testDb, match.id)).toBeNull()
+    expect(await testDb.select().from(entries).where(eq(entries.matchId, match.id))).toHaveLength(0)
+    expect(await testDb.select().from(charges).where(eq(charges.matchId, match.id))).toHaveLength(0)
+    expect(await testDb.select().from(guestPayments)).toHaveLength(0)
+
+    const audits = await testDb.select().from(auditLog).where(eq(auditLog.action, 'match.delete'))
+    expect(audits).toHaveLength(1)
+    expect(audits[0].entityId).toBe(String(match.id))
+  })
+
+  it('rejects non-admins and missing matches', async () => {
+    const [admin, user] = await testDb.insert(members)
+      .values([{ name: 'Admin', role: 'admin' }, { name: 'Player', role: 'member' }]).returning()
+    const match = await createMatchForDate(testDb, '2027-03-30')
+    const now = new Date()
+
+    expect(await deleteMatch(testDb, { actorId: user.id, matchId: match.id, now }))
+      .toEqual({ ok: false, code: 'FORBIDDEN' })
+    expect(await deleteMatch(testDb, { actorId: 99999, matchId: match.id, now }))
+      .toEqual({ ok: false, code: 'FORBIDDEN' })
+    expect(await deleteMatch(testDb, { actorId: admin.id, matchId: 999999, now }))
+      .toEqual({ ok: false, code: 'NOT_FOUND' })
+    expect(await getMatch(testDb, match.id)).not.toBeNull()
+  })
 })

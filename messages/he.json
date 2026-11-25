@@ -97,7 +97,14 @@
       "signup": "פתיחת ההרשמה בעוד",
       "guest": "פתיחת ההרשמה לאורחים בעוד",
       "lock": "סגירת ההרשמה בעוד",
-      "kickoff": "תחילת המשחק בעוד"
+      "kickoff": "תחילת המשחק בעוד",
+      "units": {
+        "day": "{count, plural, one {יום} two {יומיים} many {# ימים} other {# ימים}}",
+        "hour": "{count, plural, one {שעה} two {שעתיים} many {# שעות} other {# שעות}}",
+        "minute": "{count, plural, one {דקה} two {שתי דקות} many {# דקות} other {# דקות}}",
+        "second": "{count, plural, one {שנייה} two {שתי שניות} many {# שניות} other {# שניות}}"
+      },
+      "join": "{first} ו{second}"
     },
     "back": "חזרה לדף הבית",
     "kickoff": "שעת פתיחה",
@@ -187,6 +194,7 @@
       "manage": "ניהול",
       "manageMatch": "ניהול משחק",
       "upcomingMatch": "המשחק הבא",
+      "upcomingMatches": "משחקים קרובים",
       "noMatch": "אין משחק קרוב.",
       "createNextMatch": "יצירת המשחק הבא",
       "creating": "יוצר…",
@@ -373,6 +381,12 @@
         "submitting": "מבטל…",
         "finished": "המשחק כבר התקיים.",
         "disabled": "המשחק כבר בוטל."
+      },
+      "delete": {
+        "open": "מחיקת משחק",
+        "confirm": "למחוק את המשחק ואת כל ההרשמות אליו?",
+        "submit": "מחיקה",
+        "submitting": "מוחק…"
       }
     }
   },
