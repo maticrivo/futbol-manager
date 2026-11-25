@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb, resetDb } from '../db'
-import { auditLog, matches, members } from '@/db/schema'
+import { auditLog, matches, users } from '@/db/schema'
 import {
   getSettings,
   updateSettings,
@@ -66,7 +66,7 @@ it('creates the next match once and never recreates a cancelled date', async () 
 
 describe('settings management', () => {
   it('updates settings when called by admin and writes audit log', async () => {
-    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
+    const [admin] = await testDb.insert(users).values({ name: 'Admin', role: 'admin' }).returning()
 
     const res = await updateSettings(testDb, admin.id, {
       capacity: 16,
@@ -99,18 +99,18 @@ describe('settings management', () => {
     })
   })
 
-  it('rejects updates from non-admin or nonexistent members with FORBIDDEN', async () => {
-    const [user] = await testDb.insert(members).values({ name: 'Player', role: 'member' }).returning()
+  it('rejects updates from non-admin or nonexistent users with FORBIDDEN', async () => {
+    const [user] = await testDb.insert(users).values({ name: 'Player', role: 'member' }).returning()
 
     const forbiddenRes = await updateSettings(testDb, user.id, { capacity: 16 })
     expect(forbiddenRes).toEqual({ ok: false, code: 'FORBIDDEN' })
 
-    const nonexistentRes = await updateSettings(testDb, 99999, { capacity: 16 })
+    const nonexistentRes = await updateSettings(testDb, '00000000-0000-4000-8000-000000000000', { capacity: 16 })
     expect(nonexistentRes).toEqual({ ok: false, code: 'FORBIDDEN' })
   })
 
   it('validates settings boundaries and types with INVALID_SETTING', async () => {
-    const [admin] = await testDb.insert(members).values({ name: 'Admin', role: 'admin' }).returning()
+    const [admin] = await testDb.insert(users).values({ name: 'Admin', role: 'admin' }).returning()
 
     expect(await updateSettings(testDb, admin.id, { capacity: 0 })).toEqual({ ok: false, code: 'INVALID_SETTING' })
     expect(await updateSettings(testDb, admin.id, { capacity: 41 })).toEqual({ ok: false, code: 'INVALID_SETTING' })

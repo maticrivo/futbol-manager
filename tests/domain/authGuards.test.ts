@@ -57,7 +57,7 @@ describe('Auth.js guards', () => {
   })
 
   it('treats a missing session as signed out', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
 
     expect(await getCurrentMember()).toBeNull()
     await expect(requireMember()).rejects.toThrow('NEXT_REDIRECT:/login/expired')

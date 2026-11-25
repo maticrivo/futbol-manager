@@ -18,7 +18,7 @@ async function setupMember() {
   return { adminId: admin.id, memberId: member.id }
 }
 
-async function addCharge(memberId: number, month: string, amountAgorot: number, day = '12') {
+async function addCharge(memberId: string, month: string, amountAgorot: number, day = '12') {
   const match = await createMatchForDate(testDb, `${month}-${day}`)
   await testDb.insert(charges).values({ matchId: match.id, memberId, billingMonth: month, amountAgorot })
   return match
@@ -98,7 +98,7 @@ it('rejects unauthorized or invalid payments without ledger writes', async () =>
   const { adminId, memberId } = await setupMember()
   const input = { actorId: adminId, memberId, paidAt: now, method: 'cash', amountAgorot: 5000 } as const
   expect(await recordPayment(testDb, { ...input, actorId: memberId })).toEqual({ ok: false, code: 'FORBIDDEN' })
-  expect(await recordPayment(testDb, { ...input, memberId: 999 })).toEqual({ ok: false, code: 'MEMBER_NOT_FOUND' })
+  expect(await recordPayment(testDb, { ...input, memberId: '00000000-0000-4000-8000-000000000000' })).toEqual({ ok: false, code: 'MEMBER_NOT_FOUND' })
   expect(await recordPayment(testDb, { ...input, amountAgorot: 0 })).toEqual({ ok: false, code: 'INVALID_AMOUNT' })
   expect(await recordPayment(testDb, { ...input, amountAgorot: -5000 })).toEqual({ ok: false, code: 'TARGET_MONTH_REQUIRED' })
   expect(await testDb.select().from(payments)).toEqual([])

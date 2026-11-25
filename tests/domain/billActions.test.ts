@@ -57,7 +57,7 @@ it('stays at six rows when the same form is submitted twice', async () => {
 
 it('rolls back a failed save, returns UNKNOWN, and does not revalidate', async () => {
   const { member } = await createMember(testDb, { name: 'Ghost' })
-  vi.mocked(requireMember).mockResolvedValue({ ...member, id: 999999 })
+  vi.mocked(requireMember).mockResolvedValue({ ...member, id: '00000000-0000-4000-8000-000000000000' })
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
   try {

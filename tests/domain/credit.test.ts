@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
-import { charges, entries, paymentAllocations, members } from '@/db/schema'
+import { charges, entries, paymentAllocations, users } from '@/db/schema'
 import { memberBalance, memberBill, monthSummary, recordPayment } from '@/domain/billing'
 import { lockMatch, restoreCharge, waiveCharge } from '@/domain/lock'
 import { createMatchForDate } from '@/domain/matches'
@@ -15,12 +15,12 @@ function valueOf<T>(result: Result<T>): T {
 }
 
 async function setupMember() {
-  const [admin, member] = await testDb.insert(members)
+  const [admin, member] = await testDb.insert(users)
     .values([{ name: 'Admin', role: 'admin' }, { name: 'Member' }]).returning()
   return { adminId: admin.id, memberId: member.id }
 }
 
-async function createAndLockMatch(date: string, memberId: number) {
+async function createAndLockMatch(date: string, memberId: string) {
   const match = await createMatchForDate(testDb, date)
   await testDb.insert(entries).values({
     matchId: match.id,

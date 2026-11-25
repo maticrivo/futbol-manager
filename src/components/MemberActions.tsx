@@ -2,8 +2,7 @@
 
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
-import { regenerateInviteAction, setMemberStatusAction } from '@/app/actions/admin'
-import InviteLink from './InviteLink'
+import { setMemberStatusAction } from '@/app/actions/admin'
 import SubmitButton from './SubmitButton'
 
 function ActionError({ code }: { code: string | null }) {
@@ -25,7 +24,6 @@ export default function MemberActions({
   status: 'active' | 'disabled' | 'pending'
 }) {
   const t = useTranslations()
-  const [regenState, regenAction] = useActionState(regenerateInviteAction, null)
   const [statusState, statusAction] = useActionState(setMemberStatusAction, null)
 
   const canDisable = !(isSelf && status === 'active')
@@ -78,13 +76,7 @@ export default function MemberActions({
             />
           </form>
         )}
-        <form action={regenAction}>
-          <input type="hidden" name="memberId" value={memberId} />
-          <SubmitButton label={t('admin.members.regenerate')} pendingLabel={t('admin.members.working')} />
-        </form>
       </div>
-      {regenState?.ok && <InviteLink url={regenState.inviteUrl} />}
-      <ActionError code={regenState?.ok === false ? regenState.code : null} />
       <ActionError code={statusState?.ok === false ? statusState.code : null} />
     </div>
   )

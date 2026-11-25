@@ -32,7 +32,7 @@ async function fullMatch() {
   return { match, members }
 }
 
-async function entryId(matchId: number, memberId: number) {
+async function entryId(matchId: number, memberId: string) {
   const [entry] = await testDb.select({ id: entries.id }).from(entries)
     .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId)))
   if (!entry) throw new Error(`No entry for member ${memberId} in match ${matchId}`)

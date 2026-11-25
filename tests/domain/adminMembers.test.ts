@@ -3,17 +3,14 @@ import { beforeEach, expect, it } from 'vitest'
 import { sessions } from '@/db/schema'
 import { testDb, resetDb } from '../db'
 import { getAuditLog, writeAudit } from '@/domain/audit'
-import { createMember, listMembers, loginWithInvite, regenerateInvite, setMemberStatus } from '@/domain/members'
-import { getSessionMember } from '@/domain/sessions'
-
-const now = new Date('2027-03-27T10:00:00Z')
+import { createMember, listMembers, setMemberStatus } from '@/domain/members'
 
 beforeEach(resetDb)
 
 it('listMembers returns name-ordered members including a disabled member with role/status/locale', async () => {
-  const admin = (await createMember(testDb, { name: 'Zoe', role: 'admin', locale: 'he' })).member
-  await createMember(testDb, { name: 'Ana' })
-  const cy = (await createMember(testDb, { name: 'Cy', locale: 'es' })).member
+  const admin = (await createMember(testDb, { name: 'Zoe', email: 'zoe@example.com', role: 'admin', locale: 'he' })).member
+  await createMember(testDb, { name: 'Ana', email: 'ana@example.com' })
+  const cy = (await createMember(testDb, { name: 'Cy', email: 'cy@example.com', locale: 'es' })).member
 
   await setMemberStatus(testDb, admin.id, cy.id, 'disabled')
 
@@ -36,7 +33,7 @@ it('listMembers returns name-ordered members including a disabled member with ro
 })
 
 it('getAuditLog returns newest first with actor names and a null actor name for a null actor', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
+  const admin = (await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })).member
 
   await writeAudit(testDb, {
     actorId: admin.id, action: 'a.one', entity: 'x', entityId: '1', createdAt: new Date('2027-01-01T00:00:00Z'),
@@ -57,7 +54,7 @@ it('getAuditLog returns newest first with actor names and a null actor name for 
 })
 
 it('getAuditLog clamps the limit to 1..200', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
+  const admin = (await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })).member
 
   for (let i = 0; i < 5; i++) {
     await writeAudit(testDb, { actorId: admin.id, action: `clamp.${i}`, entity: 'x' })
@@ -65,13 +62,12 @@ it('getAuditLog clamps the limit to 1..200', async () => {
 
   expect(await getAuditLog(testDb, 0)).toHaveLength(1)
   expect(await getAuditLog(testDb, 2)).toHaveLength(2)
-  // 5 clamp entries + 1 member.create audit from createMember.
   expect(await getAuditLog(testDb, 1000)).toHaveLength(6)
 })
 
 it('an admin cannot disable themselves, but can disable and re-enable another member', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
-  const other = (await createMember(testDb, { name: 'Other' })).member
+  const admin = (await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })).member
+  const other = (await createMember(testDb, { name: 'Other', email: 'other@example.com' })).member
 
   expect(await setMemberStatus(testDb, admin.id, admin.id, 'disabled')).toEqual({ ok: false, code: 'FORBIDDEN' })
 
@@ -82,67 +78,35 @@ it('an admin cannot disable themselves, but can disable and re-enable another me
   expect((await listMembers(testDb)).find((m) => m.id === other.id)!.status).toBe('active')
 })
 
-it('non-admin cannot regenerate an invite', async () => {
-  const member = (await createMember(testDb, { name: 'Member' })).member
-  const target = (await createMember(testDb, { name: 'Target' })).member
+it('revokes Auth.js sessions when a member is disabled and preserves revocation upon re-enabling', async () => {
+  const admin = (await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })).member
+  const target = (await createMember(testDb, { name: 'Player', email: 'player@example.com' })).member
+  const token = 'test-session-token'
+  await testDb.insert(sessions).values({ sessionToken: token, userId: target.id, expires: new Date('2028-01-01T00:00:00Z') })
 
-  expect(await regenerateInvite(testDb, member.id, target.id)).toEqual({ ok: false, code: 'FORBIDDEN' })
-})
+  expect(await testDb.select().from(sessions).where(eq(sessions.userId, target.id))).toHaveLength(1)
 
-it('admin regeneration invalidates the old token and the new token logs in', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
-  const target = await createMember(testDb, { name: 'Target' })
-
-  const regen = await regenerateInvite(testDb, admin.id, target.member.id)
-  if (!regen.ok) throw new Error(regen.code)
-  expect(regen.value.inviteToken).not.toBe(target.inviteToken)
-
-  expect(await loginWithInvite(testDb, target.inviteToken, now)).toEqual({ ok: false, code: 'INVALID_TOKEN' })
-  expect((await loginWithInvite(testDb, regen.value.inviteToken, now)).ok).toBe(true)
-})
-
-it('revokes sessions when a member is disabled and preserves revocation upon re-enabling', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
-  const target = await createMember(testDb, { name: 'Player' })
-  const login = await loginWithInvite(testDb, target.inviteToken, now)
-  if (!login.ok) throw new Error(login.code)
-  const token = login.value.sessionToken
-
-  // Valid session initially
-  expect(await getSessionMember(testDb, token, now)).toMatchObject({ id: target.member.id })
-  const sessionRowsBefore = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
-  expect(sessionRowsBefore.length).toBe(1)
-
-  // Disable member
-  const disableResult = await setMemberStatus(testDb, admin.id, target.member.id, 'disabled')
+  const disableResult = await setMemberStatus(testDb, admin.id, target.id, 'disabled')
   expect(disableResult.ok).toBe(true)
 
-  // Session row is gone and request with token is rejected
-  const sessionRowsAfter = await testDb.select().from(sessions).where(eq(sessions.memberId, target.member.id))
-  expect(sessionRowsAfter).toEqual([])
-  expect(await getSessionMember(testDb, token, now)).toBeNull()
+  expect(await testDb.select().from(sessions).where(eq(sessions.userId, target.id))).toEqual([])
 
-  // Re-enable and confirm the old token still does not work
-  const enableResult = await setMemberStatus(testDb, admin.id, target.member.id, 'active')
-  expect(enableResult.ok).toBe(true)
-  expect(await getSessionMember(testDb, token, now)).toBeNull()
+  expect((await setMemberStatus(testDb, admin.id, target.id, 'active')).ok).toBe(true)
+  expect(await testDb.select().from(sessions).where(eq(sessions.userId, target.id))).toEqual([])
 })
 
 it('admin can approve a pending member and cannot set themselves to pending', async () => {
-  const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
-  const pending = (await createMember(testDb, { name: 'Pending Player', status: 'pending' })).member
+  const admin = (await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })).member
+  const pending = (await createMember(testDb, { name: 'Pending Player', email: 'pending@example.com', status: 'pending' })).member
   expect(pending.status).toBe('pending')
 
-  // Admin cannot set themselves to pending
   const selfPending = await setMemberStatus(testDb, admin.id, admin.id, 'pending')
   expect(selfPending).toEqual({ ok: false, code: 'FORBIDDEN' })
 
-  // Admin approves pending member
   const approveResult = await setMemberStatus(testDb, admin.id, pending.id, 'active')
   expect(approveResult.ok).toBe(true)
   expect((await listMembers(testDb)).find((m) => m.id === pending.id)!.status).toBe('active')
 
-  // Admin can change status back to pending
   const toPendingResult = await setMemberStatus(testDb, admin.id, pending.id, 'pending')
   expect(toPendingResult.ok).toBe(true)
   expect((await listMembers(testDb)).find((m) => m.id === pending.id)!.status).toBe('pending')

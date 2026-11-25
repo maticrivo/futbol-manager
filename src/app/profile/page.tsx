@@ -1,11 +1,8 @@
-import { eq } from 'drizzle-orm'
 import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import { getDb } from '@/db'
-import { users } from '@/db/schema'
 import { requireSessionMember } from '@/lib/auth'
-import { toMember } from '@/domain/members'
 import ProfileForm from '@/components/ProfileForm'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -22,16 +19,9 @@ import { parseTheme, THEME_COOKIE } from '@/lib/theme'
 export default async function ProfilePage() {
   const member = await requireSessionMember()
   const db = getDb()
-  const [freshRow] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, member.id))
-    .limit(1)
-
-  if (!freshRow || freshRow.status === 'disabled') {
+  if (member.status === 'disabled') {
     redirect('/login/expired')
   }
-  const fresh = toMember(freshRow)
 
   const [t, ta, prefs] = await Promise.all([
     getTranslations('profile'),
@@ -44,7 +34,7 @@ export default async function ProfilePage() {
     <main className="mx-auto w-full max-w-xl space-y-6 px-4 py-8 pb-28 md:pb-8 text-start">
       <PageHeader title={t('title')} subtitle={t('subtitle')} />
 
-      {fresh.status === 'pending' && (
+      {member.status === 'pending' && (
         <InlineMessage variant="warning" title={ta('pendingTitle')}>
           {ta('pendingDescription')}
         </InlineMessage>
@@ -61,7 +51,7 @@ export default async function ProfilePage() {
           <p className="text-xs text-muted">{t('themeHint')}</p>
         </div>
         <div className="border-t border-line pt-4">
-          <ProfileForm member={fresh} />
+          <ProfileForm member={member} />
         </div>
       </Card>
 

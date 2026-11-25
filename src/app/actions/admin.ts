@@ -1,23 +1,21 @@
 'use server'
 
-import { and, eq, or, sql } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { revalidatePath } from 'next/cache'
-import { headers } from 'next/headers'
 import { getDb } from '@/db'
 import { charges, entries, guestPayments, users } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
-import { createMember, isValidEmail, regenerateInvite, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
+import { createMember, isValidEmail, setMemberStatus, updateMemberProfile, type MemberProfilePatch } from '@/domain/members'
 import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
-import { parseUserId, type ActionResult, type InviteActionResult } from '@/lib/actions'
+import { parseUserId, type ActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
 import { defaultTransport } from '@/lib/push'
-import { requestOrigin } from '@/lib/request-origin'
 import { TZ } from '@/lib/time'
 import { isHttpUrl } from '@/lib/venue'
 import { parseImageEntry } from '@/lib/image-upload'
@@ -26,11 +24,6 @@ function positiveId(value: FormDataEntryValue | null): number | null {
   if (typeof value !== 'string' || !/^[0-9]+$/.test(value)) return null
   const id = Number(value)
   return Number.isSafeInteger(id) && id > 0 ? id : null
-}
-
-async function inviteUrl(token: string): Promise<string> {
-  const origin = requestOrigin(await headers(), process.env.APP_URL ?? 'http://localhost:3000')
-  return `${origin}/login/${token}`
 }
 
 export async function createNextMatchAction(_prev: ActionResult | null, _formData: FormData): Promise<ActionResult> {
@@ -54,63 +47,37 @@ export async function createNextMatchAction(_prev: ActionResult | null, _formDat
   return { ok: true }
 }
 
-export async function addMemberAction(_prev: InviteActionResult | null, formData: FormData): Promise<InviteActionResult> {
+export async function addMemberAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   await requireAdmin()
   const db = getDb()
 
   const rawEmail = formData.get('email')
-  const rawName = formData.get('name')
-  const trimmedEmail = typeof rawEmail === 'string' ? rawEmail.trim() : ''
-  const name = trimmedEmail || (typeof rawName === 'string' ? rawName.trim() : '')
-  if (!name || (formData.has('email') ? name.length > 120 : name.length > 80)) {
-    return { ok: false, code: 'INVALID_NAME' }
-  }
-
-  const email = trimmedEmail ? trimmedEmail.toLowerCase() : null
-  if (email !== null && !isValidEmail(email)) {
+  const email = typeof rawEmail === 'string' ? rawEmail.trim().toLowerCase() : ''
+  if (!isValidEmail(email)) {
     return { ok: false, code: 'INVALID_EMAIL' }
   }
 
-  if (email !== null) {
-    const [existing] = await db
-      .select({ id: users.id })
-      .from(users)
-      .where(or(eq(users.email, email), sql`lower(${users.name}) = ${email}`))
-      .limit(1)
-    if (existing) {
-      return { ok: false, code: 'EMAIL_TAKEN' }
-    }
+  const [existing] = await db
+    .select({ id: users.id })
+    .from(users)
+    .where(eq(users.email, email))
+    .limit(1)
+  if (existing) {
+    return { ok: false, code: 'EMAIL_TAKEN' }
   }
 
+  const name = email.split('@')[0].slice(0, 120)
   const role = formData.get('role') === 'admin' ? 'admin' : 'member'
   const localeValue = formData.get('locale')
   const locale = localeValue === 'he' || localeValue === 'es' ? localeValue : 'en'
   const statusValue = formData.get('status')
   const status = statusValue === 'pending' || statusValue === 'disabled' ? statusValue : 'active'
 
-  const { inviteToken } = await createMember(db, { name, email, role, locale, status })
+  await createMember(db, { name, email, role, locale, status })
 
   revalidatePath('/admin/members')
   revalidatePath('/admin')
-  return { ok: true, inviteUrl: await inviteUrl(inviteToken) }
-}
-
-export async function regenerateInviteAction(_prev: InviteActionResult | null, formData: FormData): Promise<InviteActionResult> {
-  const admin = await requireAdmin()
-  const db = getDb()
-
-  const memberId = parseUserId(formData.get('memberId'))
-  if (memberId === null) {
-    return { ok: false, code: 'NOT_FOUND' }
-  }
-
-  const result = await regenerateInvite(db, admin.id, memberId)
-  if (!result.ok) {
-    return { ok: false, code: result.code }
-  }
-
-  revalidatePath('/admin/members')
-  return { ok: true, inviteUrl: await inviteUrl(result.value.inviteToken) }
+  return { ok: true }
 }
 
 export async function setMemberStatusAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
@@ -161,10 +128,6 @@ export async function updateMemberAction(
   if (formData.has('name')) {
     const val = formData.get('name')
     if (typeof val === 'string') patch.name = val
-  }
-  if (formData.has('email')) {
-    const val = formData.get('email')
-    if (typeof val === 'string') patch.email = val
   }
   if (formData.has('phone')) {
     const val = formData.get('phone')

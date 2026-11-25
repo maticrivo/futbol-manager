@@ -1,13 +1,11 @@
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { auditLog, members } from '@/db/schema'
+import { auditLog, users } from '@/db/schema'
 import {
   createMember,
-  requestMemberAccess,
   updateMemberProfile,
 } from '@/domain/members'
 import { testDb, resetDb } from '../db'
-import { waitForLockWait } from '../lock-wait'
 
 const now = new Date('2027-03-27T10:00:00Z')
 
@@ -119,7 +117,7 @@ describe('updateMemberProfile authorization', () => {
 
     expect(res).toEqual({ ok: false, code: 'FORBIDDEN' })
 
-    const [unchanged] = await testDb.select().from(members).where(eq(members.id, memberB.id))
+    const [unchanged] = await testDb.select().from(users).where(eq(users.id, memberB.id))
     expect(unchanged.name).toBe('Bob')
   })
 
@@ -130,7 +128,7 @@ describe('updateMemberProfile authorization', () => {
       testDb,
       {
         actorId: admin.id,
-        memberId: 99999,
+        memberId: '00000000-0000-4000-8000-000000000000',
         patch: { name: 'Nobody' },
       },
       now
@@ -145,7 +143,7 @@ describe('updateMemberProfile authorization', () => {
     const res = await updateMemberProfile(
       testDb,
       {
-        actorId: 99999,
+        actorId: '00000000-0000-4000-8000-000000000000',
         memberId: member.id,
         patch: { name: 'Ghost' },
       },
@@ -317,7 +315,7 @@ describe('updateMemberProfile validation', () => {
     expect(blank.value.image).toBeNull()
   })
 
-  it('validates email: RFC format, rejects duplicates with EMAIL_TAKEN, allows same member to keep email', async () => {
+  it('validates email, rejects any change, and allows the same member to keep their email', async () => {
     const admin = (await createMember(testDb, { name: 'Admin', role: 'admin' })).member
     const member1 = (await createMember(testDb, { name: 'M1', email: 'one@example.com' })).member
     await createMember(testDb, { name: 'M2', email: 'two@example.com' })
@@ -331,14 +329,14 @@ describe('updateMemberProfile validation', () => {
       })
     ).toEqual({ ok: false, code: 'INVALID_EMAIL' })
 
-    // Duplicate email
+    // A different email is not editable, even if it belongs to another member.
     expect(
       await updateMemberProfile(testDb, {
         actorId: admin.id,
         memberId: member1.id,
         patch: { email: 'TWO@example.com' },
       })
-    ).toEqual({ ok: false, code: 'EMAIL_TAKEN' })
+    ).toEqual({ ok: false, code: 'INVALID_EMAIL' })
 
     // Same member keeping own email succeeds
     const same = await updateMemberProfile(testDb, {
@@ -417,110 +415,5 @@ describe('updateMemberProfile audit and selective update', () => {
     expect(audits[0].detail).toEqual({ fields: expect.arrayContaining(['nickname', 'phone']) })
     expect(JSON.stringify(audits[0].detail)).not.toContain('NewNick')
     expect(JSON.stringify(audits[0].detail)).not.toContain('987')
-  })
-})
-
-describe('requestMemberAccess profile creation and legacy lookup', () => {
-  it('creates new pending member with profile fields and defaults name to email local part if omitted', async () => {
-    // 1. Without profile name
-    const res1 = await requestMemberAccess(testDb, 'john.doe@example.com', now, {
-      nickname: 'JD',
-      phone: '+1 555 111 2222',
-      image: 'https://example.com/jd.png',
-    })
-    expect(res1.ok).toBe(true)
-    if (!res1.ok) throw new Error(res1.code)
-
-    const [member1] = await testDb.select().from(members).where(eq(members.id, res1.value.memberId))
-    expect(member1.email).toBe('john.doe@example.com')
-    expect(member1.name).toBe('john.doe')
-    expect(member1.nickname).toBe('JD')
-    expect(member1.phone).toBe('+1 555 111 2222')
-    expect(member1.image).toBe('https://example.com/jd.png')
-    expect(member1.status).toBe('pending')
-    expect(member1.role).toBe('member')
-
-    // 2. With profile name
-    const res2 = await requestMemberAccess(testDb, 'jane@example.com', now, {
-      name: 'Jane Smith',
-      nickname: 'Jane',
-    })
-    expect(res2.ok).toBe(true)
-    if (!res2.ok) throw new Error(res2.code)
-
-    const [member2] = await testDb.select().from(members).where(eq(members.id, res2.value.memberId))
-    expect(member2.email).toBe('jane@example.com')
-    expect(member2.name).toBe('Jane Smith')
-    expect(member2.nickname).toBe('Jane')
-  })
-
-  it('legacy lookup by name finds member and NEVER overwrites their existing profile', async () => {
-    // Member created historically with name = email, but email column is null
-    const legacy = (await createMember(testDb, {
-      name: 'legacy@example.com',
-      nickname: 'OriginalLegacy',
-    })).member
-
-    // Set email to null to simulate legacy row before schema backfill
-    await testDb.update(members).set({ email: null }).where(eq(members.id, legacy.id))
-
-    const res = await requestMemberAccess(testDb, 'legacy@example.com', now, {
-      name: 'Attempted Overwrite Name',
-      nickname: 'Attempted Overwrite Nick',
-    })
-    expect(res.ok).toBe(true)
-    if (!res.ok) throw new Error(res.code)
-    expect(res.value.memberId).toBe(legacy.id)
-
-    // Existing profile must be intact
-    const [reloaded] = await testDb.select().from(members).where(eq(members.id, legacy.id))
-    expect(reloaded.name).toBe('legacy@example.com')
-    expect(reloaded.nickname).toBe('OriginalLegacy')
-  })
-})
-
-describe('requestMemberAccess races and legacy lookup', () => {
-  it('issues one member when two requests race for the same new email', async () => {
-    // EXCLUSIVE blocks both transactions at their first locking read, so both
-    // reach the insert having seen no row. Releasing lets them race for real.
-    const holder = await testDb.$client.connect()
-    let a: Awaited<ReturnType<typeof requestMemberAccess>> | undefined
-    let b: Awaited<ReturnType<typeof requestMemberAccess>> | undefined
-    try {
-      await holder.query('BEGIN')
-      await holder.query('LOCK TABLE members IN EXCLUSIVE MODE')
-
-      const pa = requestMemberAccess(testDb, 'race@example.com', now)
-      const pb = requestMemberAccess(testDb, 'race@example.com', now)
-      void pa.catch(() => {})
-      void pb.catch(() => {})
-
-      await waitForLockWait('from "members"', 3000, 2)
-      await holder.query('COMMIT')
-
-      ;[a, b] = await Promise.all([pa, pb])
-    } finally {
-      await holder.query('ROLLBACK').catch(() => {})
-      holder.release()
-    }
-
-    expect(a?.ok).toBe(true)
-    expect(b?.ok).toBe(true)
-    if (!a?.ok || !b?.ok) throw new Error('expected both requests to succeed')
-    expect(a.value.memberId).toBe(b.value.memberId)
-    const rows = await testDb.select().from(members).where(eq(members.email, 'race@example.com'))
-    expect(rows).toHaveLength(1)
-  })
-
-  it('legacy lookup by name is case-insensitive', async () => {
-    const legacy = (await createMember(testDb, { name: 'Bob@Example.com' })).member
-    await testDb.update(members).set({ email: null }).where(eq(members.id, legacy.id))
-
-    const res = await requestMemberAccess(testDb, 'bob@example.com', now)
-    expect(res.ok).toBe(true)
-    if (!res.ok) throw new Error(res.code)
-    expect(res.value.memberId).toBe(legacy.id)
-    const rows = await testDb.select().from(members)
-    expect(rows).toHaveLength(1)
   })
 })

@@ -55,7 +55,8 @@
     "themeHint": "Choose how the app looks on this device.",
     "themeSystem": "System",
     "themeLight": "Light",
-    "themeDark": "Dark"
+    "themeDark": "Dark",
+    "emailReadOnly": "Email comes from your social account and can't be changed here."
   },
   "home": {
     "placeholder": "Match details will appear here."
@@ -248,8 +249,7 @@
       "role": "Role",
       "status": "Status",
       "locale": "Language",
-      "created": "Created",
-      "regenerate": "Regenerate link",
+      "created": "Member added.",
       "disable": "Disable",
       "enable": "Enable",
       "approve": "Approve",
@@ -259,15 +259,10 @@
       "statusActive": "Active",
       "statusDisabled": "Disabled",
       "statusPending": "Pending",
-      "emailOrName": "Email or name",
       "add": "Add member",
       "adding": "Adding…",
-      "working": "Working…"
-    },
-    "invite": {
-      "heading": "Invite link",
-      "copy": "Copy",
-      "copied": "Copied!"
+      "working": "Working…",
+      "emailReadOnly": "Email comes from the member's social account."
     },
     "settings": {
       "title": "Settings",

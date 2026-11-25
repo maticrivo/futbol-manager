@@ -4,7 +4,7 @@ dotenv.config({ path: '.env.local' })
 import { eq } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { getDb } from '../src/db'
-import { matches, members, settings } from '../src/db/schema'
+import { matches, settings, users } from '../src/db/schema'
 import { createMatchForDate } from '../src/domain/matches'
 import { createMember } from '../src/domain/members'
 import { DEFAULT_SETTINGS, updateSettings } from '../src/domain/settings'
@@ -12,72 +12,40 @@ import { TZ } from '../src/lib/time'
 
 async function main() {
   const db = getDb()
-  let rawUrl = process.env.APP_URL?.trim()
-  if (rawUrl) {
-    if (!/^https?:\/\//i.test(rawUrl)) {
-      rawUrl = `https://${rawUrl}`
-    }
-  }
-  const baseUrl = (rawUrl || 'http://localhost:3000').replace(/\/+$/, '')
-
-  const existingMembers = await db.select().from(members)
-  const existingByName = new Map(existingMembers.map((m) => [m.name, m]))
-
+  const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase()
   const adminName = process.env.SEED_ADMIN_NAME?.trim() || 'Admin'
-  let adminId: number | null = null
-  let createdCount = 0
-  let skippedCount = 0
+  let adminId: string | null = null
 
-  const existingAdmin = existingByName.get(adminName)
-  if (existingAdmin && existingAdmin.role === 'admin') {
-    adminId = existingAdmin.id
-    skippedCount++
-  } else if (!existingAdmin) {
-    const { member: newAdmin, inviteToken } = await createMember(db, {
-      name: adminName,
-      role: 'admin',
-      locale: 'he',
-    })
-    adminId = newAdmin.id
-    existingByName.set(newAdmin.name, newAdmin)
-    createdCount++
-    console.log(`${newAdmin.name}: ${baseUrl}/login/${inviteToken}`)
-  } else {
-    for (let i = 1; i <= 5; i++) {
-      const candidateName = i === 1 ? `${adminName} (admin)` : `${adminName} (admin ${i})`
-      const candidate = existingByName.get(candidateName)
-      if (candidate) {
-        if (candidate.role === 'admin') {
-          adminId = candidate.id
-          skippedCount++
-          console.error(
-            `Warning: "${adminName}" already exists as a member; using existing admin "${candidateName}" instead.`
-          )
-          break
-        }
-        continue
+  if (adminEmail) {
+    const [existing] = await db.select().from(users).where(eq(users.email, adminEmail)).limit(1)
+    if (existing) {
+      if (existing.role !== 'admin' || existing.status !== 'active') {
+        throw new Error(
+          `User ${adminEmail} exists but is not an active admin. Sign in once so ADMIN_EMAIL promotes it, or update the row directly.`
+        )
       }
-
-      const { member: newAdmin, inviteToken } = await createMember(db, {
-        name: candidateName,
+      adminId = existing.id
+    } else {
+      const { member } = await createMember(db, {
+        name: adminName,
+        email: adminEmail,
         role: 'admin',
         locale: 'he',
+        status: 'active',
       })
-      adminId = newAdmin.id
-      existingByName.set(newAdmin.name, newAdmin)
-      createdCount++
-      console.error(
-        `Warning: "${adminName}" already exists as a member; created admin "${candidateName}" instead.`
-      )
-      console.log(`${newAdmin.name}: ${baseUrl}/login/${inviteToken}`)
-      break
+      adminId = member.id
     }
+  } else {
+    const [existingAdmin] = await db
+      .select({ id: users.id })
+      .from(users)
+      .where(eq(users.role, 'admin'))
+      .limit(1)
+    adminId = existingAdmin?.id ?? null
+  }
 
-    if (!adminId) {
-      throw new Error(
-        `Failed to resolve admin: "${adminName}" exists as a member and no free admin candidate could be found in 5 attempts. Please set SEED_ADMIN_NAME to an unused name.`
-      )
-    }
+  if (!adminId) {
+    throw new Error('ADMIN_EMAIL is not set and no admin exists. Set ADMIN_EMAIL and run the seed again.')
   }
 
   const existingSettings = await db.select().from(settings)
@@ -85,33 +53,6 @@ async function main() {
     const result = await updateSettings(db, adminId, DEFAULT_SETTINGS)
     if (!result.ok) {
       throw new Error(`Failed to initialize settings: ${result.code}`)
-    }
-  }
-
-  let targetMemberNames: string[]
-  if (process.env.SEED_MEMBERS !== undefined && process.env.SEED_MEMBERS.trim() !== '') {
-    targetMemberNames = process.env.SEED_MEMBERS.split(',')
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0)
-    if (targetMemberNames.length === 0) {
-      targetMemberNames = Array.from({ length: 18 }, (_, i) => `Player ${i + 1}`)
-    }
-  } else {
-    targetMemberNames = Array.from({ length: 18 }, (_, i) => `Player ${i + 1}`)
-  }
-
-  for (const name of targetMemberNames) {
-    if (existingByName.has(name)) {
-      skippedCount++
-    } else {
-      const { member: newMember, inviteToken } = await createMember(db, {
-        name,
-        role: 'member',
-        locale: 'he',
-      })
-      existingByName.set(newMember.name, newMember)
-      createdCount++
-      console.log(`${newMember.name}: ${baseUrl}/login/${inviteToken}`)
     }
   }
 
@@ -128,11 +69,10 @@ async function main() {
     .where(eq(matches.matchDate, targetTuesday))
   const matchExisted = Boolean(existingMatch)
   await createMatchForDate(db, targetTuesday)
-  const matchCreated = !matchExisted
 
   console.log(
-    `Summary: ${createdCount} created, ${skippedCount} skipped; match for ${targetTuesday} ${
-      matchCreated ? 'created' : 'already exists'
+    `Admin: ${adminEmail ?? adminId}; match for ${targetTuesday} ${
+      matchExisted ? 'already exists' : 'created'
     }.`
   )
 }

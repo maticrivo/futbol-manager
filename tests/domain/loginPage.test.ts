@@ -47,7 +47,7 @@ beforeEach(() => {
 
 describe('social login page', () => {
   it('shows the email-missing message and both provider buttons while signed out', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
 
     const html = renderToStaticMarkup(
       await LoginPage({ searchParams: Promise.resolve({ error: 'email-missing' }) }),
@@ -62,7 +62,7 @@ describe('social login page', () => {
   })
 
   it('shows a generic message for an unknown auth error', async () => {
-    vi.mocked(auth).mockResolvedValue(null)
+    vi.mocked(auth).mockResolvedValue(null as never)
 
     const html = renderToStaticMarkup(
       await LoginPage({ searchParams: Promise.resolve({ error: 'Configuration' }) }),

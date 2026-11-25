@@ -5,7 +5,7 @@ import { pushSubscriptions } from '@/db/schema'
 import { resetDb, testDb } from '../db'
 
 const mocks = vi.hoisted(() => ({
-  member: null as { id: number } | null,
+  member: null as { id: string } | null,
   db: null as unknown,
 }))
 

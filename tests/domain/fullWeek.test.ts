@@ -17,7 +17,7 @@ import { resetDb, testDb } from '../db'
 
 beforeEach(resetDb)
 
-async function confirmedEntryId(matchId: number, memberId: number): Promise<number> {
+async function confirmedEntryId(matchId: number, memberId: string): Promise<number> {
   const [entry] = await testDb
     .select({ id: entries.id })
     .from(entries)

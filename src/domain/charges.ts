@@ -118,7 +118,7 @@ export async function listMatchCharges(db: Db, matchId: number): Promise<MatchCh
     .from(charges)
     .innerJoin(users, eq(users.id, charges.memberId))
     .where(eq(charges.matchId, matchId))
-    .orderBy(charges.memberId, charges.id)
+    .orderBy(charges.id)
   return rows.map(({ charge, memberName }) => ({ ...charge, memberName }))
 }
 

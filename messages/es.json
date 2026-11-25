@@ -55,7 +55,8 @@
     "themeHint": "Elige cómo se ve la app en este dispositivo.",
     "themeSystem": "Sistema",
     "themeLight": "Claro",
-    "themeDark": "Oscuro"
+    "themeDark": "Oscuro",
+    "emailReadOnly": "El correo proviene de tu cuenta social y no se puede cambiar aquí."
   },
   "home": {
     "placeholder": "Aquí aparecerán los detalles del partido."
@@ -248,8 +249,7 @@
       "role": "Rol",
       "status": "Estado",
       "locale": "Idioma",
-      "created": "Creado",
-      "regenerate": "Regenerar enlace",
+      "created": "Miembro añadido.",
       "disable": "Desactivar",
       "enable": "Activar",
       "approve": "Aprobar",
@@ -259,15 +259,10 @@
       "statusActive": "Activo",
       "statusDisabled": "Desactivado",
       "statusPending": "Pendiente",
-      "emailOrName": "Correo o nombre",
       "add": "Añadir miembro",
       "adding": "Añadiendo…",
-      "working": "Procesando…"
-    },
-    "invite": {
-      "heading": "Enlace de invitación",
-      "copy": "Copiar",
-      "copied": "¡Copiado!"
+      "working": "Procesando…",
+      "emailReadOnly": "El correo proviene de la cuenta social del miembro."
     },
     "settings": {
       "title": "Ajustes",

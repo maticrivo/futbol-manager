@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { entries, matches, members, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
+import { entries, matches, users, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { createMember } from '@/domain/members'
 import {
@@ -22,7 +22,7 @@ const subscription = { endpoint: 'https://push/1', p256dh: 'k', auth: 'a' }
 const transportOk = () => vi.fn().mockResolvedValue({ statusCode: 201 })
 const matchFixture = () => createMatchForDate(testDb, '2027-03-30')
 
-function lockReminder(memberId: number) {
+function lockReminder(memberId: string) {
   const payload = buildNotification('lock_reminder', 'en', { matchDate: '2027-03-30', url: '/match/1' })
   return { memberId, category: 'lock_reminder' as const, eventKey: 'lock_reminder:match:1', payload, now }
 }
@@ -52,7 +52,7 @@ it('does not send or log an opted-out category', async () => {
 it('does not send or log for a disabled member even with a valid subscription', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
   await savePushSubscription(testDb, { memberId: member.id, ...subscription })
-  await testDb.update(members).set({ status: 'disabled' }).where(eq(members.id, member.id))
+  await testDb.update(users).set({ status: 'disabled' }).where(eq(users.id, member.id))
   const transport = transportOk()
 
   expect(await sendMemberNotification(testDb, lockReminder(member.id), transport)).toBe(false)
@@ -63,7 +63,7 @@ it('does not send or log for a disabled member even with a valid subscription', 
 it('does not send or log for a missing member', async () => {
   const transport = transportOk()
 
-  expect(await sendMemberNotification(testDb, lockReminder(1), transport)).toBe(false)
+  expect(await sendMemberNotification(testDb, lockReminder('00000000-0000-4000-8000-000000000000'), transport)).toBe(false)
   expect(transport).not.toHaveBeenCalled()
   expect(await testDb.select().from(notificationLog)).toEqual([])
 })
@@ -218,9 +218,14 @@ it.each([
   expect(await processDueNotifications(testDb, closing, transport)).toEqual({ sent: 0 })
   await testDb.delete(notificationLog)
   expect(await processDueNotifications(testDb, closing, transport)).toEqual({ sent: 2 })
-  expect(await testDb.select().from(notificationLog).orderBy(notificationLog.memberId)).toMatchObject(
-    [ana, ben].map(({ id }) => ({ memberId: id, eventKey: `${category}:match:${match.id}`, sentAt: closing })),
-  )
+  const closingLogs = await testDb.select().from(notificationLog)
+  expect(closingLogs.map((row) => row.memberId).sort()).toEqual([ana.id, ben.id].sort())
+  for (const member of [ana, ben]) {
+    expect(closingLogs.find((row) => row.memberId === member.id)).toMatchObject({
+      eventKey: `${category}:match:${match.id}`,
+      sentAt: closing,
+    })
+  }
 })
 
 it('sends the later scheduled match notification when only its window is due', async () => {
@@ -238,13 +243,13 @@ it('sends the later scheduled match notification when only its window is due', a
   ])
 })
 
-it('scans every live offer, skipping expired offers and disabled members', async () => {
+it('scans every live offer, skipping expired offers and disabled users', async () => {
   const match = await matchFixture()
   const anotherMatch = await createMatchForDate(testDb, '2027-04-06')
   const { member: live } = await createMember(testDb, { name: 'Live' })
   const { member: expired } = await createMember(testDb, { name: 'Expired' })
   const { member: disabled } = await createMember(testDb, { name: 'Disabled' })
-  await testDb.update(members).set({ status: 'disabled' }).where(eq(members.id, disabled.id))
+  await testDb.update(users).set({ status: 'disabled' }).where(eq(users.id, disabled.id))
   const future = new Date('2027-03-28T12:30:00.000Z')
   const [firstOffer, secondOffer] = await testDb.insert(entries).values([
     { matchId: match.id, kind: 'member', memberId: live.id, status: 'offered', offerExpiresAt: future },
@@ -272,7 +277,7 @@ it('scans bill_ready within 30 minutes of Jerusalem 09:00 on the first for the p
   await matchFixture()
   const { member: active } = await createMember(testDb, { name: 'Ana' })
   const { member: disabled } = await createMember(testDb, { name: 'Ben' })
-  await testDb.update(members).set({ status: 'disabled' }).where(eq(members.id, disabled.id))
+  await testDb.update(users).set({ status: 'disabled' }).where(eq(users.id, disabled.id))
   await savePushSubscription(testDb, { memberId: active.id, ...subscription })
   await savePushSubscription(testDb, { memberId: disabled.id, ...subscription, endpoint: 'https://push/2' })
   const transport = transportOk()

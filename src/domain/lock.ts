@@ -23,6 +23,7 @@ export async function lockMatch(
       .where(and(eq(entries.matchId, matchId), inArray(entries.status, ['queued', 'offered'])))
     const confirmed = await tx.select({ memberId: entries.memberId }).from(entries)
       .where(and(eq(entries.matchId, matchId), eq(entries.status, 'confirmed'), eq(entries.kind, 'member')))
+      .orderBy(entries.id)
       .for('update')
     const memberIds = confirmed.flatMap(({ memberId }) => memberId === null ? [] : [memberId])
     const chargesCreated = await createMatchCharges(tx, match, memberIds, now)
