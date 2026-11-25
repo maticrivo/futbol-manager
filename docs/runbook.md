@@ -31,17 +31,24 @@ This runbook covers setting up, deploying, operating, and monitoring the Weekly 
    ```bash
    cp .env.example .env.local
    ```
-   Update `.env.local` with your local values.
-3. **Run Migrations**:
+   Update `.env.local` with your local values. Sign-in needs:
+   - `AUTH_SECRET` — a high-entropy random string.
+   - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`.
+   - `AUTH_FACEBOOK_ID` / `AUTH_FACEBOOK_SECRET`.
+   - `AUTH_TRUST_HOST=true` for local/hosted Next.js.
+   - `ADMIN_EMAIL` — the Google/Facebook email that becomes the first admin.
+   Register `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/facebook` with the providers. Facebook Login requires HTTPS redirect URIs and app review/test users before people outside the app's testers can sign in; an HTTPS tunnel may be needed for local Facebook testing.
+3. **Reset and Apply Migrations**:
    ```bash
+   DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol psql "$DATABASE_URL" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
    DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol npm run db:migrate
    ```
-   `drizzle-kit` reads `MIGRATE_DATABASE_URL` first, then `DATABASE_URL`; it does not load `.env` files itself, so pass the URL inline or export it.
+   `drizzle-kit` reads `MIGRATE_DATABASE_URL` first, then `DATABASE_URL`; it does not load `.env` files itself, so pass the URL inline or export it. This is a one-time destructive reset: the Auth.js `user` table uses text UUIDs, so the old `members` data is not migrated.
 4. **Seed Development Data**:
    ```bash
    npm run seed
    ```
-   This creates default settings (if uninitialized), an admin user, 18 players, and the upcoming Tuesday match. Newly generated invite login links are output to standard out.
+   This creates default settings (if uninitialized), the active admin from `ADMIN_EMAIL` when that row does not already exist, and the upcoming Tuesday match. It does not create placeholder players. If the `ADMIN_EMAIL` row already exists but is not an active admin, sign in once so the Auth.js callback promotes it, or update the row in the database.
 5. **Verify Connectivity**:
    ```bash
    npm run check-db
@@ -78,23 +85,30 @@ This outputs:
    - `DATABASE_URL`: Neon **pooled** connection string.
    - `MIGRATE_DATABASE_URL`: Neon **direct** connection string (used only by migrations).
    - `APP_URL`: Production public URL (e.g. `https://football.example.com`).
+   - `AUTH_SECRET`: High-entropy random string used by Auth.js.
+   - `AUTH_GOOGLE_ID` / `AUTH_GOOGLE_SECRET`: Google OAuth client credentials.
+   - `AUTH_FACEBOOK_ID` / `AUTH_FACEBOOK_SECRET`: Facebook app credentials.
+   - `AUTH_TRUST_HOST=true`.
+   - `ADMIN_EMAIL`: The social email that becomes the active admin.
    - `TICK_SECRET`: High-entropy random secret string for authenticating cron tick calls.
    - `VAPID_SUBJECT`: `mailto:admin@example.com`
    - `VAPID_PUBLIC_KEY`: Generated VAPID public key.
    - `VAPID_PRIVATE_KEY`: Generated VAPID private key.
    - `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: Identical to `VAPID_PUBLIC_KEY`.
    - Set the project's function region to **`fra1`** so functions run next to the Frankfurt database.
+   - Register the production OAuth callback URLs:
+     - `https://<APP_URL>/api/auth/callback/google`
+     - `https://<APP_URL>/api/auth/callback/facebook`
 3. **Build & Deploy**:
    - Deploy through Vercel Git integration or `vercel --prod`.
 4. **Apply Migrations and Seed to Production**:
-   Run migration and seed commands locally against the production database, using the **direct** URL:
+   Run migration and seed commands locally against the production database, using the **direct** URL. This is a destructive reset for the Auth.js migration; take a backup first.
    ```bash
+   psql "<direct-url>" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
    MIGRATE_DATABASE_URL="<direct-url>" DATABASE_URL="<direct-url>" npm run db:migrate
-   MIGRATE_DATABASE_URL="<direct-url>" DATABASE_URL="<direct-url>" APP_URL="https://football.example.com" npm run seed
+   MIGRATE_DATABASE_URL="<direct-url>" DATABASE_URL="<direct-url>" APP_URL="https://football.example.com" ADMIN_EMAIL="<your-email>" npm run seed
    ```
-   Save the printed login links from the seed output securely to distribute initial admin and player invites.
-
-   > **Security Warning**: Printed invite links are bearer login tokens granting direct, passwordless access to member and admin accounts. Do not capture seed output in shared CI logs, chat channels, or tickets. If an invite link leaks, immediately regenerate an invite in `/admin/members` to revoke active sessions and issue a new token.
+   Sign in with the `ADMIN_EMAIL` social account. If the row was created by the seed, it is already active admin; if you signed in before setting `ADMIN_EMAIL`, the next sign-in promotes it. Players sign in with Google/Facebook, complete their profile, and wait for approval in `/admin/members`.
 
 ---
 
@@ -123,16 +137,21 @@ The application handles status transitions (lock, played), queue offer expiratio
 
 ---
 
-## 6. Member Invites & PWA Installation
+## 6. Social Sign-In, Member Linking & PWA Installation
 
-1. **Member Onboarding & Magic Links**:
-   - Admins can view and copy invite links from `/admin/members`.
-   - Distribute links directly to players via WhatsApp or SMS.
-   - When a link `https://<APP_URL>/login/<rawToken>` is opened, the user is authenticated and an HTTP-only session cookie (`fm_session`) is set.
-2. **Lost Phone or Compromised Link**:
-   - In `/admin/members`, the admin can click **Regenerate Invite** for any member.
-   - This revokes all existing sessions and invalidates the previous login token for that member immediately.
-3. **iOS Push Notification Prerequisite**:
+1. **Member Onboarding**:
+   - Players open `/login` and continue with Google or Facebook. New emails create an account with `pending` status and a profile prefilled from the provider.
+   - An admin approves or disables them in `/admin/members`. Pending members can complete their profile but cannot use match, queue, or billing pages.
+   - Google and Facebook share the same email: the second provider links automatically.
+2. **Different Provider Emails**:
+   - A provider with a different email creates a separate pending member; it is not auto-linked by name.
+   - The member can connect the other provider from **Connected accounts** on `/profile`.
+   - If the provider account is already attached to a pending duplicate, the member sees a link-conflict message. An admin resolves it with **Link to existing member** on the pending duplicate card. That moves the provider accounts, removes the pending row, and audits the link.
+   - Only pending duplicates can be linked by an admin; merging active members with billing history is not supported.
+3. **Sessions and Disabling**:
+   - Auth.js stores database sessions for 365 days. Disabling a member deletes their session rows, so an existing browser session stops working immediately.
+   - Email is provider-owned and read-only in the app. Correct a wrong email directly in the `user` table, then treat it as a deliberate identity change.
+4. **iOS Push Notification Prerequisite**:
    - Web Push on iOS (Safari) requires the web app to be added to the Home Screen:
      1. Open the site in Safari on iOS.
      2. Tap the **Share** button.
@@ -157,7 +176,8 @@ The application handles status transitions (lock, played), queue offer expiratio
      psql -d "<direct-url>" -f backup_YYYYMMDD_HHMMSS.sql
      ```
 3. **Forward-Only Migrations**:
-   - All Drizzle migrations in `drizzle/` are forward-only. Do not edit past migration files.
+   - All Drizzle migrations in `drizzle/` are forward-only. Do not edit past migration files. The one exception was the deliberate Auth.js reset that replaced the baseline; it was applied only because there was no member data to preserve.
+   - After that reset, treat the Auth.js baseline as the starting point and add forward-only migrations.
    - If a migration needs to be corrected, generate and apply a new migration that patches the schema forward.
    - Postgres enum values are added with `ALTER TYPE ... ADD VALUE`; do not re-create the type.
 4. **Vercel Rollback**:
@@ -185,3 +205,17 @@ The application handles status transitions (lock, played), queue offer expiratio
 4. **Notification Deduplication**:
    - Notifications are recorded in `notificationLog` with a unique key `(eventKey)`.
    - Repeated ticks will never re-send duplicate notifications for the same match event.
+
+---
+
+## 9. Social Sign-In Verification Checklist
+
+After a fresh reset, credentials setup, migration, and seed:
+
+1. Sign in with Google as `ADMIN_EMAIL`; confirm active admin access and that other accounts start pending.
+2. Sign in with a second Google account; confirm the profile is prefilled, the pending notice is shown, and match/queue/billing pages are blocked.
+3. Approve the second account in `/admin/members`; confirm access and the pending notice disappearing.
+4. Disable the account; confirm an existing browser session is signed out and a new sign-in is rejected.
+5. Sign in with a provider whose email differs; confirm a pending duplicate appears. Link it to the existing member, then confirm the next sign-in with that provider lands on the original member.
+6. From an existing member's profile, connect the other provider with a different email; confirm it shows Connected and signs into the same member.
+7. Confirm `/login/expired` is reached after sign-out or a stale session, and that a member without an email from Facebook is rejected with the email-missing message.

@@ -8,6 +8,7 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
 
 - **Framework**: Next.js 16 (App Router) with React 19 and TypeScript
 - **Database & ORM**: PostgreSQL 17 with Drizzle ORM and `pg` (node-postgres)
+- **Authentication**: Auth.js v5 (NextAuth) with the Drizzle adapter; Google and Facebook sign-in
 - **Styling**: Tailwind CSS v4
 - **Date & Time**: Luxon (primary timezone: `Asia/Jerusalem`)
 - **PWA & Notifications**: Web Push with Service Worker (`web-push`)
@@ -23,14 +24,19 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
    ```bash
    cp .env.example .env.local
    ```
-3. **Run database migrations**:
+   Fill in `AUTH_SECRET`, the Google/Facebook OAuth credentials, and `ADMIN_EMAIL`. Register these callback URLs with each provider:
+   - `http://localhost:3000/api/auth/callback/google`
+   - `http://localhost:3000/api/auth/callback/facebook`
+3. **Reset and migrate the database**:
    ```bash
+   psql "$DATABASE_URL" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
    npm run db:migrate
    ```
-4. **Seed initial development data**:
+4. **Seed the admin and first match**:
    ```bash
    npm run seed
    ```
+   The admin is created from `ADMIN_EMAIL`; players sign themselves up with Google or Facebook and wait for approval.
 5. **Start the Next.js development server**:
    ```bash
    npm run dev
@@ -47,11 +53,11 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
 | `lint` | `eslint` | Run ESLint code checks |
 | `db:generate` | `drizzle-kit generate` | Generate Drizzle migration files from schema |
 | `db:migrate` | `drizzle-kit migrate` | Apply pending Drizzle migrations to database |
-| `seed` | `tsx scripts/seed.ts` | Seed settings, admin, player roster, and upcoming match |
+| `seed` | `tsx scripts/seed.ts` | Seed settings, the `ADMIN_EMAIL` admin, and the upcoming match |
 | `check-db` | `tsx scripts/check-db.ts` | Test database connectivity via `DATABASE_URL` |
 
 ## Documentation
 
 - [System Design Spec](docs/superpowers/specs/2026-11-18-weekly-football-manager-design.md)
-- [Implementation Plan](docs/superpowers/plans/2026-11-18-weekly-football-manager.md)
+- [Social Login Design](docs/superpowers/specs/2026-11-25-social-login-design.md)
 - [Deployment & Operations Runbook](docs/runbook.md)

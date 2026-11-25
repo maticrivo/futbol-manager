@@ -24,7 +24,6 @@ describe('createMember', () => {
       image: '  https://example.com/avatar.png  ',
     })
 
-    expect(result).not.toHaveProperty('inviteToken')
     expect(result.member.id).toMatch(/^[0-9a-f-]{36}$/)
     expect(result.member.role).toBe('member')
     expect(result.member.status).toBe('active')
