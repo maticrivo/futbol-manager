@@ -14,7 +14,7 @@ Copy this into the WhatsApp group:
 
 ```text
 היי חברים 👋
-"כדורגל שלישי" היא האפליקציה של הקבוצה: נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
+בניתי את האפליקציה הזאת עבור הקבוצה שלנו. היא נקראת "כדורגל שלישי": נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
 כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה מהקישור:
 https://tuesday-football.nulldev.app
 
@@ -43,7 +43,7 @@ https://tuesday-football.nulldev.app
 
 ```text
 Hi everyone 👋
-"Tuesday Football" is our team app: sign up for the weekly match, see who's playing, join the waitlist, and get reminders plus your monthly bill.
+I built this app for our group. It's called "Tuesday Football": sign up for the weekly match, see who's playing, join the waitlist, and get reminders plus your monthly bill.
 Install it from this link to use it like an app and receive notifications:
 https://tuesday-football.nulldev.app
 
@@ -72,7 +72,7 @@ https://tuesday-football.nulldev.app
 
 ```text
 ¡Hola a todos 👋
-"Fútbol Martes" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
+Hice esta app para nuestro grupo. Se llama "Fútbol Martes": se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
 Instálenla desde este enlace para usarla como una app y recibir notificaciones:
 https://tuesday-football.nulldev.app
 
