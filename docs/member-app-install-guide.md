@@ -74,30 +74,30 @@ https://tuesday-football.nulldev.app
 
 ```text
 ¡Hola a todos 👋
-Hice esta app para nuestro grupo. Se llama "Fútbol Martes": se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
-A partir del próximo partido, la inscripción se hace aquí.
-Instálenla desde este enlace para usarla como una app y recibir notificaciones:
+Les armé esta app para el grupo. Se llama "Fútbol Martes": se anotan al partido semanal, ven quién juega, se suman a la lista de espera y les llegan recordatorios y la cuenta del mes.
+A partir del próximo partido, la inscripción se hace acá.
+Instálenla desde este link para usarla como una app y recibir notificaciones:
 https://tuesday-football.nulldev.app
 
 📱 iPhone / iPad — recomendado Safari:
-1. Abran el enlace en Safari. Si llega por WhatsApp: ··· → "Abrir en Safari".
-2. Toquen el botón Compartir (cuadrado con flecha) → "Añadir a pantalla de inicio".
-   Si aparece "Abrir como app web", déjenla activada. Toquen "Añadir".
-3. Abran la app desde el icono en la pantalla de inicio.
+1. Abran el link en Safari. Si les llegó por WhatsApp: ··· → "Abrir en Safari".
+2. Toquen el botón Compartir (cuadrado con flecha) → "Agregar a pantalla de inicio".
+   Si aparece "Abrir como app web", déjenla activada. Toquen "Agregar".
+3. Abran la app desde el ícono en la pantalla de inicio.
 4. Entren a "Perfil" → "Notificaciones push" → "Activar notificaciones" → "Permitir".
-5. En esa misma pantalla elijan qué avisos quieren recibir y toquen "Guardar ajustes".
+5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar ajustes".
 
 🤖 Android — Chrome:
-1. Abran el enlace en Chrome (no dentro de WhatsApp).
-2. Menú ⋮ → "Instalar aplicación" (o "Añadir a pantalla de inicio") → "Instalar".
-3. Abran la app desde el icono en la pantalla de inicio.
+1. Abran el link en Chrome (no dentro de WhatsApp).
+2. Menú ⋮ → "Instalar app" (o "Agregar a pantalla de inicio") → "Instalar".
+3. Abran la app desde el ícono en la pantalla de inicio.
 4. Entren a "Perfil" → "Notificaciones push" → "Activar notificaciones" → "Permitir".
-5. En esa misma pantalla elijan qué avisos quieren recibir y toquen "Guardar ajustes".
+5. En esa misma pantalla elijan qué notificaciones quieren recibir y toquen "Guardar ajustes".
 
 ⚠️ Importante:
-• En iPhone se necesita iOS 16.4 o superior, y las notificaciones solo se pueden activar después de instalar la app.
+• En el iPhone se necesita iOS 16.4 o superior, y las notificaciones solo se pueden activar después de instalar la app.
 • Activen las notificaciones en cada dispositivo por separado.
-• ¿No ven "Activar notificaciones"? Abran la app desde el icono en la pantalla de inicio.
+• ¿No ven "Activar notificaciones"? Abran la app desde el ícono en la pantalla de inicio.
 ```
 
 ---
