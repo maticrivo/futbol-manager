@@ -6,6 +6,7 @@ import {
   jsonb,
   pgEnum,
   pgTable,
+  primaryKey,
   smallint,
   text,
   timestamp,
@@ -24,36 +25,41 @@ const updatedAt = () => timestamp('updated_at', { withTimezone: true, precision:
   .$onUpdate(() => new Date())
   .notNull()
 
-export const members = pgTable('members', {
-  id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  name: varchar('name', { length: 120 }).notNull(),
+export const users = pgTable('user', {
+  id: text('id').primaryKey().$defaultFn(() => crypto.randomUUID()),
+  name: varchar('name', { length: 120 }),
   email: varchar('email', { length: 254 }).unique(),
-  phone: varchar('phone', { length: 40 }),
-  nickname: varchar('nickname', { length: 60 }),
+  emailVerified: timestamp('emailVerified', { withTimezone: true, precision: 3, mode: 'date' }),
   image: text('image'),
   role: memberRoleEnum('role').default('member').notNull(),
+  status: memberStatusEnum('status').default('pending').notNull(),
+  phone: varchar('phone', { length: 40 }),
+  nickname: varchar('nickname', { length: 60 }),
   locale: varchar('locale', { length: 5 }).default('en').notNull(),
-  status: memberStatusEnum('status').default('active').notNull(),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
 })
 
-export const loginTokens = pgTable('login_tokens', {
-  id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  memberId: integer('member_id').notNull().references(() => members.id),
-  tokenHash: char('token_hash', { length: 64 }).notNull().unique(),
-  lastUsedAt: timestamp('last_used_at', { withTimezone: true, precision: 3, mode: 'date' }),
-  revokedAt: timestamp('revoked_at', { withTimezone: true, precision: 3, mode: 'date' }),
-  createdAt: createdAt(),
-})
+export const accounts = pgTable('account', {
+  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  type: text('type').notNull(),
+  provider: text('provider').notNull(),
+  providerAccountId: text('providerAccountId').notNull(),
+  refresh_token: text('refresh_token'),
+  access_token: text('access_token'),
+  expires_at: integer('expires_at'),
+  token_type: text('token_type'),
+  scope: text('scope'),
+  id_token: text('id_token'),
+  session_state: text('session_state'),
+}, (account) => [
+  primaryKey({ columns: [account.provider, account.providerAccountId] }),
+])
 
-export const sessions = pgTable('sessions', {
-  id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  memberId: integer('member_id').notNull().references(() => members.id),
-  tokenHash: char('token_hash', { length: 64 }).notNull().unique(),
-  expiresAt: timestamp('expires_at', { withTimezone: true, precision: 3, mode: 'date' }).notNull(),
-  userAgent: varchar('user_agent', { length: 255 }),
-  createdAt: createdAt(),
+export const sessions = pgTable('session', {
+  sessionToken: text('sessionToken').primaryKey(),
+  userId: text('userId').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  expires: timestamp('expires', { withTimezone: true, precision: 3, mode: 'date' }).notNull(),
 })
 
 export const matchStatusEnum = pgEnum('match_status', ['scheduled', 'locked', 'played', 'cancelled'])
@@ -82,9 +88,9 @@ export const entries = pgTable('entries', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
   matchId: integer('match_id').notNull().references(() => matches.id),
   kind: entryKindEnum('kind').notNull(),
-  memberId: integer('member_id').references(() => members.id),
+  memberId: text('member_id').references(() => users.id),
   guestName: varchar('guest_name', { length: 120 }),
-  hostMemberId: integer('host_member_id').references(() => members.id),
+  hostMemberId: text('host_member_id').references(() => users.id),
   status: entryStatusEnum('status').default('confirmed').notNull(),
   attended: boolean('attended'),
   offeredAt: timestamp('offered_at', { withTimezone: true, precision: 3, mode: 'date' }),
@@ -101,11 +107,11 @@ export const chargeStatusEnum = pgEnum('charge_status', ['charged', 'waived'])
 export const charges = pgTable('charges', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
   matchId: integer('match_id').notNull().references(() => matches.id),
-  memberId: integer('member_id').notNull().references(() => members.id),
+  memberId: text('member_id').notNull().references(() => users.id),
   amountAgorot: integer('amount_agorot').notNull(),
   billingMonth: char('billing_month', { length: 7 }).notNull(),
   status: chargeStatusEnum('status').default('charged').notNull(),
-  waivedBy: integer('waived_by').references(() => members.id),
+  waivedBy: text('waived_by').references(() => users.id),
   waiveReason: varchar('waive_reason', { length: 255 }),
   createdAt: createdAt(),
   updatedAt: updatedAt(),
@@ -118,12 +124,12 @@ export const paymentMethodEnum = pgEnum('payment_method', ['paybox', 'cash', 'ot
 
 export const payments = pgTable('payments', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  memberId: integer('member_id').notNull().references(() => members.id),
+  memberId: text('member_id').notNull().references(() => users.id),
   amountAgorot: integer('amount_agorot').notNull(),
   paidAt: timestamp('paid_at', { withTimezone: true, precision: 3, mode: 'date' }).notNull(),
   method: paymentMethodEnum('method').notNull(),
   note: varchar('note', { length: 255 }),
-  recordedBy: integer('recorded_by').notNull().references(() => members.id),
+  recordedBy: text('recorded_by').notNull().references(() => users.id),
   createdAt: createdAt(),
 })
 
@@ -146,7 +152,7 @@ export const guestPayments = pgTable('guest_payments', {
   kind: guestPaymentKindEnum('kind').notNull(),
   refundOfId: integer('refund_of_id'),
   paidAt: timestamp('paid_at', { withTimezone: true, precision: 3, mode: 'date' }).notNull(),
-  recordedBy: integer('recorded_by').notNull().references(() => members.id),
+  recordedBy: text('recorded_by').notNull().references(() => users.id),
   note: varchar('note', { length: 255 }),
   createdAt: createdAt(),
 })
@@ -155,13 +161,13 @@ export const expenses = pgTable('expenses', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
   billingMonth: char('billing_month', { length: 7 }).notNull().unique(),
   fieldCostAgorot: integer('field_cost_agorot').notNull(),
-  updatedBy: integer('updated_by').notNull().references(() => members.id),
+  updatedBy: text('updated_by').notNull().references(() => users.id),
   updatedAt: updatedAt(),
 })
 
 export const pushSubscriptions = pgTable('push_subscriptions', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  memberId: integer('member_id').notNull().references(() => members.id),
+  memberId: text('member_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   endpoint: varchar('endpoint', { length: 500 }).notNull().unique(),
   p256dh: varchar('p256dh', { length: 255 }).notNull(),
   auth: varchar('auth', { length: 255 }).notNull(),
@@ -180,7 +186,7 @@ export const notificationCategoryEnum = pgEnum('notification_category', [
 
 export const notificationPrefs = pgTable('notification_prefs', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  memberId: integer('member_id').notNull().references(() => members.id),
+  memberId: text('member_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   category: notificationCategoryEnum('category').notNull(),
   enabled: boolean('enabled').notNull().default(true),
 }, (table) => [
@@ -190,7 +196,7 @@ export const notificationPrefs = pgTable('notification_prefs', {
 export const notificationLog = pgTable('notification_logs', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
   eventKey: varchar('event_key', { length: 200 }).notNull(),
-  memberId: integer('member_id').notNull().references(() => members.id),
+  memberId: text('member_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
   sentAt: timestamp('sent_at', { withTimezone: true, precision: 3, mode: 'date' }).$defaultFn(() => new Date()).notNull(),
 }, (table) => [
   unique('notification_logs_event_key_member_id_unique').on(table.eventKey, table.memberId),
@@ -204,7 +210,7 @@ export const settings = pgTable('settings', {
 
 export const auditLog = pgTable('audit_logs', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
-  actorId: integer('actor_id').references(() => members.id),
+  actorId: text('actor_id').references(() => users.id, { onDelete: 'set null' }),
   action: varchar('action', { length: 80 }).notNull(),
   entity: varchar('entity', { length: 40 }).notNull(),
   entityId: varchar('entity_id', { length: 40 }),

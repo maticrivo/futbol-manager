@@ -18,9 +18,9 @@ const tables = [
   'charges',
   'entries',
   'matches',
-  'sessions',
-  'login_tokens',
-  'members',
+  'session',
+  'account',
+  'user',
   'settings',
 ]
 

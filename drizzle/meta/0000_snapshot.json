@@ -1,9 +1,110 @@
 {
-  "id": "69bb3b55-6e60-481e-a700-673e641f691a",
+  "id": "f4992381-46c9-421b-8974-6dcaea52b914",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.account": {
+      "name": "account",
+      "schema": "",
+      "columns": {
+        "userId": {
+          "name": "userId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider": {
+          "name": "provider",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "providerAccountId": {
+          "name": "providerAccountId",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refresh_token": {
+          "name": "refresh_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "access_token": {
+          "name": "access_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "expires_at": {
+          "name": "expires_at",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "token_type": {
+          "name": "token_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "scope": {
+          "name": "scope",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "id_token": {
+          "name": "id_token",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "session_state": {
+          "name": "session_state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "account_userId_user_id_fk": {
+          "name": "account_userId_user_id_fk",
+          "tableFrom": "account",
+          "tableTo": "user",
+          "columnsFrom": [
+            "userId"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "account_provider_providerAccountId_pk": {
+          "name": "account_provider_providerAccountId_pk",
+          "columns": [
+            "provider",
+            "providerAccountId"
+          ]
+        }
+      },
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.audit_logs": {
       "name": "audit_logs",
       "schema": "",
@@ -27,7 +128,7 @@
         },
         "actor_id": {
           "name": "actor_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -64,17 +165,17 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "audit_logs_actor_id_members_id_fk": {
-          "name": "audit_logs_actor_id_members_id_fk",
+        "audit_logs_actor_id_user_id_fk": {
+          "name": "audit_logs_actor_id_user_id_fk",
           "tableFrom": "audit_logs",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "actor_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -113,7 +214,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -139,7 +240,7 @@
         },
         "waived_by": {
           "name": "waived_by",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -199,10 +300,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "charges_member_id_members_id_fk": {
-          "name": "charges_member_id_members_id_fk",
+        "charges_member_id_user_id_fk": {
+          "name": "charges_member_id_user_id_fk",
           "tableFrom": "charges",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
@@ -212,10 +313,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "charges_waived_by_members_id_fk": {
-          "name": "charges_waived_by_members_id_fk",
+        "charges_waived_by_user_id_fk": {
+          "name": "charges_waived_by_user_id_fk",
           "tableFrom": "charges",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "waived_by"
           ],
@@ -277,7 +378,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -289,7 +390,7 @@
         },
         "host_member_id": {
           "name": "host_member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -369,10 +470,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "entries_member_id_members_id_fk": {
-          "name": "entries_member_id_members_id_fk",
+        "entries_member_id_user_id_fk": {
+          "name": "entries_member_id_user_id_fk",
           "tableFrom": "entries",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
@@ -382,10 +483,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "entries_host_member_id_members_id_fk": {
-          "name": "entries_host_member_id_members_id_fk",
+        "entries_host_member_id_user_id_fk": {
+          "name": "entries_host_member_id_user_id_fk",
           "tableFrom": "entries",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "host_member_id"
           ],
@@ -446,7 +547,7 @@
         },
         "updated_by": {
           "name": "updated_by",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -459,10 +560,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "expenses_updated_by_members_id_fk": {
-          "name": "expenses_updated_by_members_id_fk",
+        "expenses_updated_by_user_id_fk": {
+          "name": "expenses_updated_by_user_id_fk",
           "tableFrom": "expenses",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "updated_by"
           ],
@@ -541,7 +642,7 @@
         },
         "recorded_by": {
           "name": "recorded_by",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -573,10 +674,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "guest_payments_recorded_by_members_id_fk": {
-          "name": "guest_payments_recorded_by_members_id_fk",
+        "guest_payments_recorded_by_user_id_fk": {
+          "name": "guest_payments_recorded_by_user_id_fk",
           "tableFrom": "guest_payments",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "recorded_by"
           ],
@@ -589,88 +690,6 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.login_tokens": {
-      "name": "login_tokens",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "login_tokens_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "member_id": {
-          "name": "member_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "char(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "last_used_at": {
-          "name": "last_used_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "revoked_at": {
-          "name": "revoked_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "login_tokens_member_id_members_id_fk": {
-          "name": "login_tokens_member_id_members_id_fk",
-          "tableFrom": "login_tokens",
-          "tableTo": "members",
-          "columnsFrom": [
-            "member_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "login_tokens_token_hash_unique": {
-          "name": "login_tokens_token_hash_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
-        }
-      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -794,109 +813,6 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.members": {
-      "name": "members",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "members_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
-        },
-        "name": {
-          "name": "name",
-          "type": "varchar(120)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "email": {
-          "name": "email",
-          "type": "varchar(254)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "phone": {
-          "name": "phone",
-          "type": "varchar(40)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "nickname": {
-          "name": "nickname",
-          "type": "varchar(60)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "image": {
-          "name": "image",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "role": {
-          "name": "role",
-          "type": "member_role",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'member'"
-        },
-        "locale": {
-          "name": "locale",
-          "type": "varchar(5)",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'en'"
-        },
-        "status": {
-          "name": "status",
-          "type": "member_status",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "members_email_unique": {
-          "name": "members_email_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "email"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
     "public.notification_logs": {
       "name": "notification_logs",
       "schema": "",
@@ -926,7 +842,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -939,17 +855,17 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notification_logs_member_id_members_id_fk": {
-          "name": "notification_logs_member_id_members_id_fk",
+        "notification_logs_member_id_user_id_fk": {
+          "name": "notification_logs_member_id_user_id_fk",
           "tableFrom": "notification_logs",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -991,7 +907,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1012,17 +928,17 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "notification_prefs_member_id_members_id_fk": {
-          "name": "notification_prefs_member_id_members_id_fk",
+        "notification_prefs_member_id_user_id_fk": {
+          "name": "notification_prefs_member_id_user_id_fk",
           "tableFrom": "notification_prefs",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -1148,7 +1064,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1179,7 +1095,7 @@
         },
         "recorded_by": {
           "name": "recorded_by",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1192,10 +1108,10 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "payments_member_id_members_id_fk": {
-          "name": "payments_member_id_members_id_fk",
+        "payments_member_id_user_id_fk": {
+          "name": "payments_member_id_user_id_fk",
           "tableFrom": "payments",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
@@ -1205,10 +1121,10 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "payments_recorded_by_members_id_fk": {
-          "name": "payments_recorded_by_members_id_fk",
+        "payments_recorded_by_user_id_fk": {
+          "name": "payments_recorded_by_user_id_fk",
           "tableFrom": "payments",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "recorded_by"
           ],
@@ -1248,7 +1164,7 @@
         },
         "member_id": {
           "name": "member_id",
-          "type": "integer",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
@@ -1285,17 +1201,17 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "push_subscriptions_member_id_members_id_fk": {
-          "name": "push_subscriptions_member_id_members_id_fk",
+        "push_subscriptions_member_id_user_id_fk": {
+          "name": "push_subscriptions_member_id_user_id_fk",
           "tableFrom": "push_subscriptions",
-          "tableTo": "members",
+          "tableTo": "user",
           "columnsFrom": [
             "member_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -1313,53 +1229,24 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.sessions": {
-      "name": "sessions",
+    "public.session": {
+      "name": "session",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
+        "sessionToken": {
+          "name": "sessionToken",
+          "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "identity": {
-            "type": "always",
-            "name": "sessions_id_seq",
-            "schema": "public",
-            "increment": "1",
-            "startWith": "1",
-            "minValue": "1",
-            "maxValue": "2147483647",
-            "cache": "1",
-            "cycle": false
-          }
+          "notNull": true
         },
-        "member_id": {
-          "name": "member_id",
-          "type": "integer",
+        "userId": {
+          "name": "userId",
+          "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "token_hash": {
-          "name": "token_hash",
-          "type": "char(64)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "expires_at": {
-          "name": "expires_at",
-          "type": "timestamp (3) with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_agent": {
-          "name": "user_agent",
-          "type": "varchar(255)",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
+        "expires": {
+          "name": "expires",
           "type": "timestamp (3) with time zone",
           "primaryKey": false,
           "notNull": true
@@ -1367,30 +1254,22 @@
       },
       "indexes": {},
       "foreignKeys": {
-        "sessions_member_id_members_id_fk": {
-          "name": "sessions_member_id_members_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "members",
+        "session_userId_user_id_fk": {
+          "name": "session_userId_user_id_fk",
+          "tableFrom": "session",
+          "tableTo": "user",
           "columnsFrom": [
-            "member_id"
+            "userId"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "sessions_token_hash_unique": {
-          "name": "sessions_token_hash_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "token_hash"
-          ]
-        }
-      },
+      "uniqueConstraints": {},
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
@@ -1422,6 +1301,104 @@
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.user": {
+      "name": "user",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar(120)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "email": {
+          "name": "email",
+          "type": "varchar(254)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "emailVerified": {
+          "name": "emailVerified",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "image": {
+          "name": "image",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role": {
+          "name": "role",
+          "type": "member_role",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'member'"
+        },
+        "status": {
+          "name": "status",
+          "type": "member_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'pending'"
+        },
+        "phone": {
+          "name": "phone",
+          "type": "varchar(40)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "nickname": {
+          "name": "nickname",
+          "type": "varchar(60)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "locale": {
+          "name": "locale",
+          "type": "varchar(5)",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'en'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "user_email_unique": {
+          "name": "user_email_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "email"
+          ]
+        }
+      },
       "policies": {},
       "checkConstraints": {},
       "isRLSEnabled": false
