@@ -29,6 +29,7 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
    - `http://localhost:3000/api/auth/callback/facebook`
 3. **Reset and migrate the database**:
    ```bash
+   export DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol
    psql "$DATABASE_URL" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
    npm run db:migrate
    ```

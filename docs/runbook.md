@@ -40,8 +40,9 @@ This runbook covers setting up, deploying, operating, and monitoring the Weekly 
    Register `http://localhost:3000/api/auth/callback/google` and `http://localhost:3000/api/auth/callback/facebook` with the providers. Facebook Login requires HTTPS redirect URIs and app review/test users before people outside the app's testers can sign in; an HTTPS tunnel may be needed for local Facebook testing.
 3. **Reset and Apply Migrations**:
    ```bash
-   DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol psql "$DATABASE_URL" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
-   DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol npm run db:migrate
+   export DATABASE_URL=postgres://futbol:futbol@127.0.0.1:5432/futbol
+   psql "$DATABASE_URL" -c 'DROP SCHEMA IF EXISTS public CASCADE; DROP SCHEMA IF EXISTS drizzle CASCADE; CREATE SCHEMA public;'
+   npm run db:migrate
    ```
    `drizzle-kit` reads `MIGRATE_DATABASE_URL` first, then `DATABASE_URL`; it does not load `.env` files itself, so pass the URL inline or export it. This is a one-time destructive reset: the Auth.js `user` table uses text UUIDs, so the old `members` data is not migrated.
 4. **Seed Development Data**:
@@ -218,4 +219,4 @@ After a fresh reset, credentials setup, migration, and seed:
 4. Disable the account; confirm an existing browser session is signed out and a new sign-in is rejected.
 5. Sign in with a provider whose email differs; confirm a pending duplicate appears. Link it to the existing member, then confirm the next sign-in with that provider lands on the original member.
 6. From an existing member's profile, connect the other provider with a different email; confirm it shows Connected and signs into the same member.
-7. Confirm `/login/expired` is reached after sign-out or a stale session, and that a member without an email from Facebook is rejected with the email-missing message.
+7. Confirm sign-out returns to `/login`, a stale session reaches `/login/expired`, and a Facebook account without an email is rejected with the email-missing message.

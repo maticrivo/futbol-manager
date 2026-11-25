@@ -13,5 +13,10 @@ export default defineConfig({
     fileParallelism: false,
     setupFiles: ['tests/setup.ts'],
     globalSetup: ['tests/global-setup.ts'],
+    server: {
+      deps: {
+        inline: ['next-auth', '@auth/core'],
+      },
+    },
   },
 })

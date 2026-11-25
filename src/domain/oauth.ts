@@ -1,6 +1,6 @@
 import type { Db } from '@/db'
-import { accounts, users } from '@/db/schema'
-import { eq } from 'drizzle-orm'
+import { accounts, auditLog, users } from '@/db/schema'
+import { and, eq } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { isValidEmail } from './members'
 
@@ -29,8 +29,11 @@ export async function authorizeOAuthSignIn(
 ): Promise<boolean | string> {
   const normalizedEmail = input.email.trim().toLowerCase()
 
-  const [existing] = input.id
+  const [byId] = input.id
     ? await db.select().from(users).where(eq(users.id, input.id)).limit(1)
+    : []
+  const [existing] = byId
+    ? [byId]
     : await db.select().from(users).where(eq(users.email, normalizedEmail)).limit(1)
 
   if (!existing) return true
@@ -55,13 +58,31 @@ export async function onCreateOAuthUser(
 ): Promise<void> {
   if (!user.email) return
 
-  const status = isConfiguredAdminEmail(user.email) ? 'active' : 'pending'
-  if (isConfiguredAdminEmail(user.email)) {
+  const [row] = await db.select().from(users).where(eq(users.id, user.id)).limit(1)
+  if (!row) return
+
+  const shouldPromote = isConfiguredAdminEmail(row.email) && (row.role !== 'admin' || row.status !== 'active')
+  if (shouldPromote) {
     await db
       .update(users)
       .set({ role: 'admin', status: 'active' })
       .where(eq(users.id, user.id))
   }
+
+  // Auth.js fires createUser even when dangerous email linking reuses an
+  // existing row. Only a genuinely new row has no account and no member.create audit.
+  const [account] = await db
+    .select({ id: accounts.userId })
+    .from(accounts)
+    .where(eq(accounts.userId, user.id))
+    .limit(1)
+  const [created] = await db
+    .select({ id: auditLog.id })
+    .from(auditLog)
+    .where(and(eq(auditLog.action, 'member.create'), eq(auditLog.entityId, user.id)))
+    .limit(1)
+
+  if (account || created) return
 
   await writeAudit(db, {
     actorId: user.id,
@@ -69,8 +90,8 @@ export async function onCreateOAuthUser(
     entity: 'member',
     entityId: user.id,
     detail: {
-      email: user.email.trim().toLowerCase(),
-      status,
+      email: row.email?.trim().toLowerCase() ?? user.email.trim().toLowerCase(),
+      status: shouldPromote ? 'active' : row.status,
     },
   })
 }

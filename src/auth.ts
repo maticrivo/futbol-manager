@@ -38,6 +38,10 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       user.email = identity.email
       return authorizeOAuthSignIn(getDb(), { id: user.id, email: identity.email })
     },
+    session({ session, user }) {
+      if (user) session.user.id = user.id
+      return session
+    },
   },
   events: {
     async createUser({ user }) {

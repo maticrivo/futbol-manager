@@ -1,6 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { auditLog, users } from '@/db/schema'
+import { accounts, auditLog, users } from '@/db/schema'
+import { createMember } from '@/domain/members'
 import {
   authorizeOAuthSignIn,
   isConfiguredAdminEmail,
@@ -65,6 +66,28 @@ describe('authorizeOAuthSignIn', () => {
     expect(isConfiguredAdminEmail('other@example.com')).toBe(false)
     expect(isConfiguredAdminEmail(' BOSS@example.com ')).toBe(true)
   })
+
+  it('falls back to the email when Auth.js supplies a placeholder id', async () => {
+    const placeholderId = crypto.randomUUID()
+    const [disabled] = await testDb.insert(users).values({
+      name: 'Disabled',
+      email: 'disabled@example.com',
+      status: 'disabled',
+    }).returning()
+    expect(await authorizeOAuthSignIn(testDb, { id: placeholderId, email: disabled.email! })).toBe(false)
+
+    process.env.ADMIN_EMAIL = 'boss@example.com'
+    const [boss] = await testDb.insert(users).values({
+      name: 'Boss',
+      email: 'boss@example.com',
+      status: 'pending',
+    }).returning()
+    expect(await authorizeOAuthSignIn(testDb, { id: placeholderId, email: boss.email! })).toBe(true)
+
+    const [promoted] = await testDb.select().from(users).where(eq(users.id, boss.id))
+    expect(promoted.role).toBe('admin')
+    expect(promoted.status).toBe('active')
+  })
 })
 
 describe('Auth.js events', () => {
@@ -79,6 +102,24 @@ describe('Auth.js events', () => {
     expect(promoted.status).toBe('active')
     const [audit] = await testDb.select().from(auditLog).where(eq(auditLog.action, 'member.request_access'))
     expect(audit.actorId).toBe(created.id)
+    expect(audit.detail).toMatchObject({ status: 'active' })
+  })
+
+  it('does not write request_access for an existing admin-created row claimed by email linking', async () => {
+    const { member } = await createMember(testDb, { name: 'Admin', email: 'admin@example.com', role: 'admin' })
+
+    await onCreateOAuthUser(testDb, { id: member.id, email: member.email })
+
+    expect(await testDb.select().from(auditLog).where(eq(auditLog.action, 'member.request_access'))).toHaveLength(0)
+  })
+
+  it('does not write request_access for an existing OAuth user adding a provider', async () => {
+    const [member] = await testDb.insert(users).values({ name: 'Ana', email: 'ana@example.com' }).returning()
+    await testDb.insert(accounts).values({ userId: member.id, type: 'oauth', provider: 'google', providerAccountId: 'g-1' })
+
+    await onCreateOAuthUser(testDb, { id: member.id, email: member.email })
+
+    expect(await testDb.select().from(auditLog).where(eq(auditLog.action, 'member.request_access'))).toHaveLength(0)
   })
 
   it('writes sign-in and link audit rows', async () => {
