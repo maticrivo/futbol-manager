@@ -3,20 +3,23 @@ import type { ReactNode } from 'react'
 import BillTable, { type BillChargeRow, type BillPaymentRow } from '@/components/BillTable'
 import { getDb } from '@/db'
 import { memberBalance, memberBill } from '@/domain/billing'
+import { getSettings } from '@/domain/matches'
 import { requireMember } from '@/lib/auth'
 import { billingMonthOf, formatMoney } from '@/lib/time'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
+import { Button } from '@/components/ui/Button'
 
 export default async function BillPage() {
   const member = await requireMember()
   const db = getDb()
   const now = new Date()
   const month = billingMonthOf(now)
-  const [bill, balance, t] = await Promise.all([
+  const [bill, balance, settings, t] = await Promise.all([
     memberBill(db, member.id, month),
     memberBalance(db, member.id),
+    getSettings(db),
     getTranslations('bill'),
   ])
 
@@ -54,6 +57,15 @@ export default async function BillPage() {
               : t.rich('balance', { amount: formatMoney(balance.balanceAgorot, member.locale), bidi })}
           </div>
         </div>
+        {bill.dueAgorot > 0 && settings.payboxUrl !== '' && (
+          <div className="pt-2">
+            <Button asChild className="w-full sm:w-auto">
+              <a href={settings.payboxUrl} target="_blank" rel="noopener noreferrer">
+                {t('payOnPaybox')}
+              </a>
+            </Button>
+          </div>
+        )}
       </Card>
       <BillTable charges={chargeRows} payments={paymentRows} moneyLocale={member.locale} />
     </main>

@@ -157,6 +157,7 @@
     "waived": "מבוטל",
     "payments": "תשלומים",
     "paymentsEmpty": "אין תשלומים החודש.",
+    "payOnPaybox": "לתשלום בפייבוקס",
     "method": {
       "paybox": "פייבוקס",
       "cash": "מזומן",

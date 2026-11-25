@@ -157,6 +157,7 @@
     "waived": "Anulado",
     "payments": "Pagos",
     "paymentsEmpty": "No hay pagos este mes.",
+    "payOnPaybox": "Pagar en Paybox",
     "method": {
       "paybox": "PayBox",
       "cash": "Efectivo",
