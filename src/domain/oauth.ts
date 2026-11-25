@@ -1,5 +1,5 @@
 import type { Db } from '@/db'
-import { users } from '@/db/schema'
+import { accounts, users } from '@/db/schema'
 import { eq } from 'drizzle-orm'
 import { writeAudit } from './audit'
 import { isValidEmail } from './members'
@@ -101,4 +101,14 @@ export async function onLinkOAuthAccount(
     entityId: input.userId,
     detail: { provider: input.provider },
   })
+}
+
+export async function listLinkedProviders(db: Db, userId: string): Promise<OAuthProvider[]> {
+  const rows = await db
+    .select({ provider: accounts.provider })
+    .from(accounts)
+    .where(eq(accounts.userId, userId))
+
+  const linked = new Set(rows.map((row) => row.provider))
+  return OAUTH_PROVIDERS.filter((provider) => linked.has(provider))
 }

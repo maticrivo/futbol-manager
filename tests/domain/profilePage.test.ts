@@ -98,6 +98,18 @@ describe('ProfilePage & Nav integration', () => {
     expect(redirect).not.toHaveBeenCalled()
   })
 
+  it('ConnectedAccounts shows a linked provider and a connect action for the other', async () => {
+    const React = await import('react')
+    const { renderToStaticMarkup } = await import('react-dom/server')
+    const ConnectedAccounts = (await import('@/components/ConnectedAccounts')).default
+
+    const html = renderToStaticMarkup(React.createElement(ConnectedAccounts, { linked: ['google'] }))
+    expect(html).toContain('title')
+    expect(html).toContain('connected')
+    expect(html).toContain('connectProvider')
+    expect(html).toContain('value="facebook"')
+  })
+
   it('Nav renders profile link for active members', async () => {
     const member = (await createMember(testDb, { name: 'ActiveNavUser', email: 'nav@example.com' })).member
     vi.mocked(auth).mockResolvedValue({ user: { id: member.id } } as never)

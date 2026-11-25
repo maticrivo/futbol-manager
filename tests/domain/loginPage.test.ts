@@ -2,6 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { auth, signIn } from '@/auth'
 import { signInWithProviderAction } from '@/app/actions/auth'
+import { createMember } from '@/domain/members'
+import { resetDb, testDb } from '../db'
 import LoginPage from '@/app/login/page'
 
 vi.mock('@/auth', () => ({
@@ -38,10 +40,11 @@ vi.mock('next/headers', () => ({
 
 vi.mock('@/db', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@/db')>()),
-  getDb: () => ({}),
+  getDb: () => testDb,
 }))
 
-beforeEach(() => {
+beforeEach(async () => {
+  await resetDb()
   vi.clearAllMocks()
 })
 
@@ -85,5 +88,17 @@ describe('social login page', () => {
     data.set('redirectTo', '/profile')
     await signInWithProviderAction(data)
     expect(signIn).toHaveBeenCalledWith('google', { redirectTo: '/profile' })
+  })
+
+  it('shows the link-conflict message with a way back to the profile', async () => {
+    const member = (await createMember(testDb, { name: 'M', email: 'm@example.com' })).member
+    vi.mocked(auth).mockResolvedValue({ user: { id: member.id } } as never)
+
+    const html = renderToStaticMarkup(
+      await LoginPage({ searchParams: Promise.resolve({ error: 'OAuthAccountNotLinked' }) }),
+    )
+
+    expect(html).toContain('accountLinkedElsewhere')
+    expect(html).toContain('href="/profile"')
   })
 })

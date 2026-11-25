@@ -4,6 +4,7 @@ import { getTranslations } from 'next-intl/server'
 import { getDb } from '@/db'
 import { requireSessionMember } from '@/lib/auth'
 import ProfileForm from '@/components/ProfileForm'
+import ConnectedAccounts from '@/components/ConnectedAccounts'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
 import { InlineMessage } from '@/components/ui/InlineMessage'
@@ -14,6 +15,7 @@ import ThemeSwitcher from '@/components/ThemeSwitcher'
 import NotificationPrefs from '@/components/NotificationPrefs'
 import PushSetup from '@/components/PushSetup'
 import { listNotificationPrefs, NOTIFICATION_CATEGORIES } from '@/domain/notifications'
+import { listLinkedProviders } from '@/domain/oauth'
 import { parseTheme, THEME_COOKIE } from '@/lib/theme'
 
 export default async function ProfilePage() {
@@ -23,10 +25,11 @@ export default async function ProfilePage() {
     redirect('/login/expired')
   }
 
-  const [t, ta, prefs] = await Promise.all([
+  const [t, ta, prefs, linkedProviders] = await Promise.all([
     getTranslations('profile'),
     getTranslations('auth'),
     listNotificationPrefs(db, member.id),
+    listLinkedProviders(db, member.id),
   ])
   const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value)
 
@@ -52,6 +55,9 @@ export default async function ProfilePage() {
         </div>
         <div className="border-t border-line pt-4">
           <ProfileForm member={member} />
+        </div>
+        <div className="border-t border-line pt-4">
+          <ConnectedAccounts linked={linkedProviders} />
         </div>
       </Card>
 

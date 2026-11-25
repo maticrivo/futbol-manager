@@ -36,7 +36,8 @@
     "pendingTitle": "Account pending approval",
     "pendingDescription": "Your account is waiting for approval by an administrator. Once approved, you will have access to matches and billing.",
     "signOut": "Sign out",
-    "completeProfile": "Complete your profile"
+    "completeProfile": "Complete your profile",
+    "accountLinkedElsewhere": "That account is already connected to another member. Ask an admin to link it."
   },
   "profile": {
     "title": "Your Profile",
@@ -56,7 +57,14 @@
     "themeSystem": "System",
     "themeLight": "Light",
     "themeDark": "Dark",
-    "emailReadOnly": "Email comes from your social account and can't be changed here."
+    "emailReadOnly": "Email comes from your social account and can't be changed here.",
+    "connectedAccounts": {
+      "title": "Connected accounts",
+      "google": "Google",
+      "facebook": "Facebook",
+      "connected": "Connected",
+      "connectProvider": "Connect {provider}"
+    }
   },
   "home": {
     "placeholder": "Match details will appear here."

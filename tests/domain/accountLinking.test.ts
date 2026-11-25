@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { accounts, auditLog, notificationPrefs, sessions, users } from '@/db/schema'
 import { createMember, linkPendingMemberToMember } from '@/domain/members'
+import { listLinkedProviders } from '@/domain/oauth'
 import { resetDb, testDb } from '../db'
 
 beforeEach(resetDb)
@@ -51,5 +52,15 @@ describe('linkPendingMemberToMember', () => {
     expect(await linkPendingMemberToMember(testDb, {
       actorId: admin.id, pendingId: pending.id, targetId: pending.id,
     })).toEqual({ ok: false, code: 'SAME_MEMBER' })
+  })
+})
+
+describe('listLinkedProviders', () => {
+  it('lists only linked OAuth providers', async () => {
+    const member = (await createMember(testDb, { name: 'M', email: 'm@example.com' })).member
+    expect(await listLinkedProviders(testDb, member.id)).toEqual([])
+
+    await testDb.insert(accounts).values({ userId: member.id, type: 'oauth', provider: 'google', providerAccountId: 'g-1' })
+    expect(await listLinkedProviders(testDb, member.id)).toEqual(['google'])
   })
 })

@@ -36,7 +36,8 @@
     "pendingTitle": "Cuenta pendiente de aprobación",
     "pendingDescription": "Tu cuenta está esperando la aprobación de un administrador. Cuando la aprueben, podrás acceder a los partidos y a la facturación.",
     "signOut": "Cerrar sesión",
-    "completeProfile": "Completar tu perfil"
+    "completeProfile": "Completar tu perfil",
+    "accountLinkedElsewhere": "Esa cuenta ya está conectada a otro miembro. Pide a un administrador que la vincule."
   },
   "profile": {
     "title": "Tu perfil",
@@ -56,7 +57,14 @@
     "themeSystem": "Sistema",
     "themeLight": "Claro",
     "themeDark": "Oscuro",
-    "emailReadOnly": "El correo proviene de tu cuenta social y no se puede cambiar aquí."
+    "emailReadOnly": "El correo proviene de tu cuenta social y no se puede cambiar aquí.",
+    "connectedAccounts": {
+      "title": "Cuentas conectadas",
+      "google": "Google",
+      "facebook": "Facebook",
+      "connected": "Conectada",
+      "connectProvider": "Conectar {provider}"
+    }
   },
   "home": {
     "placeholder": "Aquí aparecerán los detalles del partido."

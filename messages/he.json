@@ -36,7 +36,8 @@
     "pendingTitle": "החשבון ממתין לאישור",
     "pendingDescription": "החשבון שלך ממתין לאישור מנהל. לאחר האישור תוכל להצטרף למשחקים ולצפות בתשלומים.",
     "signOut": "התנתקות",
-    "completeProfile": "השלמת הפרופיל"
+    "completeProfile": "השלמת הפרופיל",
+    "accountLinkedElsewhere": "החשבון הזה כבר מקושר לחבר אחר. בקשו ממנהל לקשר אותו."
   },
   "profile": {
     "title": "הפרופיל שלך",
@@ -56,7 +57,14 @@
     "themeSystem": "לפי המערכת",
     "themeLight": "בהיר",
     "themeDark": "כהה",
-    "emailReadOnly": "כתובת האימייל מגיעה מחשבון המדיה החברתית ולא ניתן לשנות אותה כאן."
+    "emailReadOnly": "כתובת האימייל מגיעה מחשבון המדיה החברתית ולא ניתן לשנות אותה כאן.",
+    "connectedAccounts": {
+      "title": "חשבונות מקושרים",
+      "google": "Google",
+      "facebook": "Facebook",
+      "connected": "מקושר",
+      "connectProvider": "קישור {provider}"
+    }
   },
   "home": {
     "placeholder": "פרטי המשחק יופיעו כאן."

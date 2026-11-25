@@ -12,10 +12,13 @@ type LoginPageProps = {
   searchParams?: Promise<{ error?: string }>
 }
 
-function authErrorMessage(error: string | undefined): 'emailMissing' | 'accessDenied' | 'signInError' | null {
+function authErrorMessage(
+  error: string | undefined
+): 'emailMissing' | 'accessDenied' | 'accountLinkedElsewhere' | 'signInError' | null {
   if (!error) return null
   if (error === 'email-missing') return 'emailMissing'
   if (error === 'AccessDenied') return 'accessDenied'
+  if (error === 'OAuthAccountNotLinked') return 'accountLinkedElsewhere'
   return 'signInError'
 }
 
