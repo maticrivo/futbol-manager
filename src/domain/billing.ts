@@ -210,6 +210,13 @@ export async function refundGuestPayment(
     const [entry] = await tx.select({ id: entries.id, matchId: entries.matchId })
       .from(entries).where(eq(entries.id, original.entryId)).for('update')
     if (!entry) return err('NOT_FOUND')
+
+    // If cancellation already reversed this payment, report that even though the
+    // match is now cancelled. It is the more precise outcome and keeps the race stable.
+    const [existingRefund] = await tx.select({ id: guestPayments.id }).from(guestPayments)
+      .where(eq(guestPayments.refundOfId, original.id)).limit(1)
+    if (existingRefund) return err('ALREADY_REFUNDED')
+
     const [parent] = await tx.select({ status: matches.status }).from(matches).where(eq(matches.id, entry.matchId))
     if (parent?.status === 'cancelled') return err('MATCH_FINISHED')
     return insertGuestRefund(tx, original, input)
