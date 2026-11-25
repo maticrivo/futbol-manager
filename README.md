@@ -62,3 +62,4 @@ All monetary amounts are represented as integer agorot in Israeli New Shekels (I
 - [System Design Spec](docs/superpowers/specs/2026-11-18-weekly-football-manager-design.md)
 - [Social Login Design](docs/superpowers/specs/2026-11-25-social-login-design.md)
 - [Deployment & Operations Runbook](docs/runbook.md)
+- [Member App Install & Notifications Guide](docs/member-app-install-guide.md)
