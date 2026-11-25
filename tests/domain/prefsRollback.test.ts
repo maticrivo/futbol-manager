@@ -3,13 +3,13 @@ import { revalidatePath } from 'next/cache'
 import { notificationPrefs } from '@/db/schema'
 import { createMember } from '@/domain/members'
 import { savePrefsAction } from '@/app/actions/bill'
-import { requireMember } from '@/lib/auth'
+import { requireSessionMember } from '@/lib/auth'
 import { resetDb, testDb } from '../db'
 
 let calls = 0
 
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }))
-vi.mock('@/lib/auth', () => ({ requireMember: vi.fn() }))
+vi.mock('@/lib/auth', () => ({ requireSessionMember: vi.fn() }))
 vi.mock('@/db', async importOriginal => ({
   ...await importOriginal<typeof import('@/db')>(),
   getDb: () => testDb,
@@ -34,7 +34,7 @@ beforeEach(async () => {
 
 it('rolls back a real first write when a later upsert fails', async () => {
   const { member } = await createMember(testDb, { name: 'Ana' })
-  vi.mocked(requireMember).mockResolvedValue(member)
+  vi.mocked(requireSessionMember).mockResolvedValue(member)
   const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
   try {

@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 dotenv.config({ path: '.env.local' })
 
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import { getDb } from '../src/db'
 import { matches, settings, users } from '../src/db/schema'
@@ -39,7 +39,7 @@ async function main() {
     const [existingAdmin] = await db
       .select({ id: users.id })
       .from(users)
-      .where(eq(users.role, 'admin'))
+      .where(and(eq(users.role, 'admin'), eq(users.status, 'active')))
       .limit(1)
     adminId = existingAdmin?.id ?? null
   }
