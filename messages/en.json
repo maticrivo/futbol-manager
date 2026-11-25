@@ -316,7 +316,9 @@
       "saving": "Saving…",
       "saved": "Settings saved.",
       "venueUrl": "Venue map link",
-      "venueUrlHint": "Google Maps link shown when players tap the venue (optional)."
+      "venueUrlHint": "Google Maps link shown when players tap the venue (optional).",
+      "payboxUrl": "Paybox group link",
+      "payboxUrlHint": "Paybox group invite link shown on members' bills (optional)."
     },
     "audit": {
       "title": "Audit log",

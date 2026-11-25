@@ -70,6 +70,7 @@ function settingsForm(overrides: Record<string, string> = {}) {
   data.set('venue', '')
   data.set('kickoffTime', '20:30')
   data.set('queueWindowMinutes', '30')
+  data.set('payboxUrl', '')
   for (const [key, value] of Object.entries(overrides)) data.set(key, value)
   return data
 }
@@ -194,6 +195,19 @@ it('updateSettingsAction persists venue, kickoff and capacity', async () => {
   expect(settings.venue).toBe('Kraft Stadium')
   expect(settings.kickoffTime).toBe('21:00')
   expect(settings.capacity).toBe(16)
+})
+
+it('updateSettingsAction saves a trimmed Paybox group link and rejects unsafe values', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', email: 'boss@example.com', role: 'admin' })).member
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  expect(await updateSettingsAction(null, settingsForm({ payboxUrl: '  https://link.payboxapp.com/group  ' })))
+    .toEqual({ ok: true })
+  expect((await getSettings(testDb)).payboxUrl).toBe('https://link.payboxapp.com/group')
+
+  expect(await updateSettingsAction(null, settingsForm({ payboxUrl: 'javascript:alert(1)' })))
+    .toEqual({ ok: false, code: 'INVALID_SETTING' })
+  expect((await getSettings(testDb)).payboxUrl).toBe('https://link.payboxapp.com/group')
 })
 
 it('createNextMatchAction keeps adding successive weeks from the furthest upcoming match', async () => {

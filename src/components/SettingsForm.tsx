@@ -14,6 +14,7 @@ export default function SettingsForm({
   venueUrl,
   kickoffTime,
   queueWindowMinutes,
+  payboxUrl,
 }: {
   capacity: number
   costShekels: string
@@ -21,6 +22,7 @@ export default function SettingsForm({
   venueUrl: string
   kickoffTime: string
   queueWindowMinutes: number
+  payboxUrl: string
 }) {
   const t = useTranslations()
   const [state, formAction] = useActionState(updateSettingsAction, null)
@@ -68,6 +70,19 @@ export default function SettingsForm({
           maxLength={500}
           defaultValue={venueUrl}
           placeholder="https://maps.app.goo.gl/..."
+          className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
+        />
+      </Field>
+
+      <Field label={t('admin.settings.payboxUrl')} hint={t('admin.settings.payboxUrlHint')}>
+        <input
+          name="payboxUrl"
+          type="url"
+          inputMode="url"
+          dir="ltr"
+          maxLength={500}
+          defaultValue={payboxUrl}
+          placeholder="https://link.payboxapp.com/..."
           className="w-full rounded-[var(--radius-md)] border border-line bg-surface px-3.5 py-2.5 text-sm text-ink focus:border-primary focus:outline-none focus:ring-1 focus:ring-focus"
         />
       </Field>

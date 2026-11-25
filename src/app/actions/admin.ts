@@ -245,6 +245,13 @@ export async function updateSettingsAction(_prev: ActionResult | null, formData:
   }
   patch.venueUrl = venueUrl
 
+  const payboxUrlValue = formData.get('payboxUrl')
+  const payboxUrl = typeof payboxUrlValue === 'string' ? payboxUrlValue.trim() : ''
+  if (payboxUrl !== '' && (payboxUrl.length > 500 || !isHttpUrl(payboxUrl))) {
+    return { ok: false, code: 'INVALID_SETTING' }
+  }
+  patch.payboxUrl = payboxUrl
+
   const kickoffValue = formData.get('kickoffTime')
   const kickoffTime = typeof kickoffValue === 'string' ? kickoffValue.trim() : ''
   if (!KICKOFF_REGEX.test(kickoffTime)) {

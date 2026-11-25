@@ -25,6 +25,7 @@ export default async function AdminSettings() {
           venueUrl={settings.venueUrl}
           kickoffTime={settings.kickoffTime}
           queueWindowMinutes={settings.queueWindowMinutes}
+          payboxUrl={settings.payboxUrl}
         />
       </Card>
     </main>
