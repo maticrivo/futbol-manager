@@ -5,7 +5,7 @@ import { DateTime } from 'luxon'
 import { revalidatePath } from 'next/cache'
 import { headers } from 'next/headers'
 import { getDb } from '@/db'
-import { charges, entries, guestPayments, members } from '@/db/schema'
+import { charges, entries, guestPayments, users } from '@/db/schema'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
@@ -14,7 +14,7 @@ import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, getUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
-import type { ActionResult, InviteActionResult } from '@/lib/actions'
+import { parseUserId, type ActionResult, type InviteActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
 import { defaultTransport } from '@/lib/push'
 import { requestOrigin } from '@/lib/request-origin'
@@ -73,9 +73,9 @@ export async function addMemberAction(_prev: InviteActionResult | null, formData
 
   if (email !== null) {
     const [existing] = await db
-      .select({ id: members.id })
-      .from(members)
-      .where(or(eq(members.email, email), sql`lower(${members.name}) = ${email}`))
+      .select({ id: users.id })
+      .from(users)
+      .where(or(eq(users.email, email), sql`lower(${users.name}) = ${email}`))
       .limit(1)
     if (existing) {
       return { ok: false, code: 'EMAIL_TAKEN' }
@@ -99,7 +99,7 @@ export async function regenerateInviteAction(_prev: InviteActionResult | null, f
   const admin = await requireAdmin()
   const db = getDb()
 
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (memberId === null) {
     return { ok: false, code: 'NOT_FOUND' }
   }
@@ -117,7 +117,7 @@ export async function setMemberStatusAction(_prev: ActionResult | null, formData
   const admin = await requireAdmin()
   const db = getDb()
 
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (memberId === null) {
     return { ok: false, code: 'NOT_FOUND' }
   }
@@ -152,7 +152,7 @@ export async function updateMemberAction(
         ? prevStateOrFormData
         : new FormData()
 
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (memberId === null) {
     return { ok: false, code: 'NOT_FOUND' }
   }
@@ -365,7 +365,7 @@ export async function adminAddEntryAction(_prev: ActionResult | null, formData: 
   const db = getDb()
 
   const matchId = positiveId(formData.get('matchId'))
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (matchId === null || memberId === null) return { ok: false, code: 'NOT_FOUND' }
 
   const reason = stringField(formData, 'reason')
@@ -513,7 +513,7 @@ export async function recordPaymentAction(_prev: ActionResult | null, formData: 
   const admin = await requireAdmin()
   const db = getDb()
 
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (memberId === null) return { ok: false, code: 'NOT_FOUND' }
 
   const amountValue = stringField(formData, 'amountShekels').trim()
@@ -566,7 +566,7 @@ export async function sendReminderAction(_prev: ActionResult | null, formData: F
   const admin = await requireAdmin()
   const db = getDb()
 
-  const memberId = positiveId(formData.get('memberId'))
+  const memberId = parseUserId(formData.get('memberId'))
   if (memberId === null) return { ok: false, code: 'NOT_FOUND' }
 
   const result = await sendPaymentReminder(db, { actorId: admin.id, memberId, now: new Date() }, defaultTransport)

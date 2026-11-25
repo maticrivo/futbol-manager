@@ -3,7 +3,7 @@ import { drizzle } from 'drizzle-orm/node-postgres'
 import { beforeEach, expect, it } from 'vitest'
 import type { Db } from '@/db'
 import * as schema from '@/db/schema'
-import { entries, matches, members } from '@/db/schema'
+import { entries, matches, users } from '@/db/schema'
 import { addGuest, confirmedCount, freeSpots, pendingOfferCount, removeGuest, signup, withdraw } from '@/domain/entries'
 import { createMatchForDate } from '@/domain/matches'
 import { testDb, resetDb } from '../db'
@@ -13,7 +13,7 @@ const guestOpen = new Date('2027-03-29T11:00:00Z')
 beforeEach(resetDb)
 
 async function makeMembers(db: Db, n: number) {
-  return db.insert(members).values(Array.from({ length: n }, (_, i) => ({ name: `P${i}` }))).returning()
+  return db.insert(users).values(Array.from({ length: n }, (_, i) => ({ name: `P${i}` }))).returning()
 }
 
 async function setup(count = 0) {

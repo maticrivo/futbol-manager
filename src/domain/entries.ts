@@ -68,7 +68,7 @@ export function isLocked(match: Match, now: Date): boolean {
 
 export async function signup(
   db: Db,
-  { memberId, matchId, now }: { memberId: number; matchId: number; now: Date },
+  { memberId, matchId, now }: { memberId: string; matchId: number; now: Date },
 ): Promise<Result<Entry, 'MATCH_LOCKED' | 'NOT_OPEN' | 'FULL' | 'ALREADY_SIGNED_UP' | 'MATCH_CANCELLED'>> {
   return db.transaction(async tx => {
     const match = await lockMatch(tx, matchId)
@@ -99,7 +99,7 @@ export async function signup(
 
 export async function withdraw(
   db: Db,
-  { entryId, actorMemberId, now }: { entryId: number; actorMemberId: number; now: Date },
+  { entryId, actorMemberId, now }: { entryId: number; actorMemberId: string; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_WITHDRAWABLE'>> {
   return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
@@ -120,7 +120,7 @@ export async function withdraw(
 
 export async function addGuest(
   db: Db,
-  { hostMemberId, matchId, name, now }: { hostMemberId: number; matchId: number; name: string; now: Date },
+  { hostMemberId, matchId, name, now }: { hostMemberId: string; matchId: number; name: string; now: Date },
 ): Promise<Result<Entry, 'GUEST_PHASE_CLOSED' | 'FULL' | 'MATCH_LOCKED' | 'INVALID_NAME' | 'MATCH_CANCELLED'>> {
   return db.transaction(async tx => {
     const match = await lockMatch(tx, matchId)
@@ -143,7 +143,7 @@ export async function addGuest(
 
 export async function removeGuest(
   db: Db,
-  { entryId, actorMemberId, asAdmin, now }: { entryId: number; actorMemberId: number; asAdmin?: boolean; now: Date },
+  { entryId, actorMemberId, asAdmin, now }: { entryId: number; actorMemberId: string; asAdmin?: boolean; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'LOCKED' | 'NOT_GUEST'>> {
   return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)

@@ -7,7 +7,7 @@ export type NotificationPayload = { title: string; body: string; url: string }
 export type PushTransport = (subscription: PushSubscriptionRow, payload: NotificationPayload) => Promise<{ statusCode: number }>
 
 type SubscriptionInput = {
-  memberId: number
+  memberId: string
   endpoint: string
   p256dh: string
   auth: string
@@ -25,7 +25,7 @@ export async function deletePushSubscription(db: Db, endpoint: string): Promise<
 }
 
 /** Deletes only the signed-in member's subscription row, never another member's. */
-export async function deletePushSubscriptionForMember(db: Db, memberId: number, endpoint: string): Promise<void> {
+export async function deletePushSubscriptionForMember(db: Db, memberId: string, endpoint: string): Promise<void> {
   await db.delete(pushSubscriptions).where(
     and(eq(pushSubscriptions.memberId, memberId), eq(pushSubscriptions.endpoint, endpoint)),
   )
@@ -37,7 +37,7 @@ export async function deletePushSubscriptionForMember(db: Db, memberId: number, 
  * after attempting every subscription.
  */
 export async function sendWebPush(
-  db: Db, memberId: number, payload: NotificationPayload, transport: PushTransport,
+  db: Db, memberId: string, payload: NotificationPayload, transport: PushTransport,
 ): Promise<{ sent: number; removed: number }> {
   const subscriptions = await db.select().from(pushSubscriptions)
     .where(eq(pushSubscriptions.memberId, memberId)).orderBy(pushSubscriptions.id)

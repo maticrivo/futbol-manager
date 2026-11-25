@@ -1,7 +1,7 @@
 import { and, asc, count, DrizzleQueryError, eq, gte, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db } from '@/db'
-import { entries, matches, members } from '@/db/schema'
+import { entries, matches, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { TZ, weekSchedule } from '@/lib/time'
 import { isHttpUrl } from '@/lib/venue'
@@ -32,7 +32,7 @@ const MONEY_KEYS = new Set(['costAgorot', 'capacity', 'signupOpensAt', 'guestPha
 export async function updateMatch(
   db: Db,
   input: {
-    actorId: number
+    actorId: string
     matchId: number
     now: Date
     patch: UpdateMatchPatch
@@ -47,7 +47,7 @@ export async function updateMatch(
     // Lock order: match row first, then the actor member row.
     const match = await lockMatch(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
     if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
 
     if (match.status === 'played' || match.status === 'cancelled') return err('MATCH_FINISHED')
@@ -138,7 +138,7 @@ export async function updateMatch(
 export async function openSignupsNow(
   db: Db,
   input: {
-    actorId: number
+    actorId: string
     matchId: number
     now: Date
   },
@@ -149,7 +149,7 @@ export async function openSignupsNow(
     // Lock order: match row first, then the actor member row.
     const match = await lockMatch(tx, matchId)
     if (!match) return err('NOT_FOUND')
-    const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+    const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
     if (!actor || actor.role !== 'admin') return err('FORBIDDEN')
 
     if (match.status !== 'scheduled') return err('MATCH_FINISHED')

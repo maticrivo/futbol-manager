@@ -1,6 +1,6 @@
 import { and, asc, eq, inArray } from 'drizzle-orm'
 import type { Db, Tx } from '@/db'
-import { charges, matches, members } from '@/db/schema'
+import { charges, matches, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { billingMonthOf } from '@/lib/time'
 import { allocateAvailableCredit } from './allocations'
@@ -10,8 +10,8 @@ import type { Match } from './matches'
 export type Charge = typeof charges.$inferSelect
 
 // Lock the match first: billing can hold it while checking member foreign keys.
-export async function lockAdminActor(tx: Tx, actorId: number): Promise<boolean> {
-  const [actor] = await tx.select({ role: members.role }).from(members).where(eq(members.id, actorId)).for('update')
+export async function lockAdminActor(tx: Tx, actorId: string): Promise<boolean> {
+  const [actor] = await tx.select({ role: users.role }).from(users).where(eq(users.id, actorId)).for('update')
   return actor?.role === 'admin'
 }
 
@@ -22,7 +22,7 @@ export function isValidReason(trimmed: string): boolean {
 const charged = { status: 'charged', waivedBy: null, waiveReason: null } as const
 
 async function applyWaiver(
-  tx: Tx, charge: Charge, actorId: number, reason: string, now: Date, removedEntryId?: number,
+  tx: Tx, charge: Charge, actorId: string, reason: string, now: Date, removedEntryId?: number,
 ): Promise<Charge> {
   const update = { status: 'waived', waivedBy: actorId, waiveReason: reason, updatedAt: now } as const
   await tx.update(charges).set(update).where(eq(charges.id, charge.id))
@@ -35,7 +35,7 @@ async function applyWaiver(
   return { ...charge, ...update }
 }
 
-function newCharge(match: Match, memberId: number, now: Date) {
+function newCharge(match: Match, memberId: string, now: Date) {
   return {
     matchId: match.id, memberId, ...charged,
     amountAgorot: match.costAgorot, billingMonth: billingMonthOf(match.kickoffAt),
@@ -45,11 +45,11 @@ function newCharge(match: Match, memberId: number, now: Date) {
 
 // Internal charge mutations run with the caller's match row lock held.
 // Member rows are locked in ascending order before inserting charges to preserve the
-// match -> members -> entry/charge hierarchy and prevent FK shared lock upgrade deadlocks.
-export async function createMatchCharges(tx: Tx, match: Match, memberIds: number[], now: Date): Promise<number> {
+// match -> users -> entry/charge hierarchy and prevent FK shared lock upgrade deadlocks.
+export async function createMatchCharges(tx: Tx, match: Match, memberIds: string[], now: Date): Promise<number> {
   if (memberIds.length === 0) return 0
-  const sortedIds = [...new Set(memberIds)].sort((a, b) => a - b)
-  await tx.select().from(members).where(inArray(members.id, sortedIds)).orderBy(asc(members.id)).for('update')
+  const sortedIds = [...new Set(memberIds)].sort()
+  await tx.select().from(users).where(inArray(users.id, sortedIds)).orderBy(asc(users.id)).for('update')
   const result = await tx.insert(charges).values(memberIds.map(id => newCharge(match, id, now)))
   for (const memberId of sortedIds) {
     await allocateAvailableCredit(tx, memberId, now)
@@ -57,7 +57,7 @@ export async function createMatchCharges(tx: Tx, match: Match, memberIds: number
   return result.rowCount ?? 0
 }
 
-export async function chargeAddedMember(tx: Tx, match: Match, memberId: number, now: Date): Promise<void> {
+export async function chargeAddedMember(tx: Tx, match: Match, memberId: string, now: Date): Promise<void> {
   // A member re-added after removal already has a charge; bill them again on that same row.
   await tx.insert(charges).values(newCharge(match, memberId, now))
     .onConflictDoUpdate({ target: [charges.matchId, charges.memberId], set: { ...charged, updatedAt: now } })
@@ -68,7 +68,7 @@ export async function chargeAddedMember(tx: Tx, match: Match, memberId: number, 
 export async function waiveRemovedMember(
   tx: Tx,
   { matchId, memberId, actorId, reason, now, entryId }: {
-    matchId: number; memberId: number; actorId: number; reason: string; now: Date; entryId: number
+    matchId: number; memberId: string; actorId: string; reason: string; now: Date; entryId: number
   },
 ): Promise<void> {
   const [charge] = await tx.select().from(charges)
@@ -88,7 +88,7 @@ async function lockCharge(tx: Tx, chargeId: number, matchId: number): Promise<Ch
   return charge
 }
 
-type ChargeInput = { actorId: number; chargeId: number }
+type ChargeInput = { actorId: string; chargeId: number }
 
 export async function waiveCharge(
   db: Db,
@@ -111,12 +111,12 @@ export async function waiveCharge(
   })
 }
 
-export type MatchCharge = Charge & { memberName: string }
+export type MatchCharge = Charge & { memberName: string | null }
 
 export async function listMatchCharges(db: Db, matchId: number): Promise<MatchCharge[]> {
-  const rows = await db.select({ charge: charges, memberName: members.name })
+  const rows = await db.select({ charge: charges, memberName: users.name })
     .from(charges)
-    .innerJoin(members, eq(members.id, charges.memberId))
+    .innerJoin(users, eq(users.id, charges.memberId))
     .where(eq(charges.matchId, matchId))
     .orderBy(charges.memberId, charges.id)
   return rows.map(({ charge, memberName }) => ({ ...charge, memberName }))
@@ -130,10 +130,10 @@ export async function restoreCharge(
   return db.transaction(async tx => {
     const match = await lockMatchForCharge(tx, chargeId)
     const [target] = await tx.select({ memberId: charges.memberId }).from(charges).where(eq(charges.id, chargeId))
-    const memberIds = [...new Set([actorId, ...(target ? [target.memberId] : [])])].sort((a, b) => a - b)
-    let actorRole: (typeof members.$inferSelect)['role'] | undefined
+    const memberIds = [...new Set([actorId, ...(target ? [target.memberId] : [])])].sort()
+    let actorRole: (typeof users.$inferSelect)['role'] | undefined
     for (const id of memberIds) {
-      const [member] = await tx.select({ role: members.role }).from(members).where(eq(members.id, id)).for('update')
+      const [member] = await tx.select({ role: users.role }).from(users).where(eq(users.id, id)).for('update')
       if (id === actorId) actorRole = member?.role
     }
     if (actorRole !== 'admin') return err('FORBIDDEN')

@@ -33,7 +33,7 @@ export type RosterRow = {
 
 function AddMemberForm({ matchId, members, locked }: {
   matchId: number
-  members: { id: number; name: string }[]
+  members: { id: string; name: string }[]
   locked: boolean
 }) {
   const t = useTranslations()
@@ -119,7 +119,7 @@ function RestoreCharge({ matchId, chargeId }: { matchId: number; chargeId: numbe
 export default function AdminRoster({ matchId, rows, members, locked, disabled }: {
   matchId: number
   rows: RosterRow[]
-  members: { id: number; name: string }[]
+  members: { id: string; name: string }[]
   locked: boolean
   disabled: boolean
 }) {

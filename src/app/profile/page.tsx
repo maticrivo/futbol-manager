@@ -3,8 +3,9 @@ import { redirect } from 'next/navigation'
 import { cookies } from 'next/headers'
 import { getTranslations } from 'next-intl/server'
 import { getDb } from '@/db'
-import { members } from '@/db/schema'
+import { users } from '@/db/schema'
 import { requireSessionMember } from '@/lib/auth'
+import { toMember } from '@/domain/members'
 import ProfileForm from '@/components/ProfileForm'
 import { PageHeader } from '@/components/ui/PageHeader'
 import { Card } from '@/components/ui/Card'
@@ -21,15 +22,16 @@ import { parseTheme, THEME_COOKIE } from '@/lib/theme'
 export default async function ProfilePage() {
   const member = await requireSessionMember()
   const db = getDb()
-  const [fresh] = await db
+  const [freshRow] = await db
     .select()
-    .from(members)
-    .where(eq(members.id, member.id))
+    .from(users)
+    .where(eq(users.id, member.id))
     .limit(1)
 
-  if (!fresh || fresh.status === 'disabled') {
+  if (!freshRow || freshRow.status === 'disabled') {
     redirect('/login/expired')
   }
+  const fresh = toMember(freshRow)
 
   const [t, ta, prefs] = await Promise.all([
     getTranslations('profile'),

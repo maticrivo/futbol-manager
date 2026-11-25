@@ -1,7 +1,7 @@
 import { and, asc, DrizzleQueryError, eq, gt } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db, Executor } from '@/db'
-import { entries, matches, members, notificationLog, notificationPrefs } from '@/db/schema'
+import { entries, matches, users, notificationLog, notificationPrefs } from '@/db/schema'
 import { notificationCopy } from '@/lib/notificationCopy'
 import { sendWebPush, type NotificationPayload, type PushTransport } from '@/lib/push'
 import { err, ok, type Result } from '@/lib/result'
@@ -25,7 +25,7 @@ const CATEGORY_DEFAULTS = {
 export const NOTIFICATION_CATEGORIES = Object.keys(CATEGORY_DEFAULTS) as NotificationCategory[]
 
 export async function listNotificationPrefs(
-  db: Db, memberId: number,
+  db: Db, memberId: string,
 ): Promise<Record<NotificationCategory, boolean>> {
   const rows = await db.select({ category: notificationPrefs.category, enabled: notificationPrefs.enabled })
     .from(notificationPrefs).where(eq(notificationPrefs.memberId, memberId))
@@ -35,7 +35,7 @@ export async function listNotificationPrefs(
 }
 
 export async function setNotificationPref(
-  db: Executor, memberId: number, category: NotificationCategory, enabled: boolean,
+  db: Executor, memberId: string, category: NotificationCategory, enabled: boolean,
 ): Promise<void> {
   await db.insert(notificationPrefs).values({ memberId, category, enabled })
     .onConflictDoUpdate({ target: [notificationPrefs.memberId, notificationPrefs.category], set: { enabled } })
@@ -56,7 +56,7 @@ export function buildNotification(event: NotificationCategory, locale: string, d
 }
 
 type MemberNotification = {
-  memberId: number
+  memberId: string
   category: NotificationCategory
   eventKey: string
   payload: NotificationPayload
@@ -66,8 +66,8 @@ type MemberNotification = {
 export async function sendMemberNotification(
   db: Db, { memberId, category, eventKey, payload, now }: MemberNotification, transport: PushTransport,
 ): Promise<boolean> {
-  const [member] = await db.select({ status: members.status }).from(members)
-    .where(eq(members.id, memberId))
+  const [member] = await db.select({ status: users.status }).from(users)
+    .where(eq(users.id, memberId))
   if (member?.status !== 'active') return false
 
   const [pref] = await db.select({ enabled: notificationPrefs.enabled }).from(notificationPrefs)
@@ -94,15 +94,15 @@ function matchData(match: Match): NotificationData {
 
 export async function sendPaymentReminder(
   db: Db,
-  input: { actorId: number; memberId: number; now: Date },
+  input: { actorId: string; memberId: string; now: Date },
   transport: PushTransport,
 ): Promise<Result<{ sent: boolean }, 'FORBIDDEN' | 'NOT_FOUND'>> {
   const { actorId, memberId, now } = input
 
-  const [actor] = await db.select({ role: members.role }).from(members).where(eq(members.id, actorId))
+  const [actor] = await db.select({ role: users.role }).from(users).where(eq(users.id, actorId))
   if (actor?.role !== 'admin') return err('FORBIDDEN')
 
-  const [member] = await db.select({ locale: members.locale }).from(members).where(eq(members.id, memberId))
+  const [member] = await db.select({ locale: users.locale }).from(users).where(eq(users.id, memberId))
   if (!member) return err('NOT_FOUND')
 
   const eventKey = `payment_reminder:${memberId}:${DateTime.fromJSDate(now, { zone: TZ }).toFormat("yyyy-MM-dd'T'HH:mm")}`
@@ -119,8 +119,8 @@ export function notifyOffer(db: Db, entry: Entry, match: Match, transport: PushT
 export async function notifyOffer(db: Db, entry: Entry, match: Match, transport: PushTransport, now?: Date): Promise<void | boolean> {
   const sendOffer = async (): Promise<boolean> => {
     if (entry.memberId === null) return false
-    const [member] = await db.select({ locale: members.locale }).from(members)
-      .where(and(eq(members.id, entry.memberId), eq(members.status, 'active')))
+    const [member] = await db.select({ locale: users.locale }).from(users)
+      .where(and(eq(users.id, entry.memberId), eq(users.status, 'active')))
     if (!member) return false
 
     return sendMemberNotification(db, {
@@ -165,8 +165,8 @@ export async function processDueNotifications(db: Db, now: Date, transport: Push
 
   let sent = 0
   if (due.length) {
-    const activeMembers = await db.select({ id: members.id, locale: members.locale }).from(members)
-      .where(eq(members.status, 'active'))
+    const activeMembers = await db.select({ id: users.id, locale: users.locale }).from(users)
+      .where(eq(users.status, 'active'))
     for (const { category, eventKey, data } of due) {
       for (const member of activeMembers) {
         const payload = buildNotification(category, member.locale, data)

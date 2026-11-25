@@ -13,7 +13,7 @@ export default async function RosterList({
   roster: MatchRosterEntry[]
   matchId: number
   myEntryId: number | null
-  memberId: number
+  memberId: string
   asAdmin: boolean
   phase: MatchPhase
 }) {

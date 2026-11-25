@@ -5,7 +5,7 @@ import { revalidatePath } from 'next/cache'
 import { cookies } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { getDb } from '@/db'
-import { members } from '@/db/schema'
+import { users } from '@/db/schema'
 import { isLocale, LOCALE_COOKIE } from '@/i18n/locale'
 import { clearSessionCookie, deleteSessionByToken, getCurrentMember, SESSION_COOKIE } from '@/lib/auth'
 import { requestMemberAccess } from '@/domain/members'
@@ -18,7 +18,7 @@ export async function setLocaleAction(formData: FormData): Promise<void> {
 
   const member = await getCurrentMember()
   if (member) {
-    await getDb().update(members).set({ locale }).where(eq(members.id, member.id))
+    await getDb().update(users).set({ locale }).where(eq(users.id, member.id))
   }
   (await cookies()).set(LOCALE_COOKIE, locale, { path: '/', maxAge: 365 * 24 * 3600 })
   revalidatePath('/')

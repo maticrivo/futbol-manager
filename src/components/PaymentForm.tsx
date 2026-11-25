@@ -10,7 +10,7 @@ export default function PaymentForm({
   memberId,
   defaultAmountShekels,
 }: {
-  memberId: number
+  memberId: string
   defaultAmountShekels?: string
 }) {
   const t = useTranslations()

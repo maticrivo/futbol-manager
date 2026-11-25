@@ -20,7 +20,7 @@ export default function MemberActions({
   isSelf,
   status,
 }: {
-  memberId: number
+  memberId: string
   isSelf: boolean
   status: 'active' | 'disabled' | 'pending'
 }) {

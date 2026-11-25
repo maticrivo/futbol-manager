@@ -1,7 +1,7 @@
 import { and, eq, inArray, sum } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db, Executor, Tx } from '@/db'
-import { charges, entries, expenses, guestPayments, matches, members, paymentAllocations, payments } from '@/db/schema'
+import { charges, entries, expenses, guestPayments, matches, users, paymentAllocations, payments } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { billingMonthOf } from '@/lib/time'
 import { writeAudit } from './audit'
@@ -19,7 +19,7 @@ type BillAllocation = {
   payment: Payment
 }
 
-function chargedTotal(db: Executor, memberId?: number, month?: string) {
+function chargedTotal(db: Executor, memberId?: string, month?: string) {
   return db.select({ total: sum(charges.amountAgorot) }).from(charges).where(and(
     eq(charges.status, 'charged'),
     memberId === undefined ? undefined : eq(charges.memberId, memberId),
@@ -27,7 +27,7 @@ function chargedTotal(db: Executor, memberId?: number, month?: string) {
   ))
 }
 
-export async function memberBalance(db: Db, memberId: number): Promise<{
+export async function memberBalance(db: Db, memberId: string): Promise<{
   chargesAgorot: number; paidAgorot: number; balanceAgorot: number
 }> {
   return db.transaction(async tx => {
@@ -42,7 +42,7 @@ export async function memberBalance(db: Db, memberId: number): Promise<{
 
 export type BillCharge = Charge & { matchDate: string; kickoffAt: Date }
 
-export async function memberBill(db: Db, memberId: number, month: string): Promise<{
+export async function memberBill(db: Db, memberId: string, month: string): Promise<{
   charges: BillCharge[]; allocations: BillAllocation[]; dueAgorot: number
 }> {
   return db.transaction(async tx => {
@@ -62,8 +62,8 @@ export async function memberBill(db: Db, memberId: number, month: string): Promi
 }
 
 type PaymentInput = {
-  actorId: number
-  memberId: number
+  actorId: string
+  memberId: string
   amountAgorot: number
   paidAt: Date
   method: Payment['method']
@@ -79,9 +79,9 @@ export async function recordPayment(
   { actorId, memberId, amountAgorot, paidAt, method, note, targetMonth }: PaymentInput,
 ): Promise<Result<Payment, 'FORBIDDEN' | 'MEMBER_NOT_FOUND' | 'INVALID_AMOUNT' | 'TARGET_MONTH_REQUIRED'>> {
   return db.transaction(async tx => {
-    const ids = [...new Set([actorId, memberId])].sort((a, b) => a - b)
-    const locked = await tx.select({ id: members.id, role: members.role }).from(members)
-      .where(inArray(members.id, ids)).orderBy(members.id).for('update')
+    const ids = [...new Set([actorId, memberId])].sort()
+    const locked = await tx.select({ id: users.id, role: users.role }).from(users)
+      .where(inArray(users.id, ids)).orderBy(users.id).for('update')
     if (locked.find(member => member.id === actorId)?.role !== 'admin') return err('FORBIDDEN')
     if (!locked.some(member => member.id === memberId)) return err('MEMBER_NOT_FOUND')
     if (!isSignedAmount(amountAgorot) || amountAgorot === 0) return err('INVALID_AMOUNT')
@@ -147,8 +147,8 @@ export async function monthSummary(db: Db, month: string): Promise<{
   }, { isolationLevel: 'repeatable read', accessMode: 'read only' })
 }
 
-type GuestPaymentInput = { actorId: number; entryId: number; amountAgorot: number; paidAt: Date; note?: string }
-type RefundInput = { actorId: number; guestPaymentId: number; now: Date; note?: string }
+type GuestPaymentInput = { actorId: string; entryId: number; amountAgorot: number; paidAt: Date; note?: string }
+type RefundInput = { actorId: string; guestPaymentId: number; now: Date; note?: string }
 type RefundError = 'NOT_FOUND' | 'ALREADY_REFUNDED' | 'INVALID_AMOUNT'
 
 async function insertGuestMoney(tx: Tx, row: Omit<GuestPayment, 'id'>): Promise<GuestPayment> {
@@ -218,12 +218,12 @@ export async function refundGuestPayment(
 
 export type MatchGuestPayment = GuestPayment & {
   guestName: string | null
-  hostMemberId: number | null
+  hostMemberId: string | null
   hostName: string | null
 }
 
 export async function listGuestPayments(db: Db, matchId: number): Promise<MatchGuestPayment[]> {
-  const hosts = alias(members, 'hosts')
+  const hosts = alias(users, 'hosts')
   const rows = await db.select({
     payment: guestPayments,
     guestName: entries.guestName,
@@ -238,7 +238,7 @@ export async function listGuestPayments(db: Db, matchId: number): Promise<MatchG
 }
 
 export async function cancelMatch(
-  db: Db, input: { actorId: number; matchId: number; now: Date; reason: string },
+  db: Db, input: { actorId: string; matchId: number; now: Date; reason: string },
 ): Promise<Result<Match, 'FORBIDDEN' | 'NOT_FOUND' | 'ALREADY_CANCELLED' | 'MATCH_FINISHED' | 'INVALID_REASON'>> {
   const { actorId, matchId, now } = input
   return db.transaction(async tx => {
@@ -286,7 +286,7 @@ export async function cancelMatch(
 }
 
 export async function setMonthlyExpense(
-  db: Db, { actorId, month, fieldCostAgorot }: { actorId: number; month: string; fieldCostAgorot: number },
+  db: Db, { actorId, month, fieldCostAgorot }: { actorId: string; month: string; fieldCostAgorot: number },
 ): Promise<Result<Expense, 'FORBIDDEN' | 'INVALID_AMOUNT'>> {
   return db.transaction(async tx => {
     if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')

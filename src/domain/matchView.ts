@@ -1,7 +1,7 @@
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '@/db'
-import { entries, matches, members } from '@/db/schema'
+import { entries, matches, users } from '@/db/schema'
 import type { Entry, EntryView } from './entries'
 import type { Match } from './matches'
 
@@ -29,22 +29,22 @@ export function phaseAt(match: Match, now: Date): MatchPhase {
   return 'before'
 }
 
-const hosts = alias(members, 'hosts')
+const hosts = alias(users, 'hosts')
 
 export async function getMatchView(
   db: Db,
-  { matchId, memberId, now }: { matchId: number; memberId: number; now: Date },
+  { matchId, memberId, now }: { matchId: number; memberId: string; now: Date },
 ): Promise<MatchView> {
   const rows = await db.select({
     match: getTableColumns(matches),
     entry: getTableColumns(entries),
-    memberName: members.name,
-    memberNickname: members.nickname,
-    memberImage: members.image,
+    memberName: users.name,
+    memberNickname: users.nickname,
+    memberImage: users.image,
     hostName: hosts.name,
   }).from(matches)
     .leftJoin(entries, and(eq(entries.matchId, matches.id), inArray(entries.status, ['confirmed', 'queued', 'offered'])))
-    .leftJoin(members, eq(entries.memberId, members.id))
+    .leftJoin(users, eq(entries.memberId, users.id))
     .leftJoin(hosts, eq(entries.hostMemberId, hosts.id))
     .where(eq(matches.id, matchId))
     .orderBy(entries.createdAt, entries.id)

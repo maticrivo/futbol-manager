@@ -9,7 +9,7 @@ import { charges, paymentAllocations, payments } from '@/db/schema'
  * Callers MUST acquire the necessary locks (specifically member rows for the target member)
  * prior to calling this function to prevent concurrent allocation races.
  */
-export async function allocateAvailableCredit(tx: Tx, memberId: number, createdAt: Date): Promise<number> {
+export async function allocateAvailableCredit(tx: Tx, memberId: string, createdAt: Date): Promise<number> {
   // 1. Read the member's payments ordered by paidAt, then id.
   const memberPayments = await tx.select()
     .from(payments)

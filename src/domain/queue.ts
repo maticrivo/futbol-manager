@@ -5,9 +5,9 @@ import { err, ok, type Result } from '@/lib/result'
 import { isLocked, lockMatch, lockMatchForEntry, remainingSpots, type Entry } from './entries'
 import { getSettings } from './matches'
 
-type QueueInput = { memberId: number; matchId: number; now: Date }
+type QueueInput = { memberId: string; matchId: number; now: Date }
 
-function memberEntries(tx: Tx, matchId: number, memberId: number) {
+function memberEntries(tx: Tx, matchId: number, memberId: string) {
   return tx.select().from(entries)
     .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId)))
     .for('update')
@@ -105,7 +105,7 @@ export async function expireOffers(
 
 export async function claimOffer(
   db: Db,
-  { entryId, memberId, now }: { entryId: number; memberId: number; now: Date },
+  { entryId, memberId, now }: { entryId: number; memberId: string; now: Date },
 ): Promise<Result<Entry, 'NOT_FOUND' | 'NOT_OWNER' | 'NOT_OFFERED' | 'OFFER_EXPIRED' | 'FULL' | 'MATCH_LOCKED'>> {
   return db.transaction(async tx => {
     const match = await lockMatchForEntry(tx, entryId)
