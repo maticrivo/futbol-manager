@@ -19,6 +19,15 @@
     "profile": "Profile",
     "logout": "Sign out"
   },
+  "installBanner": {
+    "title": "Install the app",
+    "description": "Add it to your home screen to get sign-up and bill notifications.",
+    "install": "Install",
+    "howTo": "How to install",
+    "dismiss": "Dismiss",
+    "androidHint": "Open the browser menu (⋮) and choose “Install app” or “Add to Home screen”.",
+    "browserHint": "Opened this link inside WhatsApp or another app? Open it in Safari or Chrome first."
+  },
   "auth": {
     "signedInAs": "Signed in as {name}",
     "signInTitle": "Sign in / Sign up",

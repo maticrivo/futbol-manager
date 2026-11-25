@@ -4,6 +4,7 @@ import { getLocale, getTranslations } from "next-intl/server";
 import { cookies } from "next/headers";
 import LocaleSwitcher from "@/components/LocaleSwitcher";
 import Nav from "@/components/Nav";
+import InstallBanner from "@/components/InstallBanner";
 import { parseTheme, THEME_COOKIE } from "@/lib/theme";
 import "./globals.css";
 
@@ -49,6 +50,7 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col pb-20 md:pb-0">
         <NextIntlClientProvider>
+          <InstallBanner />
           <Nav>
             <LocaleSwitcher />
           </Nav>

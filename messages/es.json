@@ -19,6 +19,15 @@
     "profile": "Perfil",
     "logout": "Cerrar sesión"
   },
+  "installBanner": {
+    "title": "Instala la aplicación",
+    "description": "Añádela a la pantalla de inicio para recibir avisos de inscripción y de cuenta.",
+    "install": "Instalar",
+    "howTo": "Cómo instalar",
+    "dismiss": "Cerrar",
+    "androidHint": "Abre el menú del navegador (⋮) y elige «Instalar aplicación» o «Añadir a pantalla de inicio».",
+    "browserHint": "¿Abriste el enlace desde WhatsApp u otra app? Ábrelo primero en Safari o Chrome."
+  },
   "auth": {
     "signedInAs": "Sesión iniciada como {name}",
     "signInTitle": "Iniciar sesión / Registrarse",
