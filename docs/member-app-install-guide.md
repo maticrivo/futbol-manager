@@ -15,7 +15,8 @@ Copy this into the WhatsApp group:
 ```text
 היי חברים 👋
 "כדורגל שלישי" היא האפליקציה של הקבוצה: נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
-כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה על המסך הראשי:
+כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה מהקישור:
+https://tuesday-football.nulldev.app
 
 📱 אייפון / אייפד — מומלץ דרך Safari:
 1. פותחים את הקישור ב-Safari. אם הגעתם מוואטסאפ: ⋯ ← "פתיחה ב-Safari".
@@ -36,8 +37,6 @@ Copy this into the WhatsApp group:
 • באייפון חייבים iOS 16.4 ומעלה, ואפשר להפעיל התראות רק אחרי ההתקנה.
 • מפעילים התראות בכל מכשיר בנפרד.
 • לא רואים "הפעלת התראות"? ודאו שפתחתם את האפליקציה מהאייקון במסך הבית.
-
-קישור: https://tuesday-football.nulldev.app
 ```
 
 ## Ready-to-send message (English)
@@ -45,7 +44,8 @@ Copy this into the WhatsApp group:
 ```text
 Hi everyone 👋
 "Tuesday Football" is our team app: sign up for the weekly match, see who's playing, join the waitlist, and get reminders plus your monthly bill.
-Install it on your home screen to use it like an app and receive notifications:
+Install it from this link to use it like an app and receive notifications:
+https://tuesday-football.nulldev.app
 
 📱 iPhone / iPad — Safari recommended:
 1. Open the link in Safari. Coming from WhatsApp: ··· → "Open in Safari".
@@ -66,8 +66,6 @@ Install it on your home screen to use it like an app and receive notifications:
 • iPhone/iPad needs iOS 16.4+ and notifications can only be enabled after installing.
 • Enable notifications on each device separately.
 • No "Enable notifications" button? Make sure you opened the app from the home-screen icon.
-
-Link: https://tuesday-football.nulldev.app
 ```
 
 ## Ready-to-send message (Spanish)
@@ -75,7 +73,8 @@ Link: https://tuesday-football.nulldev.app
 ```text
 ¡Hola a todos 👋
 "Fútbol de los martes" es la app del equipo: se apuntan al partido semanal, ven quién juega, entran en la lista de espera y reciben recordatorios y su cuenta mensual.
-Instálenla en la pantalla de inicio para usarla como una app y recibir notificaciones:
+Instálenla desde este enlace para usarla como una app y recibir notificaciones:
+https://tuesday-football.nulldev.app
 
 📱 iPhone / iPad — recomendado Safari:
 1. Abran el enlace en Safari. Si llega por WhatsApp: ··· → "Abrir en Safari".
@@ -96,8 +95,6 @@ Instálenla en la pantalla de inicio para usarla como una app y recibir notifica
 • En iPhone se necesita iOS 16.4 o superior, y las notificaciones solo se pueden activar después de instalar la app.
 • Activen las notificaciones en cada dispositivo por separado.
 • ¿No ven "Activar notificaciones"? Abran la app desde el icono en la pantalla de inicio.
-
-Enlace: https://tuesday-football.nulldev.app
 ```
 
 ---
