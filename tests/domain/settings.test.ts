@@ -15,6 +15,7 @@ it('provides default settings for Tuesday Football', () => {
     venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
     kickoffTime: '20:00',
     queueWindowMinutes: 30,
+    payboxUrl: '',
   })
 })
 
@@ -66,6 +67,22 @@ it('rejects an invalid venue map link', async () => {
     ok: false,
     code: 'INVALID_SETTING',
   })
+})
+
+it('stores a valid Paybox group link and rejects unsafe links', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+
+  expect(await updateSettings(testDb, admin.id, { payboxUrl: 'https://link.payboxapp.com/group' }))
+    .toMatchObject({ ok: true })
+  expect((await getSettings(testDb)).payboxUrl).toBe('https://link.payboxapp.com/group')
+
+  for (const bad of ['javascript:alert(1)', 'ftp://example.com/group', 'not-a-url', `https://example.com/${'a'.repeat(500)}`]) {
+    expect(await updateSettings(testDb, admin.id, { payboxUrl: bad })).toEqual({ ok: false, code: 'INVALID_SETTING' })
+  }
+  expect((await getSettings(testDb)).payboxUrl).toBe('https://link.payboxapp.com/group')
+
+  expect(await updateSettings(testDb, admin.id, { payboxUrl: '' })).toMatchObject({ ok: true })
+  expect((await getSettings(testDb)).payboxUrl).toBe('')
 })
 
 it('does not coerce blank stored values to zero and preserves defaults while valid values still win', async () => {

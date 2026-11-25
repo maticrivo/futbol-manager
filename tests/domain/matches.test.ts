@@ -24,6 +24,7 @@ it('returns the documented defaults', async () => {
     venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
     kickoffTime: '20:00',
     queueWindowMinutes: 30,
+    payboxUrl: '',
   })
 })
 
@@ -85,6 +86,7 @@ describe('settings management', () => {
       venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
       kickoffTime: '21:00',
       queueWindowMinutes: 30,
+      payboxUrl: '',
     })
 
     const persisted = await getSettings(testDb)

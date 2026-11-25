@@ -12,6 +12,7 @@ export type Settings = {
   venueUrl: string
   kickoffTime: string
   queueWindowMinutes: number
+  payboxUrl: string
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -21,6 +22,7 @@ export const DEFAULT_SETTINGS: Settings = {
   venueUrl: 'https://maps.app.goo.gl/WPPALMNQFfW3MX7L6',
   kickoffTime: '20:00',
   queueWindowMinutes: 30,
+  payboxUrl: '',
 }
 
 const VALID_SETTING_KEYS: Set<string> = new Set([
@@ -30,6 +32,7 @@ const VALID_SETTING_KEYS: Set<string> = new Set([
   'venueUrl',
   'kickoffTime',
   'queueWindowMinutes',
+  'payboxUrl',
 ])
 
 const KICKOFF_REGEX = /^(?:[01]\d|2[0-3]):[0-5]\d$/
@@ -52,6 +55,7 @@ export async function getSettings(db: Executor): Promise<Settings> {
   const venueUrlVal = map.get('venueUrl')
   const kickoffVal = map.get('kickoffTime')
   const queueVal = map.get('queueWindowMinutes')
+  const payboxVal = map.get('payboxUrl')
 
   const storedVenue = venueVal !== undefined ? venueVal : DEFAULT_SETTINGS.venue
   const legacy = splitVenue(storedVenue)
@@ -67,6 +71,7 @@ export async function getSettings(db: Executor): Promise<Settings> {
     venueUrl,
     kickoffTime: kickoffVal !== undefined ? kickoffVal : DEFAULT_SETTINGS.kickoffTime,
     queueWindowMinutes: parseNumericSetting(queueVal, DEFAULT_SETTINGS.queueWindowMinutes),
+    payboxUrl: payboxVal ?? DEFAULT_SETTINGS.payboxUrl,
   }
 }
 
@@ -140,6 +145,16 @@ export async function updateSettings(
       if (typeof patch.venueUrl !== 'string' || patch.venueUrl.length > 500 || !isHttpUrl(patch.venueUrl)) {
         return err('INVALID_SETTING')
       }
+    }
+  }
+
+  if (patch.payboxUrl !== undefined) {
+    if (
+      typeof patch.payboxUrl !== 'string' ||
+      patch.payboxUrl.length > 500 ||
+      (patch.payboxUrl !== '' && !isHttpUrl(patch.payboxUrl))
+    ) {
+      return err('INVALID_SETTING')
     }
   }
 
