@@ -1,6 +1,6 @@
 import { expect, it } from 'vitest'
 import { vi } from 'vitest'
-import { isAdminTabActive, isPrimaryNavActive } from '@/components/Nav'
+import { isAdminTabActive, isPrimaryNavActive } from '@/lib/nav'
 
 vi.mock('@/auth', () => ({
   auth: vi.fn(async () => null),
