@@ -4,7 +4,6 @@ import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { and, eq, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
-import AdminNav from '@/components/AdminNav'
 import AdminRoster from '@/components/AdminRoster'
 import AttendanceList from '@/components/AttendanceList'
 import CancelMatchForm from '@/components/CancelMatchForm'
@@ -122,8 +121,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
     }))
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
 
       <Card variant="default" padding="lg" className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -179,6 +177,6 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       />
 
       <CancelMatchForm matchId={current.id} state={current.status === 'cancelled' ? 'cancelled' : current.status === 'played' ? 'played' : 'open'} />
-    </main>
+    </div>
   )
 }

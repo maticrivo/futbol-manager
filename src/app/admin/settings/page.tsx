@@ -1,5 +1,4 @@
 import { getTranslations } from 'next-intl/server'
-import AdminNav from '@/components/AdminNav'
 import SettingsForm from '@/components/SettingsForm'
 import { getDb } from '@/db'
 import { getSettings } from '@/domain/matches'
@@ -13,8 +12,7 @@ export default async function AdminSettings() {
   const [settings, t] = await Promise.all([getSettings(db), getTranslations('admin')])
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('settings.title')}</h1>
 
       <Card variant="default" padding="lg">
@@ -28,6 +26,6 @@ export default async function AdminSettings() {
           payboxUrl={settings.payboxUrl}
         />
       </Card>
-    </main>
+    </div>
   )
 }

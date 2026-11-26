@@ -1,5 +1,4 @@
 import { getLocale, getTranslations } from 'next-intl/server'
-import AdminNav from '@/components/AdminNav'
 import { getDb } from '@/db'
 import { getAuditLog } from '@/domain/audit'
 import { requireAdmin } from '@/lib/auth'
@@ -17,8 +16,7 @@ export default async function AdminAudit() {
   const timeFormat = new Intl.DateTimeFormat(locale, { dateStyle: 'short', timeStyle: 'medium', timeZone: TZ })
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('audit.title')}</h1>
 
       {log.length === 0 ? (
@@ -49,6 +47,6 @@ export default async function AdminAudit() {
           ))}
         </div>
       )}
-    </main>
+    </div>
   )
 }

@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import Link from 'next/link'
 import { getLocale, getTranslations } from 'next-intl/server'
-import AdminNav from '@/components/AdminNav'
 import CreateNextMatchForm from '@/components/CreateNextMatchForm'
 import { getDb } from '@/db'
 import { monthSummary } from '@/domain/billing'
@@ -33,8 +32,7 @@ export default async function AdminDashboard() {
   const bidi = (chunks: ReactNode) => <bdi>{chunks}</bdi>
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('dashboard.title')}</h1>
         <CreateNextMatchForm />
@@ -98,6 +96,6 @@ export default async function AdminDashboard() {
           icon="wallet"
         />
       </section>
-    </main>
+    </div>
   )
 }

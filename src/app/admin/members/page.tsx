@@ -1,6 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import AddMemberByEmailForm from '@/components/AddMemberByEmailForm'
-import AdminNav from '@/components/AdminNav'
 import MemberActions from '@/components/MemberActions'
 import MemberEditForm from '@/components/MemberEditForm'
 import LinkMemberForm from '@/components/LinkMemberForm'
@@ -28,8 +27,7 @@ export default async function AdminMembers() {
     .map((member) => ({ id: member.id, name: member.name }))
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('members.title')}</h1>
 
       <AddMemberByEmailForm />
@@ -107,6 +105,6 @@ export default async function AdminMembers() {
           </Card>
         ))}
       </section>
-    </main>
+    </div>
   )
 }

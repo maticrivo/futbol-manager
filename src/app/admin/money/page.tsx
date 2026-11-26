@@ -1,6 +1,5 @@
 import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
-import AdminNav from '@/components/AdminNav'
 import BalanceTable from '@/components/BalanceTable'
 import CopyMessage from '@/components/CopyMessage'
 import MoneySummary from '@/components/MoneySummary'
@@ -55,8 +54,7 @@ export default async function MoneyPage({
   const billCopy = buildGroupMessage('bill_ready', locale, { month, url: `${origin}/bill` })
 
   return (
-    <main className="mx-auto w-full max-w-3xl space-y-6 px-4 py-8 text-start">
-      <AdminNav />
+    <div className="space-y-6">
       <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-ink">{t('money.title')}</h1>
 
       <Card variant="default" padding="md">
@@ -88,6 +86,6 @@ export default async function MoneyPage({
         <pre dir="auto" className="whitespace-pre-wrap break-words rounded-[var(--radius-md)] bg-surface-muted border border-line p-4 text-sm text-ink font-mono">{billCopy}</pre>
         <CopyMessage text={billCopy} label={t('money.copy.button')} />
       </Card>
-    </main>
+    </div>
   )
 }
