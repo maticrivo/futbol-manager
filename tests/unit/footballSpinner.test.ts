@@ -21,8 +21,17 @@ it('honors the size prop', () => {
   expect(html).toContain('height="72"')
 })
 
-it('stops spinning when the user prefers reduced motion', () => {
+it('stops spinning for reduced motion without hiding the ball', () => {
   const css = readFileSync(new URL('../../src/app/globals.css', import.meta.url), 'utf8')
-  expect(css).toContain('.football-spin')
-  expect(css).toMatch(/@media \(prefers-reduced-motion: reduce\)/)
+
+  expect(css).toMatch(
+    /@media \(prefers-reduced-motion: reduce\)\s*\{\s*\.football-spin\s*\{\s*animation:\s*none;?\s*\}\s*\}/,
+  )
+  expect(css).not.toMatch(/football-spin[^}]*display:\s*none/)
+  expect(css).not.toMatch(/football-spin[^}]*visibility:\s*hidden/)
+
+  const baseRule = css.indexOf('.football-spin {')
+  const reducedMotion = css.indexOf('@media (prefers-reduced-motion: reduce)')
+  expect(baseRule).toBeGreaterThan(-1)
+  expect(reducedMotion).toBeGreaterThan(baseRule)
 })
