@@ -48,7 +48,7 @@ export default function NavLink({
       href={href}
       aria-current={active ? 'page' : undefined}
       className={cn(
-        'rounded-[var(--radius-pill)] px-3 py-1.5 transition-colors',
+        'rounded-[var(--radius-pill)] px-2.5 py-1.5 transition-colors lg:px-3',
         active ? 'bg-primary-soft text-primary' : 'text-muted hover:text-ink',
       )}
     >
