@@ -8,8 +8,11 @@ function render(locale: string, label: string) {
   return renderToStaticMarkup(
     createElement(
       NextIntlClientProvider,
-      { locale, messages: { common: { loading: label } } },
-      createElement(Loading),
+      {
+        locale,
+        messages: { common: { loading: label } },
+        children: createElement(Loading),
+      },
     ),
   )
 }
