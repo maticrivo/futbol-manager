@@ -1,4 +1,3 @@
-import { createElement } from 'react'
 import { renderToStaticMarkup } from 'react-dom/server'
 import { NextIntlClientProvider } from 'next-intl'
 import { expect, it } from 'vitest'
@@ -6,14 +5,9 @@ import Loading from '@/app/loading'
 
 function render(locale: string, label: string) {
   return renderToStaticMarkup(
-    createElement(
-      NextIntlClientProvider,
-      {
-        locale,
-        messages: { common: { loading: label } },
-        children: createElement(Loading),
-      },
-    ),
+    <NextIntlClientProvider locale={locale} messages={{ common: { loading: label } }}>
+      <Loading />
+    </NextIntlClientProvider>,
   )
 }
 
