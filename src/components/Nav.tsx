@@ -1,8 +1,10 @@
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 import { getCurrentMember } from '@/lib/auth'
+import Brand from './Brand'
 import DesktopNav from './DesktopNav'
 import BottomNav from './BottomNav'
+import MobileHeader from './MobileHeader'
 
 export default async function Nav({ children }: { children: ReactNode }) {
   const member = await getCurrentMember()
@@ -12,7 +14,7 @@ export default async function Nav({ children }: { children: ReactNode }) {
     return (
       <header className="border-b border-line bg-surface">
         <nav className="mx-auto flex max-w-3xl flex-wrap items-center justify-between gap-4 px-4 py-3">
-          <span className="font-semibold text-ink">{t('common.appName')}</span>
+          <Brand name={t('common.appName')} />
           {children}
         </nav>
       </header>
@@ -29,6 +31,7 @@ export default async function Nav({ children }: { children: ReactNode }) {
 
   return (
     <>
+      <MobileHeader name={t('common.appName')} />
       <DesktopNav member={memberInfo} t={tKey} />
       <BottomNav member={memberInfo} t={tKey} />
       <div className="hidden">{children}</div>

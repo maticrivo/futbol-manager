@@ -1,4 +1,5 @@
-import Link from 'next/link'
+import Brand from './Brand'
+import NavLink from './NavLink'
 import LocaleSwitcher from './LocaleSwitcher'
 
 export default function DesktopNav({ member, t }: { member: { role: string; status: string; name: string }; t: (key: string) => string }) {
@@ -9,12 +10,12 @@ export default function DesktopNav({ member, t }: { member: { role: string; stat
     <header className="hidden md:block border-b border-line bg-surface">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
         <div className="flex items-center gap-6">
-          <span className="font-semibold text-lg text-ink">{t('common.appName')}</span>
-          <nav className="flex items-center gap-4 text-sm font-medium text-muted">
-            <Link href="/" className="hover:text-ink transition-colors">{t('nav.home')}</Link>
-            <Link href="/bill" className="hover:text-ink transition-colors">{t('nav.bill')}</Link>
-            {isAdmin && <Link href="/admin" className="hover:text-ink transition-colors">{t('nav.admin')}</Link>}
-            <Link href="/profile" className="hover:text-ink transition-colors">{t('nav.profile')}</Link>
+          <Brand name={t('common.appName')} />
+          <nav className="flex items-center gap-1 text-sm font-medium">
+            <NavLink href="/" label={t('nav.home')} />
+            <NavLink href="/bill" label={t('nav.bill')} />
+            {isAdmin && <NavLink href="/admin" label={t('nav.admin')} />}
+            <NavLink href="/profile" label={t('nav.profile')} />
           </nav>
         </div>
         <div className="flex items-center gap-4">
