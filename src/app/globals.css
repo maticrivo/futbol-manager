@@ -111,3 +111,20 @@ body {
   font-variant-numeric: tabular-nums;
   text-align: start;
 }
+
+@keyframes football-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.football-spin {
+  transform-origin: center;
+  animation: football-spin 1s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .football-spin {
+    animation: none;
+  }
+}
