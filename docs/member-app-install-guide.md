@@ -14,10 +14,13 @@ Copy this into the WhatsApp group:
 
 ```text
 היי חברים 👋
-בניתי את האפליקציה הזאת עבור הקבוצה שלנו. היא נקראת "כדורגל שלישי": נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה ומקבלים תזכורות והתראות על החשבון החודשי.
-מהמשחק הבא והלאה, ההרשמה למשחקים תהיה כאן.
-כדי להשתמש בה כמו אפליקציה ולקבל התראות, התקינו אותה מהקישור:
-https://tuesday-football.nulldev.app
+בניתי אפליקציה לקבוצה. דרכה מהיום נרשמים למשחק השבועי, רואים מי משחק, מצטרפים לרשימת ההמתנה אם כבר אין מקום ומקבלים תזכורות והתראות על החשבון החודשי.
+
+החל מהמשחק הבא נרשמים באפליקציה, ננסה, נראה איך זה עובד, לי זה יקל על החיים בכל הנושא של לבדוק כמה כל אחד צריך לשלם.
+
+כנסו לקישור https://tuesday-football.nulldev.app ותתקינו את האתר כאפליקציה.
+
+הוראות התקנה:
 
 📱 אייפון / אייפד — מומלץ דרך Safari:
 1. פותחים את הקישור ב-Safari. אם הגעתם מוואטסאפ: ⋯ ← "פתיחה ב-Safari".
@@ -43,44 +46,50 @@ https://tuesday-football.nulldev.app
 ## Ready-to-send message (English)
 
 ```text
-Hi everyone 👋
-I built this app for our group. It's called "Tuesday Football": sign up for the weekly match, see who's playing, join the waitlist, and get reminders plus your monthly bill.
-Starting with the next match, sign-ups will be here.
-Install it from this link to use it like an app and receive notifications:
-https://tuesday-football.nulldev.app
+Hey everyone 👋
+I built an app for the group. From today, this is where we sign up for the weekly match, see who's playing, join the waitlist if there's no room left, and get reminders and notifications about the monthly bill.
+
+Starting with the next match, we'll sign up in the app. Let's try it and see how it works — for me it'll make life easier when it comes to checking how much each person has to pay.
+
+Open the link https://tuesday-football.nulldev.app and install the site as an app.
+
+Installation instructions:
 
 📱 iPhone / iPad — Safari recommended:
-1. Open the link in Safari. Coming from WhatsApp: ··· → "Open in Safari".
-2. Tap Share (square with an arrow) → "Add to Home Screen".
+1. Open the link in Safari. If you came from WhatsApp: ⋯ → "Open in Safari".
+2. Tap the Share button (square with an arrow) → "Add to Home Screen".
    If you see "Open as Web App", leave it on. Tap "Add".
-3. Open the app from the new home-screen icon.
-4. Go to Profile → Push notifications → "Enable notifications" → Allow.
-5. On the same screen, pick the alerts you want and tap "Save settings".
+3. Open the app from the icon on your home screen.
+4. Go to "Profile" → "Push notifications" → "Enable notifications" → "Allow".
+5. On the same screen, choose which notifications you want to get and tap "Save settings".
 
 🤖 Android — Chrome:
 1. Open the link in Chrome (not inside WhatsApp).
-2. Menu ⋮ → "Install app" (or "Add to Home screen") → Install.
-3. Open the app from the home-screen icon.
-4. Go to Profile → Push notifications → "Enable notifications" → Allow.
-5. On the same screen, pick the alerts you want and tap "Save settings".
+2. Menu ⋮ → "Install app" (or "Add to Home screen") → "Install".
+3. Open the app from the icon on your home screen.
+4. Go to "Profile" → "Push notifications" → "Enable notifications" → "Allow".
+5. On the same screen, choose which notifications you want to get and tap "Save settings".
 
-⚠️ Notes:
-• iPhone/iPad needs iOS 16.4+ and notifications can only be enabled after installing.
+⚠️ Important:
+• On iPhone you need iOS 16.4 or newer, and notifications can only be enabled after installing.
 • Enable notifications on each device separately.
-• No "Enable notifications" button? Make sure you opened the app from the home-screen icon.
+• Don't see "Enable notifications"? Make sure you opened the app from the icon on your home screen.
 ```
 
 ## Ready-to-send message (Spanish)
 
 ```text
-¡Hola a todos 👋
-Les armé esta app para el grupo. Se llama "Fútbol Martes": se anotan al partido semanal, ven quién juega, se suman a la lista de espera y les llegan recordatorios y la cuenta del mes.
-A partir del próximo partido, la inscripción se hace acá.
-Instálenla desde este link para usarla como una app y recibir notificaciones:
-https://tuesday-football.nulldev.app
+¡Hola a todos! 👋
+Armé una app para el grupo. A partir de hoy, por acá nos anotamos al partido semanal, vemos quién juega, nos sumamos a la lista de espera si ya no hay lugar y recibimos recordatorios y notificaciones sobre la cuenta del mes.
+
+Desde el próximo partido nos anotamos en la app. Probemos, veamos cómo funciona; a mí me va a hacer la vida más fácil con el tema de fijarme cuánto tiene que pagar cada uno.
+
+Entren al link https://tuesday-football.nulldev.app e instalen el sitio como app.
+
+Instrucciones de instalación:
 
 📱 iPhone / iPad — recomendado Safari:
-1. Abran el link en Safari. Si les llegó por WhatsApp: ··· → "Abrir en Safari".
+1. Abran el link en Safari. Si les llegó por WhatsApp: ⋯ → "Abrir en Safari".
 2. Toquen el botón Compartir (cuadrado con flecha) → "Agregar a pantalla de inicio".
    Si aparece "Abrir como app web", déjenla activada. Toquen "Agregar".
 3. Abran la app desde el ícono en la pantalla de inicio.
@@ -97,7 +106,7 @@ https://tuesday-football.nulldev.app
 ⚠️ Importante:
 • En el iPhone se necesita iOS 16.4 o superior, y las notificaciones solo se pueden activar después de instalar la app.
 • Activen las notificaciones en cada dispositivo por separado.
-• ¿No ven "Activar notificaciones"? Abran la app desde el ícono en la pantalla de inicio.
+• ¿No ven "Activar notificaciones"? Asegúrense de haberla abierto desde el ícono en la pantalla de inicio.
 ```
 
 ---
