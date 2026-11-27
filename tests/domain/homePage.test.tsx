@@ -103,11 +103,11 @@ it('shows the empty not-going list while answers are open, and hides it before',
 // The mobile bar repeats the answer actions; on desktop, Join stays only in the waiting-list card.
 it.each([
   ['unanswered', undefined, false, ['signup', 'decline'], [], ['signup', 'decline']],
-  ['confirmed', 'confirmed', false, ['decline', 'withdraw'], [], ['decline', 'withdraw']],
+  ['confirmed', 'confirmed', false, ['withdraw'], [], ['withdraw']],
   ['declined', 'declined', false, ['signup', 'undecided'], [], ['signup', 'undecided']],
   ['unanswered on a full match', undefined, true, ['decline'], ['join'], ['join', 'decline']],
   ['declined on a full match', 'declined', true, ['undecided'], ['join'], ['join', 'undecided']],
-  ['queued', 'queued', true, [], ['decline', 'leave'], []],
+  ['queued', 'queued', true, [], ['leave'], []],
   ['offered', 'offered', true, [], ['claim', 'decline'], []],
 ] as const)('offers the right answers to a %s member', async (_, status, full, desktop, queue, mobile) => {
   const { match, viewer } = await scenario({ full })

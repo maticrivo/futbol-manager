@@ -34,7 +34,7 @@ const declined = { myResponse: 'not_going' } as const
 it.each([
   ['unanswered with spots', unanswered, ['signup', 'decline'], 'unanswered'],
   ['unanswered and full', { spotsLeft: 0 }, ['join', 'decline'], 'unanswered'],
-  ['confirmed', confirmed, ['decline', 'withdraw'], 'going'],
+  ['confirmed', confirmed, ['withdraw'], 'going'],
   ['queued (actions live in the waiting-list card)', queued, [], 'queued'],
   ['offered (the offer card carries the status and actions)', offered, [], null],
   ['declined with spots', declined, ['signup', 'undecided'], 'notGoing'],

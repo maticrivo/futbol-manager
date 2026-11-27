@@ -114,6 +114,7 @@
     "guest": "(guest)",
     "guestOf": "(Guest of <bidi>{host}</bidi>)",
     "signup": "Sign up",
+    "withdraw": "Withdraw",
     "decline": "Not going",
     "notSure": "Not sure yet",
     "guests": "Guests",

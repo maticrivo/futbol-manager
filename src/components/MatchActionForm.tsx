@@ -24,7 +24,7 @@ const actions = {
 
 const labels = {
   signup: 'match.signup',
-  withdraw: 'match.notSure',
+  withdraw: 'match.withdraw',
   decline: 'match.decline',
   undecided: 'match.notSure',
   join: 'queue.join',

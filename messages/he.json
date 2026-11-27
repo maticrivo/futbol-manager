@@ -114,6 +114,7 @@
     "guest": "(אורח)",
     "guestOf": "(בהזמנת <bidi>{host}</bidi>)",
     "signup": "הרשמה למשחק",
+    "withdraw": "ביטול ההרשמה",
     "decline": "לא אגיע",
     "notSure": "עוד לא החלטתי",
     "guests": "אורחים",

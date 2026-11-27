@@ -4,7 +4,7 @@ import es from '../../messages/es.json'
 import he from '../../messages/he.json'
 
 const keys = [
-  'match.decline', 'match.notSure',
+  'match.withdraw', 'match.decline', 'match.notSure',
   'match.response.unanswered', 'match.response.going', 'match.response.queued', 'match.response.notGoing',
   'responses.notGoing', 'responses.notGoingEmpty', 'responses.unanswered', 'responses.unansweredEmpty',
   'errors.NOT_DECLINED',
@@ -19,5 +19,4 @@ it.each([['en', en], ['es', es], ['he', he]] as const)('has every voy / no voy s
     const value = lookup(messages, key)
     expect(typeof value === 'string' && value.trim().length > 0, key).toBe(true)
   }
-  expect(lookup(messages, 'match.withdraw')).toBeUndefined()
 })

@@ -18,7 +18,8 @@ export function answerActions(view: AnswerView): AnswerAction[] {
   if (!takesAnswers(view.phase)) return []
   // Queued members and offers answer from the waiting-list card.
   if (view.myQueueEntry || view.myOffer) return []
-  if (view.myEntry) return ['decline', 'withdraw']
+  // On the roster, the action is undoing the sign-up; the member can then answer No voy.
+  if (view.myEntry) return ['withdraw']
   // The primary "voy" is Sign up while there is room and Join the waiting list once full.
   const voy: AnswerAction = view.spotsLeft > 0 ? 'signup' : 'join'
   return view.myResponse === 'not_going' ? [voy, 'undecided'] : [voy, 'decline']

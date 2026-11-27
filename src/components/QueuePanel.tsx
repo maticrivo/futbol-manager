@@ -71,7 +71,6 @@ export default async function QueuePanel({
 
       <div className="pt-2 flex flex-wrap gap-2">
         {canJoin && <MatchActionForm key="join" intent="join" matchId={match.id} />}
-        {canLeave && <MatchActionForm key="decline" intent="decline" matchId={match.id} />}
         {canLeave && <MatchActionForm key="leave" intent="leave" matchId={match.id} />}
       </div>
     </Card>
