@@ -5,6 +5,7 @@ import Brand from './Brand'
 import DesktopNav from './DesktopNav'
 import BottomNav from './BottomNav'
 import MobileHeader from './MobileHeader'
+import PullToRefresh from './PullToRefresh'
 
 export default async function Nav({ children }: { children: ReactNode }) {
   const member = await getCurrentMember()
@@ -32,6 +33,7 @@ export default async function Nav({ children }: { children: ReactNode }) {
   return (
     <>
       <MobileHeader name={t('common.appName')} />
+      <PullToRefresh />
       <DesktopNav member={memberInfo} t={tKey} />
       <BottomNav member={memberInfo} t={tKey} />
       <div className="hidden">{children}</div>
