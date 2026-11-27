@@ -16,7 +16,9 @@ it('renders an accessible mobile-only refresh indicator', () => {
   expect(html).toContain('aria-live="polite"')
   expect(html).toContain('md:hidden')
   expect(html).toContain('aria-hidden="true"')
-  expect(html).toContain('football-spin')
+  const svg = html.match(/<svg[^>]*>/)?.[0] ?? ''
+  expect(svg).toContain('football-spin')
+  expect(svg).toContain('aria-hidden="true"')
   expect(html).toContain(messages.common.refreshing)
   expect(messages.common.refreshing).toBe('מרענן…')
 })

@@ -2,7 +2,9 @@ import { expect, it } from 'vitest'
 import {
   canStartPull,
   isDownwardPull,
+  isPullIgnoredTarget,
   PULL_MAX,
+  PULL_SLOP,
   PULL_THRESHOLD,
   pullDistance,
   shouldRefresh,
@@ -31,6 +33,20 @@ it('applies resistance and caps the pull distance', () => {
   expect(pullDistance(0)).toBe(0)
   expect(pullDistance(20)).toBe(10)
   expect(pullDistance(400)).toBe(PULL_MAX)
+})
+
+it('ignores sub-slop downward drift so taps are not swallowed', () => {
+  expect(isDownwardPull({ deltaX: 0, deltaY: PULL_SLOP - 1 })).toBe(false)
+  expect(isDownwardPull({ deltaX: 0, deltaY: PULL_SLOP })).toBe(true)
+})
+
+it('ignores pulls that start on interactive controls', () => {
+  const ignored = { closest: () => ({}) } as unknown as Element
+  const allowed = { closest: () => null } as unknown as Element
+
+  expect(isPullIgnoredTarget(ignored)).toBe(true)
+  expect(isPullIgnoredTarget(allowed)).toBe(false)
+  expect(isPullIgnoredTarget(null)).toBe(false)
 })
 
 it('arms the refresh at the threshold', () => {

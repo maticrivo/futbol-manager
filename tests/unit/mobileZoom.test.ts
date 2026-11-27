@@ -17,3 +17,12 @@ it('removes double-tap zoom and the tap delay on controls', () => {
 it('contains mobile overscroll so Android does not reload the page', () => {
   expect(mobileBlock).toMatch(/html,\s*body\s*\{[^}]*overscroll-behavior-y:\s*contain/)
 })
+
+it('keeps the mobile block unlayered and after the Tailwind import', () => {
+  const importIndex = css.indexOf('@import "tailwindcss"')
+  const blockIndex = css.indexOf('@media (max-width: 767px)')
+
+  expect(importIndex).toBeGreaterThan(-1)
+  expect(blockIndex).toBeGreaterThan(importIndex)
+  expect(css).not.toMatch(/@layer[^{]*\{[^]*@media \(max-width: 767px\)/)
+})
