@@ -54,6 +54,15 @@ not answered. Admins can see who has not answered.
   model already allows it: enabling it means accepting `before` in
   `decline` and adding the link.
 
+## Known limitations
+
+- Action buttons do not disable while a submit is in flight (unchanged
+  `MatchActionForm`). A double tap on Withdraw therefore shows
+  `NOT_WITHDRAWABLE` on the second submit, as on `main`. The new answer
+  actions (`decline`, `clearDecline`) treat a repeat as a no-op. Disabling
+  buttons while pending would fix this for every action and fits a
+  separate change.
+
 ## Definitions
 
 A member's **response** for a match is derived from their entry row (at
