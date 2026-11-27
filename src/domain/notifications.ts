@@ -8,6 +8,7 @@ import { err, ok, type Result } from '@/lib/result'
 import { billingMonthOf, TZ } from '@/lib/time'
 import type { Entry } from './entries'
 import type { Match } from './matches'
+import { answeredMemberIds } from './responses'
 
 export { deletePushSubscription, savePushSubscription, sendWebPush } from '@/lib/push'
 export type { NotificationPayload, PushSubscriptionRow, PushTransport } from '@/lib/push'
@@ -126,7 +127,8 @@ export async function notifyOffer(db: Db, entry: Entry, match: Match, transport:
     return sendMemberNotification(db, {
       memberId: entry.memberId,
       category: 'queue_offer',
-      eventKey: `queue_offer:${entry.id}`,
+      // Rows are reused when a member rejoins, so each offer is keyed by when it was made.
+      eventKey: `queue_offer:${entry.id}:${entry.offeredAt?.getTime() ?? 0}`,
       payload: buildNotification('queue_offer', member.locale, matchData(match)),
       now: now ?? new Date(),
     }, transport)
@@ -138,8 +140,11 @@ export async function notifyOffer(db: Db, entry: Entry, match: Match, transport:
 
 const MINUTE = 60_000
 
+// Pushes that ask for an answer go only to members who have not given one.
+const ASKS_FOR_ANSWER: ReadonlySet<NotificationCategory> = new Set(['signup_open', 'lock_reminder'])
+
 export async function processDueNotifications(db: Db, now: Date, transport: PushTransport): Promise<{ sent: number }> {
-  const due: { category: NotificationCategory; eventKey: string; data: NotificationData }[] = []
+  const due: { category: NotificationCategory; eventKey: string; data: NotificationData; matchId?: number }[] = []
   const scheduled = await db.select().from(matches)
     .where(eq(matches.status, 'scheduled'))
     .orderBy(asc(matches.kickoffAt))
@@ -151,7 +156,7 @@ export async function processDueNotifications(db: Db, now: Date, transport: Push
     ] as const
     for (const [category, start] of windows) {
       if (now.getTime() >= start && now.getTime() <= start + 30 * MINUTE) {
-        due.push({ category, eventKey: `${category}:match:${match.id}`, data: matchData(match) })
+        due.push({ category, eventKey: `${category}:match:${match.id}`, data: matchData(match), matchId: match.id })
       }
     }
   }
@@ -167,8 +172,12 @@ export async function processDueNotifications(db: Db, now: Date, transport: Push
   if (due.length) {
     const activeMembers = await db.select({ id: users.id, locale: users.locale }).from(users)
       .where(eq(users.status, 'active'))
-    for (const { category, eventKey, data } of due) {
+    for (const { category, eventKey, data, matchId } of due) {
+      const answered = matchId !== undefined && ASKS_FOR_ANSWER.has(category)
+        ? await answeredMemberIds(db, matchId)
+        : null
       for (const member of activeMembers) {
+        if (answered?.has(member.id)) continue
         const payload = buildNotification(category, member.locale, data)
         if (await sendMemberNotification(db, { memberId: member.id, category, eventKey, payload, now }, transport)) sent++
       }
