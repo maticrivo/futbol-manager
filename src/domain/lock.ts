@@ -92,7 +92,8 @@ export async function adminAddEntry(
     const confirmed = { kind: 'member', status: 'confirmed', updatedAt: now } as const
     let entryId: number
     if (existing) {
-      await tx.update(entries).set({ ...confirmed, attended: null, offeredAt: null, offerExpiresAt: null })
+      // As in signup: a reused row is listed by when the member was added back.
+      await tx.update(entries).set({ ...confirmed, attended: null, offeredAt: null, offerExpiresAt: null, createdAt: now })
         .where(eq(entries.id, existing.id))
       entryId = existing.id
     } else {

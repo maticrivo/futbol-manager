@@ -3,6 +3,7 @@ import type { Db, Executor, Tx } from '@/db'
 import { entries, matches } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import type { Match } from './matches'
+import { responseOf } from './responses'
 
 export type Entry = typeof entries.$inferSelect
 export type EntryView = Entry & { memberName: string | null; memberNickname: string | null; memberImage: string | null }
@@ -84,8 +85,9 @@ export async function signup(
     if (await remainingSpots(tx, match) <= 0) return err('FULL')
 
     if (existing) {
+      // Rejoining lists the member by when they last joined, not their first attempt.
       await tx.update(entries)
-        .set({ status: 'confirmed', offeredAt: null, offerExpiresAt: null, updatedAt: now })
+        .set({ status: 'confirmed', offeredAt: null, offerExpiresAt: null, createdAt: now, updatedAt: now })
         .where(eq(entries.id, existing.id))
       return ok(await readEntry(tx, existing.id))
     }
@@ -115,6 +117,63 @@ export async function withdraw(
     const { offerNext } = await import('./queue')
     await offerNext(db, match.id, now, tx)
     return ok(await readEntry(tx, entryId))
+  })
+}
+
+type AnswerInput = { memberId: string; matchId: number; now: Date }
+type AnswerClosed = 'MATCH_CANCELLED' | 'MATCH_LOCKED' | 'NOT_OPEN'
+
+/** Answers "No voy". A held spot or offer passes to the queue, as a withdrawal does. */
+export async function decline(
+  db: Db,
+  { memberId, matchId, now }: AnswerInput,
+): Promise<Result<Entry, AnswerClosed>> {
+  return db.transaction(async tx => {
+    const match = await lockMatch(tx, matchId)
+    if (match?.status === 'cancelled') return err('MATCH_CANCELLED')
+    if (!match || isLocked(match, now)) return err('MATCH_LOCKED')
+    if (now < match.signupOpensAt) return err('NOT_OPEN')
+
+    const [existing] = await tx.select().from(entries)
+      .where(and(eq(entries.matchId, match.id), eq(entries.memberId, memberId))).for('update')
+    if (existing?.status === 'declined') return ok(existing)
+
+    const declined = { status: 'declined', offeredAt: null, offerExpiresAt: null, updatedAt: now } as const
+    if (!existing) {
+      const [inserted] = await tx.insert(entries)
+        .values({ matchId, memberId, kind: 'member', ...declined, createdAt: now })
+        .returning({ id: entries.id })
+      return ok(await readEntry(tx, inserted.id))
+    }
+
+    await tx.update(entries).set(declined).where(eq(entries.id, existing.id))
+    if (existing.status === 'confirmed' || existing.status === 'offered') {
+      const { offerNext } = await import('./queue')
+      await offerNext(db, match.id, now, tx)
+    }
+    return ok(await readEntry(tx, existing.id))
+  })
+}
+
+/** Takes back a "No voy", leaving the member undecided. Returns null when there is nothing to clear. */
+export async function clearDecline(
+  db: Db,
+  { memberId, matchId, now }: AnswerInput,
+): Promise<Result<Entry | null, 'NOT_DECLINED' | AnswerClosed>> {
+  return db.transaction(async tx => {
+    const match = await lockMatch(tx, matchId)
+    if (match?.status === 'cancelled') return err('MATCH_CANCELLED')
+    if (!match || isLocked(match, now)) return err('MATCH_LOCKED')
+    if (now < match.signupOpensAt) return err('NOT_OPEN')
+
+    const [existing] = await tx.select().from(entries)
+      .where(and(eq(entries.matchId, match.id), eq(entries.memberId, memberId))).for('update')
+    if (!existing) return ok(null)
+    if (responseOf(existing.status) === 'going') return err('NOT_DECLINED')
+    if (existing.status !== 'declined') return ok(existing)
+
+    await tx.update(entries).set({ status: 'withdrawn', updatedAt: now }).where(eq(entries.id, existing.id))
+    return ok(await readEntry(tx, existing.id))
   })
 }
 
