@@ -77,13 +77,13 @@ async function scenario({ full = false, declined = true } = {}) {
   return { match, admin, viewer }
 }
 
-it('shows who is not going to everyone, but who has not answered only to admins', async () => {
+it('shows who is not going and who has not answered to every member', async () => {
   const { admin, viewer } = await scenario()
 
   const asMember = await render(viewer)
   expect(asMember).toContain('Diego Declined')
-  expect(asMember).not.toContain('Nadia Unanswered')
-  expect(asMember).not.toMatch(/>unanswered</)
+  expect(asMember).toContain('Nadia Unanswered')
+  expect(asMember).toMatch(/>unanswered</)
 
   const asAdmin = await render(admin)
   expect(asAdmin).toContain('Diego Declined')

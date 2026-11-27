@@ -52,10 +52,12 @@ one locks; an admin can edit it or cancel a week (holiday).
 - A member may withdraw until the lock. Withdrawing frees the spot and
   starts the queue.
 - While signups are open, a member can answer **No voy** (not going) for the
-  match, or go back to undecided ("Not sure yet"). Being on the roster or
-  the queue counts as **Voy**. No voy from the roster or an offer frees the
-  spot exactly like a withdrawal. A member who joins the roster again is
-  listed by when they rejoined.
+  match, or take it back ("Not sure yet"). Being on the roster or the queue
+  counts as **Voy**. Withdrawing or leaving the queue leaves the member
+  undecided; No voy on a queue offer passes the spot on. A member who joins
+  the roster again is listed by when they rejoined.
+- Every member can see who said No voy and, while signups are open, who has
+  not answered yet.
 - After Monday 14:00, freed spots still go to the queue first; only when the
   queue is empty does a spot open publicly to members and guests.
 - Before Monday 14:00, a queue-empty freed spot returns to the members-only

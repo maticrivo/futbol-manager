@@ -27,9 +27,12 @@ export function responseOf(status: Entry['status'] | null): MatchResponse {
 export const ANSWERED_STATUSES = entries.status.enumValues
   .filter(status => responseOf(status) !== 'unanswered')
 
-/** Who may see the members who have not answered yet. The single place to widen it. */
+/**
+ * Who may see the members who have not answered yet: everyone, as agreed for the group.
+ * The single place to narrow it again (it was admins only at first).
+ */
 export function canSeeUnanswered(viewer: { role: Member['role'] }): boolean {
-  return viewer.role === 'admin'
+  return viewer.role === 'admin' || viewer.role === 'member'
 }
 
 export type ResponseMember = { id: string; name: string; nickname: string | null; image: string | null }
