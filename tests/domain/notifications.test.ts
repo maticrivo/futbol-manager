@@ -2,7 +2,7 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { entries, matches, users, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
 import { createMatchForDate, openSignupsNow } from '@/domain/matches'
-import { createMember } from '@/domain/members'
+import { createMember, type Member } from '@/domain/members'
 import {
   buildNotification,
   deletePushSubscription,
@@ -330,38 +330,69 @@ it('scans bill_ready within 30 minutes of Jerusalem 09:00 on the first for the p
 })
 
 async function answeringMembers(matchId: number) {
-  const made = {
-    unanswered: (await createMember(testDb, { name: 'Unanswered' })).member,
-    declined: (await createMember(testDb, { name: 'Declined' })).member,
-    confirmed: (await createMember(testDb, { name: 'Confirmed' })).member,
-    queued: (await createMember(testDb, { name: 'Queued' })).member,
+  const names = ['unanswered', 'withdrawn', 'expired', 'removed', 'declined', 'confirmed', 'queued', 'offered'] as const
+  const made = {} as Record<(typeof names)[number], Member>
+  for (const name of names) made[name] = (await createMember(testDb, { name })).member
+  const offerUntil = new Date('2027-03-30T10:45:00.000Z') // a live offer, so the offer push is also due
+  for (const status of ['withdrawn', 'expired', 'removed', 'declined', 'confirmed', 'queued', 'offered'] as const) {
+    await testDb.insert(entries).values({
+      matchId, kind: 'member', memberId: made[status].id, status,
+      ...(status === 'offered' ? { offeredAt: new Date('2027-03-26T06:00:00.000Z'), offerExpiresAt: offerUntil } : {}),
+    })
   }
-  await testDb.insert(entries).values([
-    { matchId, kind: 'member', memberId: made.declined.id, status: 'declined' },
-    { matchId, kind: 'member', memberId: made.confirmed.id, status: 'confirmed' },
-    { matchId, kind: 'member', memberId: made.queued.id, status: 'queued' },
-  ])
   for (const member of Object.values(made)) {
     await savePushSubscription(testDb, { ...subscription, memberId: member.id, endpoint: `https://push/${member.id}` })
   }
   return made
 }
 
+const undecided = ['unanswered', 'withdrawn', 'expired', 'removed'] as const
+const everyone = [...undecided, 'declined', 'confirmed', 'queued', 'offered'] as const
+
 it.each([
-  ['signup_open', '2027-03-26T06:00:00.000Z', ['unanswered']],
-  ['guest_phase', '2027-03-29T11:00:00.000Z', ['unanswered', 'declined', 'confirmed', 'queued']],
-  ['lock_reminder', '2027-03-30T09:30:00.000Z', ['unanswered']],
+  ['signup_open', '2027-03-26T06:00:00.000Z', undecided],
+  ['guest_phase', '2027-03-29T11:00:00.000Z', everyone],
+  ['lock_reminder', '2027-03-30T09:30:00.000Z', undecided],
 ] as const)('sends %s only to its audience and logs only those members', async (category, at, audience) => {
   const match = await matchFixture()
   const made = await answeringMembers(match.id)
   const transport = transportOk()
+  const { title } = buildNotification(category, 'en', { matchDate: '2027-03-30', venue: match.venue, url: '/' })
 
-  expect(await processDueNotifications(testDb, new Date(at), transport)).toEqual({ sent: audience.length })
+  await processDueNotifications(testDb, new Date(at), transport)
   const expected = audience.map(key => made[key].id).sort()
-  expect(transport.mock.calls.map(([sub]) => sub.memberId).sort()).toEqual(expected)
-  const logs = await testDb.select().from(notificationLog)
-  expect(logs.map(row => row.memberId).sort()).toEqual(expected)
-  expect(new Set(logs.map(row => row.eventKey))).toEqual(new Set([`${category}:match:${match.id}`]))
+  const pushed = transport.mock.calls.filter(([, payload]) => payload.title === title).map(([sub]) => sub.memberId)
+  expect(pushed.sort()).toEqual(expected)
+  const logged = (await testDb.select().from(notificationLog))
+    .filter(row => row.eventKey === `${category}:match:${match.id}`).map(row => row.memberId)
+  expect(logged.sort()).toEqual(expected)
+})
+
+it('reminds about each match by the answer for that match only', async () => {
+  const thisWeek = await matchFixture()
+  const nextWeek = await createMatchForDate(testDb, '2027-04-06')
+  const { member: outNextWeek } = await createMember(testDb, { name: 'Out next week' })
+  const { member: outThisWeek } = await createMember(testDb, { name: 'Out this week' })
+  await testDb.insert(entries).values([
+    { matchId: nextWeek.id, kind: 'member', memberId: outNextWeek.id, status: 'declined' },
+    { matchId: thisWeek.id, kind: 'member', memberId: outThisWeek.id, status: 'declined' },
+  ])
+  for (const member of [outNextWeek, outThisWeek]) {
+    await savePushSubscription(testDb, { ...subscription, memberId: member.id, endpoint: `https://push/${member.id}` })
+  }
+  const transport = transportOk()
+
+  expect(await processDueNotifications(testDb, new Date('2027-03-30T09:30:00.000Z'), transport)).toEqual({ sent: 1 })
+  expect(transport).toHaveBeenCalledWith(expect.objectContaining({ memberId: outNextWeek.id }), expect.anything())
+})
+
+it('still sends the monthly bill to a member who said No voy', async () => {
+  const match = await matchFixture()
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await testDb.insert(entries).values({ matchId: match.id, kind: 'member', memberId: member.id, status: 'declined' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+
+  expect(await processDueNotifications(testDb, new Date('2027-04-01T06:00:00.000Z'), transportOk())).toEqual({ sent: 1 })
 })
 
 it('reminds a member who goes back to undecided later in the lock-reminder window', async () => {
@@ -369,7 +400,8 @@ it('reminds a member who goes back to undecided later in the lock-reminder windo
   const made = await answeringMembers(match.id)
   const transport = transportOk()
 
-  expect(await processDueNotifications(testDb, new Date('2027-03-30T09:30:00.000Z'), transport)).toEqual({ sent: 1 })
+  await processDueNotifications(testDb, new Date('2027-03-30T09:30:00.000Z'), transport)
+  expect(transport.mock.calls.map(([sub]) => sub.memberId)).not.toContain(made.declined.id)
   const cleared = await clearDecline(testDb, { memberId: made.declined.id, matchId: match.id, now: new Date('2027-03-30T09:35:00.000Z') })
   expect(cleared.ok).toBe(true)
   expect(await processDueNotifications(testDb, new Date('2027-03-30T09:40:00.000Z'), transport)).toEqual({ sent: 1 })
