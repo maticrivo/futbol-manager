@@ -2,7 +2,7 @@ import React from 'react'
 import { cn } from '@/lib/cn'
 
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'dangerOutline' | 'dangerGhost'
   size?: 'sm' | 'md' | 'lg' | 'icon'
   isLoading?: boolean
   leftIcon?: React.ReactNode
@@ -39,6 +39,12 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         'text-ink hover:bg-surface-muted active:scale-[0.98]',
       danger:
         'bg-danger text-white hover:opacity-90 shadow-sm active:scale-[0.98]',
+      // Own variants rather than danger classes on top of outline/ghost: `cn` does not
+      // resolve conflicting utilities, so `text-ink` would win over `text-danger`.
+      dangerOutline:
+        'border border-danger/30 bg-surface text-danger hover:bg-danger-soft active:scale-[0.98]',
+      dangerGhost:
+        'text-danger hover:bg-danger-soft active:scale-[0.98]',
     }
 
     const sizes = {

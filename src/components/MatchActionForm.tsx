@@ -64,7 +64,7 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
       <form action={formAction}>
         <input type="hidden" name="matchId" value={matchId} />
         {entryId !== undefined && <input type="hidden" name="entryId" value={entryId} />}
-        <Button type="submit" variant="ghost" size="sm" className="text-danger hover:bg-danger-soft">
+        <Button type="submit" variant="dangerGhost" size="sm">
           {t(labels[intent])}
         </Button>
         <ActionError code={state?.ok === false ? state.code : null} />
@@ -90,9 +90,9 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
       )}
       <Button
         type="submit"
-        variant={isDanger ? 'outline' : isQuiet ? 'ghost' : isPrimary ? 'primary' : 'secondary'}
+        variant={isDanger ? 'dangerOutline' : isQuiet ? 'ghost' : isPrimary ? 'primary' : 'secondary'}
         size="md"
-        className={isDanger ? 'border-danger/30 text-danger hover:bg-danger-soft w-full sm:w-auto' : 'w-full sm:w-auto'}
+        className="w-full sm:w-auto"
       >
         {t(labels[intent])}
       </Button>
