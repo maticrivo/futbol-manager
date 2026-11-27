@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build:vercel": "if [ \"$VERCEL_ENV\" = \"production\" ]; then npm run db:migrate; fi",
+    "postbuild:vercel": "npm run build",
     "start": "next start",
     "lint": "eslint",
     "test": "vitest run",
