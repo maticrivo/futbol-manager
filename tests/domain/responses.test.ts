@@ -30,9 +30,9 @@ it('maps every entry status to a response', () => {
   expect(new Set(ANSWERED_STATUSES)).toEqual(new Set(['confirmed', 'queued', 'offered', 'declined']))
 })
 
-it('lets only admins see who has not answered', () => {
+it('lets every member see who has not answered', () => {
   expect(canSeeUnanswered(admin)).toBe(true)
-  expect(canSeeUnanswered(member)).toBe(false)
+  expect(canSeeUnanswered(member)).toBe(true)
 })
 
 async function scenario() {
@@ -78,11 +78,11 @@ it('lists not-going and unanswered active members, sorted by name', async () => 
   })
 })
 
-it('hides the unanswered list from members and outside the answering phases', async () => {
+it('shows the unanswered list to members, but only while answers are open', async () => {
   const { match } = await scenario()
   const at = (now: Date, viewer = admin) => listMatchResponses(testDb, { matchId: match.id, viewer, now })
 
-  expect((await at(open, member)).unanswered).toBeNull()
+  expect((await at(open, member)).unanswered?.map(m => m.name)).toEqual(['Ana', 'beto', 'Carla', 'dani'])
   expect((await at(open, member)).notGoing.map(m => m.name)).toEqual(['eli', 'Zoe'])
   expect((await at(new Date('2027-03-29T12:00:00Z'))).unanswered).not.toBeNull() // guest phase
   expect((await at(new Date('2027-03-26T05:59:00Z'))).unanswered).toBeNull() // before signups open
