@@ -170,7 +170,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
 
       <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} disabled={finished} />
 
-      <ResponsesPanel {...responses} />
+      <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
 
       <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
 

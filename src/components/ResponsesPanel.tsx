@@ -19,9 +19,15 @@ function MemberList({ members, empty }: { members: ResponseMember[]; empty: stri
   )
 }
 
-/** Renders whichever response lists it is given; who may see them is decided by `listMatchResponses`. */
-export default async function ResponsesPanel({ notGoing, unanswered }: MatchResponses) {
-  if (notGoing.length === 0 && unanswered === null) return null
+/**
+ * Renders whichever response lists it is given; who may see them is decided by `listMatchResponses`.
+ * Like the waiting-list card, it stays visible with an empty state while answers are open
+ * (`showEmpty`) and otherwise appears only when there is someone to list.
+ */
+export default async function ResponsesPanel({
+  notGoing, unanswered, showEmpty,
+}: MatchResponses & { showEmpty: boolean }) {
+  if (notGoing.length === 0 && unanswered === null && !showEmpty) return null
   const t = await getTranslations('responses')
 
   const sections = [

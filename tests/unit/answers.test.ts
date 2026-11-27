@@ -33,12 +33,12 @@ const declined = { myResponse: 'not_going' } as const
 
 it.each([
   ['unanswered with spots', unanswered, ['signup', 'decline'], 'unanswered'],
-  ['unanswered and full (join lives in the waiting-list card)', { spotsLeft: 0 }, ['decline'], 'unanswered'],
+  ['unanswered and full', { spotsLeft: 0 }, ['join', 'decline'], 'unanswered'],
   ['confirmed', confirmed, ['decline', 'withdraw'], 'going'],
   ['queued (actions live in the waiting-list card)', queued, [], 'queued'],
-  ['offered (actions live in the offer card)', offered, [], 'queued'],
+  ['offered (the offer card carries the status and actions)', offered, [], null],
   ['declined with spots', declined, ['signup', 'undecided'], 'notGoing'],
-  ['declined and full', { ...declined, spotsLeft: 0 }, ['undecided'], 'notGoing'],
+  ['declined and full', { ...declined, spotsLeft: 0 }, ['join', 'undecided'], 'notGoing'],
 ] as const)('answer area while signups are open: %s', (_, state, actions, chip) => {
   for (const phase of ['open', 'guest'] as const) {
     expect(answerActions(view({ ...state, phase }))).toEqual(actions)

@@ -60,9 +60,10 @@ export default async function Home() {
           kickoffLabel={t('countdown.kickoff')}
         />
       )}
-      {actions.length > 0 && (
+      {actions.some(intent => intent !== 'join') && (
         <div className="hidden md:flex flex-wrap items-start gap-3">
-          <AnswerActions actions={actions} matchId={match.id} entryId={myEntry?.id} prefix="desktop" />
+          {/* On desktop the waiting-list card beside it already holds Join. */}
+          <AnswerActions actions={actions.filter(intent => intent !== 'join')} matchId={match.id} entryId={myEntry?.id} prefix="desktop" />
         </div>
       )}
       <RosterList roster={roster} matchId={match.id} myEntryId={myEntry?.id ?? null} memberId={member.id} asAdmin={member.role === 'admin'} phase={phase} />
@@ -76,7 +77,7 @@ export default async function Home() {
         myQueueEntry={myQueueEntry}
         myOffer={myOffer}
       />
-      <ResponsesPanel {...responses} />
+      <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
       {phase === 'guest' && <GuestForm matchId={match.id} />}
       <MobileActionBar
         actions={actions}

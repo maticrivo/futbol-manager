@@ -58,13 +58,15 @@ function intents(html: string) {
   return [...html.matchAll(/data-intent="([a-zA-Z]+)"/g)].map(([, intent]) => intent)
 }
 
-async function scenario({ full = false } = {}) {
+async function scenario({ full = false, declined = true } = {}) {
   const match = await createMatchForDate(testDb, '2027-03-30')
   const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
   const viewer = (await createMember(testDb, { name: 'Viewer' })).member
   await createMember(testDb, { name: 'Nadia Unanswered' })
   const out = (await createMember(testDb, { name: 'Diego Declined' })).member
-  await testDb.insert(entries).values({ matchId: match.id, memberId: out.id, kind: 'member', status: 'declined' })
+  if (declined) {
+    await testDb.insert(entries).values({ matchId: match.id, memberId: out.id, kind: 'member', status: 'declined' })
+  }
   if (full) {
     const players = await testDb.insert(users)
       .values(Array.from({ length: 14 }, (_, i) => ({ name: `Player ${i}`, status: 'active' as const }))).returning()
@@ -81,23 +83,33 @@ it('shows who is not going to everyone, but who has not answered only to admins'
   const asMember = await render(viewer)
   expect(asMember).toContain('Diego Declined')
   expect(asMember).not.toContain('Nadia Unanswered')
-  expect(asMember).not.toContain('responses.unanswered')
+  expect(asMember).not.toMatch(/>unanswered</)
 
   const asAdmin = await render(admin)
   expect(asAdmin).toContain('Diego Declined')
   expect(asAdmin).toContain('Nadia Unanswered')
+  expect(asAdmin).toMatch(/>unanswered</)
 })
 
-// Document order: desktop answer actions, then the waiting-list card, then the mobile bar,
-// which repeats the answer actions in the same order.
+it('shows the empty not-going list while answers are open, and hides it before', async () => {
+  const { viewer } = await scenario({ declined: false })
+  expect(await render(viewer)).toMatch(/>notGoingEmpty</)
+
+  vi.setSystemTime(new Date('2027-03-26T05:00:00Z')) // before signups open
+  expect(await render(viewer)).not.toMatch(/>notGoing</)
+})
+
+// Document order: desktop answer actions, then the waiting-list card, then the mobile bar.
+// The mobile bar repeats the answer actions; on desktop, Join stays only in the waiting-list card.
 it.each([
-  ['unanswered', undefined, false, ['signup', 'decline'], []],
-  ['confirmed', 'confirmed', false, ['decline', 'withdraw'], []],
-  ['declined', 'declined', false, ['signup', 'undecided'], []],
-  ['unanswered on a full match', undefined, true, ['decline'], ['join']],
-  ['queued', 'queued', true, [], ['decline', 'leave']],
-  ['offered', 'offered', true, [], ['claim', 'decline']],
-] as const)('offers the right answers to a %s member', async (_, status, full, answer, queue) => {
+  ['unanswered', undefined, false, ['signup', 'decline'], [], ['signup', 'decline']],
+  ['confirmed', 'confirmed', false, ['decline', 'withdraw'], [], ['decline', 'withdraw']],
+  ['declined', 'declined', false, ['signup', 'undecided'], [], ['signup', 'undecided']],
+  ['unanswered on a full match', undefined, true, ['decline'], ['join'], ['join', 'decline']],
+  ['declined on a full match', 'declined', true, ['undecided'], ['join'], ['join', 'undecided']],
+  ['queued', 'queued', true, [], ['decline', 'leave'], []],
+  ['offered', 'offered', true, [], ['claim', 'decline'], []],
+] as const)('offers the right answers to a %s member', async (_, status, full, desktop, queue, mobile) => {
   const { match, viewer } = await scenario({ full })
   if (status) {
     await testDb.insert(entries).values({
@@ -105,5 +117,5 @@ it.each([
       ...(status === 'offered' ? { offeredAt: open, offerExpiresAt: new Date(open.getTime() + 30 * 60_000) } : {}),
     })
   }
-  expect(intents(await render(viewer))).toEqual([...answer, ...queue, ...answer])
+  expect(intents(await render(viewer))).toEqual([...desktop, ...queue, ...mobile])
 })

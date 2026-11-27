@@ -1,7 +1,7 @@
 import type { MatchView } from '@/domain/matchView'
 
 /** Actions in the member's answer area (desktop actions and the mobile action bar), primary first. */
-export type AnswerAction = 'signup' | 'decline' | 'withdraw' | 'undecided'
+export type AnswerAction = 'signup' | 'join' | 'decline' | 'withdraw' | 'undecided'
 
 /** The member's own answer, shown as a chip on the match card. */
 export type ResponseChip = 'unanswered' | 'going' | 'queued' | 'notGoing'
@@ -19,13 +19,16 @@ export function answerActions(view: AnswerView): AnswerAction[] {
   // Queued members and offers answer from the waiting-list card.
   if (view.myQueueEntry || view.myOffer) return []
   if (view.myEntry) return ['decline', 'withdraw']
-  const signup: AnswerAction[] = view.spotsLeft > 0 ? ['signup'] : []
-  return view.myResponse === 'not_going' ? [...signup, 'undecided'] : [...signup, 'decline']
+  // The primary "voy" is Sign up while there is room and Join the waiting list once full.
+  const voy: AnswerAction = view.spotsLeft > 0 ? 'signup' : 'join'
+  return view.myResponse === 'not_going' ? [voy, 'undecided'] : [voy, 'decline']
 }
 
 export function responseChip(view: AnswerView): ResponseChip | null {
   if (!takesAnswers(view.phase)) return null
-  if (view.myQueueEntry || view.myOffer) return 'queued'
+  // The offer card already says the spot is reserved for them.
+  if (view.myOffer) return null
+  if (view.myQueueEntry) return 'queued'
   if (view.myEntry) return 'going'
   return view.myResponse === 'not_going' ? 'notGoing' : 'unanswered'
 }
