@@ -3,7 +3,8 @@
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  addGuestAction, claimOfferAction, joinQueueAction, leaveQueueAction, removeGuestAction, signupAction, withdrawAction,
+  addGuestAction, claimOfferAction, clearDeclineAction, declineAction, joinQueueAction, leaveQueueAction, removeGuestAction,
+  signupAction, withdrawAction,
 } from '@/app/actions/match'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
@@ -12,6 +13,8 @@ import { InlineMessage } from './ui/InlineMessage'
 const actions = {
   signup: signupAction,
   withdraw: withdrawAction,
+  decline: declineAction,
+  undecided: clearDeclineAction,
   join: joinQueueAction,
   leave: leaveQueueAction,
   claim: claimOfferAction,
@@ -21,7 +24,9 @@ const actions = {
 
 const labels = {
   signup: 'match.signup',
-  withdraw: 'match.withdraw',
+  withdraw: 'match.notSure',
+  decline: 'match.decline',
+  undecided: 'match.notSure',
   join: 'queue.join',
   leave: 'queue.leave',
   claim: 'queue.claim',
@@ -31,7 +36,7 @@ const labels = {
 
 type FormProps = { matchId: number } & (
   | { intent: 'withdraw' | 'claim' | 'removeGuest'; entryId: number }
-  | { intent: 'signup' | 'join' | 'leave' | 'addGuest'; entryId?: never }
+  | { intent: 'signup' | 'join' | 'leave' | 'addGuest' | 'decline' | 'undecided'; entryId?: never }
 )
 
 function ActionError({ code }: { code: string | null }) {
@@ -49,7 +54,9 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
   const [state, formAction] = useActionState(actions[intent], null)
 
   const isPrimary = intent === 'signup' || intent === 'claim'
-  const isDanger = intent === 'withdraw' || intent === 'leave' || intent === 'removeGuest'
+  const isDanger = intent === 'decline' || intent === 'leave' || intent === 'removeGuest'
+  // Going back to undecided is a quiet secondary choice.
+  const isQuiet = intent === 'withdraw' || intent === 'undecided'
 
   if (intent === 'removeGuest') {
     return (
@@ -82,7 +89,7 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
       )}
       <Button
         type="submit"
-        variant={isDanger ? 'outline' : isPrimary ? 'primary' : 'secondary'}
+        variant={isDanger ? 'outline' : isQuiet ? 'ghost' : isPrimary ? 'primary' : 'secondary'}
         size="md"
         className={isDanger ? 'border-danger/30 text-danger hover:bg-danger-soft w-full sm:w-auto' : 'w-full sm:w-auto'}
       >

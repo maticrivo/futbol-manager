@@ -102,13 +102,20 @@
       "played": "Partido jugado",
       "cancelled": "Partido cancelado"
     },
+    "response": {
+      "unanswered": "Sin responder",
+      "going": "Voy",
+      "queued": "En lista de espera",
+      "notGoing": "No voy"
+    },
     "roster": "Participantes",
     "rosterEmpty": "Aún no hay participantes confirmados.",
     "you": "(vos)",
     "guest": "(invitado)",
     "guestOf": "(Invitación de <bidi>{host}</bidi>)",
     "signup": "Anotarme",
-    "withdraw": "Cancelar mi inscripción",
+    "decline": "No voy",
+    "notSure": "Todavía no sé",
     "guests": "Invitados",
     "guestName": "Nombre de la persona invitada",
     "addGuest": "Agregar invitado",
@@ -143,6 +150,12 @@
     "offered": "Hay un lugar reservado para vos.",
     "claim": "Aceptar lugar",
     "expires": "La oferta vence: <bidi>{expiration}</bidi>"
+  },
+  "responses": {
+    "notGoing": "No van",
+    "notGoingEmpty": "Nadie avisó que no va.",
+    "unanswered": "Sin responder",
+    "unansweredEmpty": "Ya respondieron todos."
   },
   "bill": {
     "title": "Mi cuenta",
@@ -463,6 +476,7 @@
     "NOT_FOUND_DESC": "La página que buscás no existe o se movió.",
     "NOT_PENDING": "Solo se pueden vincular miembros pendientes.",
     "TARGET_NOT_ACTIVE": "Elegí un miembro activo.",
-    "SAME_MEMBER": "Elegí un miembro diferente."
+    "SAME_MEMBER": "Elegí un miembro diferente.",
+    "NOT_DECLINED": "Tu respuesta ya no es «No voy»."
   }
 }

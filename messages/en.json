@@ -102,13 +102,20 @@
       "played": "Match played",
       "cancelled": "Match cancelled"
     },
+    "response": {
+      "unanswered": "No answer yet",
+      "going": "Going",
+      "queued": "On the waiting list",
+      "notGoing": "Not going"
+    },
     "roster": "Roster",
     "rosterEmpty": "No confirmed players yet.",
     "you": "(you)",
     "guest": "(guest)",
     "guestOf": "(Guest of <bidi>{host}</bidi>)",
     "signup": "Sign up",
-    "withdraw": "Withdraw",
+    "decline": "Not going",
+    "notSure": "Not sure yet",
     "guests": "Guests",
     "guestName": "Guest name",
     "addGuest": "Add guest",
@@ -143,6 +150,12 @@
     "offered": "A spot is reserved for you.",
     "claim": "Claim spot",
     "expires": "Offer expires: <bidi>{expiration}</bidi>"
+  },
+  "responses": {
+    "notGoing": "Not going",
+    "notGoingEmpty": "Nobody has said they’re not going.",
+    "unanswered": "No answer yet",
+    "unansweredEmpty": "Everyone has answered."
   },
   "bill": {
     "title": "Your bill",
@@ -463,6 +476,7 @@
     "NOT_FOUND_DESC": "The page you are looking for does not exist or has been moved.",
     "NOT_PENDING": "Only pending members can be linked.",
     "TARGET_NOT_ACTIVE": "Choose an active member.",
-    "SAME_MEMBER": "Choose a different member."
+    "SAME_MEMBER": "Choose a different member.",
+    "NOT_DECLINED": "Your answer is no longer “Not going”."
   }
 }

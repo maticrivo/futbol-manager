@@ -4,6 +4,7 @@ import type { Db } from '@/db'
 import { entries, matches, users } from '@/db/schema'
 import type { Entry, EntryView } from './entries'
 import type { Match } from './matches'
+import { responseOf, type MatchResponse } from './responses'
 
 export type MatchPhase = 'before' | 'open' | 'guest' | 'locked' | 'played' | 'cancelled'
 export type MatchRosterEntry = EntryView & { hostName: string | null }
@@ -18,6 +19,7 @@ export type MatchView = {
   myEntry: Entry | null
   myQueueEntry: Entry | null
   myOffer: Entry | null
+  myResponse: MatchResponse
 }
 
 export function phaseAt(match: Match, now: Date): MatchPhase {
@@ -52,6 +54,10 @@ export async function getMatchView(
   const match = rows[0]?.match
   if (!match) throw new Error(`Match ${matchId} not found`)
 
+  // The roster query skips inactive rows, so read the viewer's own answer separately.
+  const [mine] = await db.select({ status: entries.status }).from(entries)
+    .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId)))
+
   const roster: MatchRosterEntry[] = []
   const queue: MatchRosterEntry[] = []
   let myEntry: Entry | null = null
@@ -80,6 +86,6 @@ export async function getMatchView(
 
   return {
     match, phase: phaseAt(match, now), spotsLeft: Math.max(0, match.capacity - roster.length - pendingOffers),
-    roster, queue, queuePosition, myEntry, myQueueEntry, myOffer,
+    roster, queue, queuePosition, myEntry, myQueueEntry, myOffer, myResponse: responseOf(mine?.status ?? null),
   }
 }

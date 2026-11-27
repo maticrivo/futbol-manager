@@ -102,13 +102,20 @@
       "played": "המשחק התקיים",
       "cancelled": "המשחק בוטל"
     },
+    "response": {
+      "unanswered": "עוד לא עניתי",
+      "going": "אגיע",
+      "queued": "ברשימת ההמתנה",
+      "notGoing": "לא אגיע"
+    },
     "roster": "רשימת משתתפים",
     "rosterEmpty": "עדיין אין משתתפים מאושרים.",
     "you": "(אני)",
     "guest": "(אורח)",
     "guestOf": "(בהזמנת <bidi>{host}</bidi>)",
     "signup": "הרשמה למשחק",
-    "withdraw": "ביטול ההרשמה",
+    "decline": "לא אגיע",
+    "notSure": "עוד לא החלטתי",
     "guests": "אורחים",
     "guestName": "שם האורח",
     "addGuest": "הוספת אורח",
@@ -143,6 +150,12 @@
     "offered": "מקום נשמר עבורך.",
     "claim": "אישור המקום",
     "expires": "המקום שמור עד: <bidi>{expiration}</bidi>"
+  },
+  "responses": {
+    "notGoing": "לא מגיעים",
+    "notGoingEmpty": "אין כרגע מי שלא מגיע.",
+    "unanswered": "טרם ענו",
+    "unansweredEmpty": "כולם ענו."
   },
   "bill": {
     "title": "החשבון שלי",
@@ -463,6 +476,7 @@
     "NOT_FOUND_DESC": "הדף שחיפשת אינו קיים או הועבר.",
     "NOT_PENDING": "ניתן לקשר רק חברים שממתינים לאישור.",
     "TARGET_NOT_ACTIVE": "יש לבחור חבר פעיל.",
-    "SAME_MEMBER": "יש לבחור חבר אחר."
+    "SAME_MEMBER": "יש לבחור חבר אחר.",
+    "NOT_DECLINED": "התשובה שלך כבר אינה \"לא אגיע\"."
   }
 }

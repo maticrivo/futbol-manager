@@ -11,8 +11,9 @@ import { resetDb, testDb } from '../db'
 beforeEach(resetDb)
 
 const open = new Date('2027-03-27T10:00:00Z') // Saturday, signups open
-const admin = { role: 'admin' as const }
-const member = { role: 'member' as const }
+type Viewer = { role: 'admin' | 'member' }
+const admin: Viewer = { role: 'admin' }
+const member: Viewer = { role: 'member' }
 
 it('maps every entry status to a response', () => {
   for (const status of entries.status.enumValues) {
