@@ -23,10 +23,11 @@ not answered. Admins can see who has not answered.
   withdrawal does today: the waiting list gets it first.
 - The signup-open and lock-reminder pushes go only to members who have not
   answered.
-- Every member sees a "Not going" list on the home page. Only admins see
-  the "No answer yet" list. Who may see it is one policy function, applied
-  inside the query, so it can be opened to everyone later by changing that
-  function alone.
+- Every member sees a "Not going" list and a "No answer yet" list on the
+  home page. (The "No answer yet" list was admins only at first; on
+  2026-11-27 the group decided everyone should see it.) Who may see it is
+  one policy function, applied inside the query, so it can be narrowed
+  again by changing that function alone.
 - No new way to be charged: answering No voy never creates a charge.
 
 ## Non-goals
@@ -115,8 +116,8 @@ Pending and disabled members are ignored.
 - `responseOf(status: Entry['status'] | null): MatchResponse`, a pure
   mapping implementing the table above. New code uses it rather than
   repeating status lists.
-- `canSeeUnanswered(viewer: { role })`, the visibility policy. Today it
-  returns `viewer.role === 'admin'`.
+- `canSeeUnanswered(viewer: { role })`, the visibility policy. It returns
+  true for both roles, `member` and `admin` (originally admins only).
 - `listMatchResponses(db, { matchId, viewer, now })` returns
   `{ notGoing, unanswered }`. Each is a list of active members with id,
   name, nickname and image, sorted like `listMembers` (by name, falling back
@@ -240,7 +241,7 @@ and `guest`:
   answers are open (`showEmpty` in `open` and `guest`), and otherwise
   appears only when there is someone to list.
 - Home page: at the bottom of the page, from `listMatchResponses` with the
-  current member as viewer. Admins therefore also see "No answer yet" here.
+  current member as viewer, so every member sees both lists here.
 - Admin match page (`/admin/matches/[id]`): the same panel, with the admin
   as viewer.
 
@@ -301,8 +302,8 @@ Automated (`npm test`; needs Postgres 17 and `TEST_DATABASE_URL` in
     as `prefs.test.ts` does, so a new status without a mapping fails);
   - `listMatchResponses` with active, pending and disabled members, each
     status and a guest row, checking membership and order;
-  - `unanswered` is `null` for a member viewer and in `before`, `locked`
-    and `cancelled`;
+  - `unanswered` is listed for both members and admins while answers are
+    open, and is `null` in `before`, `locked` and `cancelled`;
   - `canSeeUnanswered`.
 - `tests/domain/entries.test.ts`:
   - `decline` and `clearDecline` from every starting status in every phase,
@@ -326,15 +327,15 @@ Automated (`npm test`; needs Postgres 17 and `TEST_DATABASE_URL` in
 - `tests/domain/matchActions.test.ts`: both new actions, including a lock
   crossed during the action (fails with `MATCH_LOCKED` but still
   revalidates).
-- `tests/domain/homePage.test.tsx` (new), rendering `Home()` with
-  `renderToStaticMarkup` as `billPage.test.ts` does:
-  - an unanswered member's name is absent for a member viewer and present
-    for an admin;
-  - "Not going" names appear for both;
+- `tests/domain/homePage.test.tsx` (new), rendering `Home()` with mocks as
+  `billPage.test.ts` does, through `react-dom/static`'s `prerender`
+  (the page has async server components):
+  - an unanswered member's name and the "Not going" names appear for both a
+    member and an admin viewer;
   - the rendered action intents match the UI table for each state, with
     `MatchActionForm` stubbed.
-- The admin match page gets the same visibility check, rendered with the
-  mocks from `adminMatchActions.test.ts`.
+- The admin match page shows both lists, rendered with the mocks from
+  `adminMatchActions.test.ts`.
 - `npm run lint` and `npm run build`.
 
 Manual, on `npm run dev` with Google login and a phone-sized viewport in
