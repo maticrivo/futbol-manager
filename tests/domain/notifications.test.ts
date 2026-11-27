@@ -1,11 +1,13 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { entries, matches, users, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
+import { ensureBagDuty } from '@/domain/bag'
 import { createMatchForDate, openSignupsNow } from '@/domain/matches'
 import { createMember, type Member } from '@/domain/members'
 import {
   buildNotification,
   deletePushSubscription,
+  notifyBagDuty,
   notifyOffer,
   processDueNotifications,
   savePushSubscription,
@@ -22,6 +24,12 @@ const now = new Date('2027-03-28T12:00:00.000Z')
 const subscription = { endpoint: 'https://push/1', p256dh: 'k', auth: 'a' }
 const transportOk = () => vi.fn().mockResolvedValue({ statusCode: 201 })
 const matchFixture = () => createMatchForDate(testDb, '2027-03-30')
+
+async function subscribedMember(name: string) {
+  const { member } = await createMember(testDb, { name })
+  await savePushSubscription(testDb, { memberId: member.id, endpoint: `https://push/${member.id}`, p256dh: 'k', auth: 'a' })
+  return member
+}
 
 function lockReminder(memberId: string) {
   const payload = buildNotification('lock_reminder', 'en', { matchDate: '2027-03-30', url: '/match/1' })
@@ -432,4 +440,27 @@ it('pushes a second offer made on the same entry after the member passed and rej
   await leave(filler.id, at(5))
   expect(await processDueNotifications(testDb, at(5), transport)).toEqual({ sent: 1 })
   expect(transport).toHaveBeenCalledTimes(2)
+})
+
+it('notifies confirmed members once about the bag duty', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const [ana, beto] = await Promise.all(['Ana', 'Beto'].map(subscribedMember))
+  await subscribedMember('Caro') // subscribed, but not on the roster
+  for (const id of [ana.id, beto.id]) {
+    await signup(testDb, { memberId: id, matchId: match.id, now: new Date('2027-03-27T10:00:00Z') })
+  }
+  const at = new Date('2027-03-30T16:00:00Z')
+  const { duty } = await ensureBagDuty(testDb, { matchId: match.id, now: at, random: () => 0 })
+  const transport = transportOk()
+
+  const first = await notifyBagDuty(testDb, { match, duty: duty!, transport, now: at })
+  const second = await notifyBagDuty(testDb, { match, duty: duty!, transport, now: at })
+  expect(first).toBe(2)
+  expect(second).toBe(0)
+  expect(transport).toHaveBeenCalledTimes(2)
+})
+
+it('renders the backup-less copy without a dangling backup', () => {
+  const payload = buildNotification('bag_duty', 'es', { name: 'Ana', backup: '—', url: '/' })
+  expect(payload.body).toBe('Ana se lleva el bolso. Suplente: —.')
 })

@@ -6,6 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import AdminRoster from '@/components/AdminRoster'
 import AttendanceList from '@/components/AttendanceList'
+import BagDutyForm from '@/components/BagDutyForm'
 import CancelMatchForm from '@/components/CancelMatchForm'
 import CopyMessage from '@/components/CopyMessage'
 import DeleteMatchForm from '@/components/DeleteMatchForm'
@@ -21,6 +22,7 @@ import { listMembers } from '@/domain/members'
 import { getMatch } from '@/domain/matches'
 import { getMatchView } from '@/domain/matchView'
 import { listMatchResponses } from '@/domain/responses'
+import { bagTakerOptions } from '@/lib/bag-duty'
 import { requireAdmin } from '@/lib/auth'
 import { buildGroupMessage } from '@/lib/copy'
 import { requestOrigin } from '@/lib/request-origin'
@@ -57,7 +59,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
     getTranslations('match'),
   ])
 
-  const { match: current, phase, spotsLeft, roster } = view
+  const { match: current, phase, spotsLeft, roster, bagDuty } = view
   const finished = current.status === 'played' || current.status === 'cancelled'
   const locked = current.status === 'locked' || now >= current.lockAt
   const canOpenSignups = !locked && !finished && (phase === 'before' || now < current.signupOpensAt)
@@ -123,6 +125,8 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       })),
     }))
 
+  const canRecordBag = bagDuty !== null || (now >= current.kickoffAt && current.status !== 'cancelled')
+
   return (
     <div className="space-y-6">
 
@@ -173,6 +177,20 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
 
       <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
+
+      {canRecordBag && (
+        <BagDutyForm
+          matchId={current.id}
+          assigned={bagDuty?.assigned ?? null}
+          backup={bagDuty?.backup ?? null}
+          actual={bagDuty?.actual ?? null}
+          members={bagTakerOptions(
+            roster.filter(e => e.kind === 'member' && e.memberId).map(e => ({ id: e.memberId!, name: e.memberName ?? '' })),
+            bagDuty?.actual ?? null,
+          )}
+          disabled={current.status === 'cancelled' || now < current.kickoffAt}
+        />
+      )}
 
       <GuestPayments
         matchId={current.id}

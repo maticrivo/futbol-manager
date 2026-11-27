@@ -102,6 +102,21 @@ export const entries = pgTable('entries', {
   index('entries_match_id_status_idx').on(table.matchId, table.status),
 ])
 
+export const bagDuties = pgTable('bag_duties', {
+  id: integer('id').generatedAlwaysAsIdentity().primaryKey(),
+  matchId: integer('match_id').notNull().references(() => matches.id, { onDelete: 'cascade' }),
+  assignedMemberId: text('assigned_member_id').notNull().references(() => users.id),
+  backupMemberId: text('backup_member_id').references(() => users.id),
+  actualMemberId: text('actual_member_id').references(() => users.id),
+  assignedAt: timestamp('assigned_at', { withTimezone: true, precision: 3, mode: 'date' }).notNull(),
+  recordedBy: text('recorded_by').references(() => users.id),
+  recordedAt: timestamp('recorded_at', { withTimezone: true, precision: 3, mode: 'date' }),
+  createdAt: createdAt(),
+  updatedAt: updatedAt(),
+}, (table) => [
+  unique('bag_duties_match_id_unique').on(table.matchId),
+])
+
 export const chargeStatusEnum = pgEnum('charge_status', ['charged', 'waived'])
 
 export const charges = pgTable('charges', {
@@ -182,6 +197,7 @@ export const notificationCategoryEnum = pgEnum('notification_category', [
   'queue_offer',
   'bill_ready',
   'payment_reminder',
+  'bag_duty',
 ])
 
 export const notificationPrefs = pgTable('notification_prefs', {

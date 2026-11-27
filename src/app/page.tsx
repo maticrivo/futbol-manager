@@ -3,6 +3,7 @@ import { redirect } from 'next/navigation'
 import Countdown from '@/components/Countdown'
 import GuestForm from '@/components/GuestForm'
 import MatchCard from '@/components/MatchCard'
+import BagDutyPanel from '@/components/BagDutyPanel'
 import QueuePanel from '@/components/QueuePanel'
 import RosterList from '@/components/RosterList'
 import MobileActionBar from '@/components/MobileActionBar'
@@ -47,6 +48,7 @@ export default async function Home() {
   return (
     <main key={match.id} className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 pb-28 md:pb-8 text-start">
       <MatchCard match={match} phase={phase} spotsLeft={spotsLeft} response={responseChip(view)} />
+      {view.bagDuty && <BagDutyPanel duty={view.bagDuty} />}
       {phase !== 'played' && phase !== 'cancelled' && (
         <Countdown
           renderedAt={now.toISOString()}

@@ -29,4 +29,9 @@ export const notificationCopy = {
     en: { title: 'Payment reminder', body: 'Check the outstanding balance on your bill.' },
     es: { title: 'Recordatorio de pago', body: 'Consultá el saldo pendiente de tu cuenta.' },
   },
+  bag_duty: {
+    he: { title: 'התיק השבוע', body: '{{name}} לוקח את התיק. גיבוי: {{backup}}.' },
+    en: { title: 'The bag this week', body: '{{name}} takes the bag. Backup: {{backup}}.' },
+    es: { title: 'El bolso de esta semana', body: '{{name}} se lleva el bolso. Suplente: {{backup}}.' },
+  },
 }

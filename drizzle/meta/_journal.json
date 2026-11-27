@@ -15,6 +15,13 @@
       "when": 1795773369956,
       "tag": "0001_skinny_magma",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1795787045808,
+      "tag": "0002_sticky_peter_parker",
+      "breakpoints": true
     }
   ]
 }

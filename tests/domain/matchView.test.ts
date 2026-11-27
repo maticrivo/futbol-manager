@@ -1,7 +1,7 @@
 import { beforeEach, expect, it } from 'vitest'
 import { eq } from 'drizzle-orm'
 import { testDb, resetDb } from '../db'
-import { matches } from '@/db/schema'
+import { bagDuties, matches } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { createMember } from '@/domain/members'
 import { addGuest, decline, signup, withdraw } from '@/domain/entries'
@@ -97,6 +97,53 @@ it('reports the caller’s offer and counts it against the last available spot',
   expect(view.queuePosition).toBeNull()
   expect(view.roster).toHaveLength(13)
   expect(view.spotsLeft).toBe(0)
+})
+
+it('exposes the bag duty with display names', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const { member: ana } = await createMember(testDb, { name: 'Ana' })
+  const { member: beto } = await createMember(testDb, { name: 'Beto' })
+  const now = match.signupOpensAt
+  await signup(testDb, { memberId: ana.id, matchId: match.id, now })
+  await signup(testDb, { memberId: beto.id, matchId: match.id, now })
+  await testDb.insert(bagDuties).values({
+    matchId: match.id, assignedMemberId: ana.id, backupMemberId: beto.id,
+    actualMemberId: ana.id, assignedAt: new Date(),
+  })
+
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: ana.id, now })
+  expect(view.bagDuty).toEqual({
+    assigned: { memberId: ana.id, name: 'Ana', nickname: null },
+    backup: { memberId: beto.id, name: 'Beto', nickname: null },
+    actual: { memberId: ana.id, name: 'Ana', nickname: null },
+  })
+})
+
+it('has no bag duty before the draw', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  const now = match.signupOpensAt
+  await signup(testDb, { memberId: member.id, matchId: match.id, now })
+
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: member.id, now })
+  expect(view.bagDuty).toBeNull()
+})
+
+it('leaves the backup and actual unset when only the assigned member is drawn', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const { member: ana } = await createMember(testDb, { name: 'Ana', nickname: 'Anita' })
+  const now = match.signupOpensAt
+  await signup(testDb, { memberId: ana.id, matchId: match.id, now })
+  await testDb.insert(bagDuties).values({
+    matchId: match.id, assignedMemberId: ana.id, assignedAt: new Date(),
+  })
+
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: ana.id, now })
+  expect(view.bagDuty).toEqual({
+    assigned: { memberId: ana.id, name: 'Ana', nickname: 'Anita' },
+    backup: null,
+    actual: null,
+  })
 })
 
 it('rejects a nonexistent match', async () => {

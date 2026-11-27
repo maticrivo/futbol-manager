@@ -139,7 +139,14 @@
     "kickoff": "Kickoff",
     "venue": "Venue",
     "costLabel": "Cost",
-    "spotsLabel": "Availability"
+    "spotsLabel": "Availability",
+    "bag": {
+      "title": "The bag",
+      "assigned": "<name></name> takes the bag this week.",
+      "backup": "Backup: <name></name>",
+      "actual": "Took it: <name></name>",
+      "noBackup": "—"
+    }
   },
   "queue": {
     "title": "Waiting list",
@@ -191,11 +198,12 @@
       "lock_reminder": "Roster lock reminder",
       "queue_offer": "Waiting-list offer",
       "bill_ready": "Monthly bill ready",
-      "payment_reminder": "Payment reminder"
+      "payment_reminder": "Payment reminder",
+      "bag_duty": "Bag duty"
     },
     "push": {
       "title": "Push notifications",
-      "description": "Get notified on this device when sign-ups open and bills are ready.",
+      "description": "Get notified on this device when sign-ups open, when it is your turn to take the bag, and when bills are ready.",
       "loading": "Checking this device…",
       "insecure": "Notifications need a secure (HTTPS) connection. Open the app through its HTTPS address, then reload.",
       "unsupported": "This browser does not support push notifications.",
@@ -402,6 +410,20 @@
         "unset": "Not set",
         "disabled": "Attendance can no longer be changed for a cancelled match."
       },
+      "bag": {
+        "title": "Bag duty",
+        "assigned": "Assigned: {name}",
+        "backup": "Backup: {name}",
+        "actual": "Took it",
+        "none": "No one",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved.",
+        "waiting": "Available from kickoff.",
+        "offRoster": "no longer on roster",
+        "recordedLabel": "Recorded:",
+        "noDraw": "No draw ran for this match."
+      },
       "guests": {
         "title": "Guest payments",
         "empty": "No guests on this match.",
@@ -443,6 +465,8 @@
     "INVALID_REASON": "Enter a valid reason.",
     "INVALID_SETTING": "That value isn’t valid.",
     "MATCH_CANCELLED": "This match was cancelled.",
+    "TOO_EARLY": "Recording opens at kickoff.",
+    "NOT_IN_ROSTER": "That member isn’t confirmed for this match.",
     "NOT_FOUND": "The match or entry could not be found.",
     "NOT_OWNER": "You can’t change someone else’s entry.",
     "LOCKED": "The roster is locked.",

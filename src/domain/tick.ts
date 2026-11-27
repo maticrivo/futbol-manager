@@ -4,9 +4,11 @@ import type { Db } from '@/db'
 import { matches } from '@/db/schema'
 import type { PushTransport } from '@/lib/push'
 import { TZ } from '@/lib/time'
+import { ensureBagDuty, type BagDuty } from './bag'
 import { advanceMatch, lockMatch } from './lock'
 import { createMatchForDateIfAbsent, createNextMatch } from './matches'
-import { processDueNotifications } from './notifications'
+import type { Match } from './matches'
+import { notifyBagDuty, processDueNotifications } from './notifications'
 import { expireOffers } from './queue'
 
 export type TickCounts = {
@@ -14,6 +16,7 @@ export type TickCounts = {
   matchesCreated: number
   expiredOffers: number
   notificationsSent: number
+  bagDuties: number
 }
 
 function isDuplicateMatch(error: unknown): boolean {
@@ -33,6 +36,8 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
   let locked = 0
   let matchesCreated = 0
   let expiredOffers = 0
+  let notificationsSent = 0
+  let bagDuties = 0
 
   const active = await db
     .select()
@@ -80,7 +85,13 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
     }
   }
 
+  const pendingBagPushes: { match: Match; duty: BagDuty }[] = []
+
   for (const match of active) {
+    const draw = await ensureBagDuty(db, { matchId: match.id, now })
+    if (draw.created) bagDuties++
+    if (draw.duty) pendingBagPushes.push({ match, duty: draw.duty })
+
     let transitioned = false
     if (match.status === 'scheduled' && now >= match.lockAt) {
       const result = await lockMatch(db, match.id, now)
@@ -114,6 +125,18 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
     }
   }
 
+  // Pushes are best-effort: a failed delivery must not abort locking, the
+  // successor repair or the rest of the tick. Only announce inside the draw
+  // window, so a tick that first sees a match after kickoff stays quiet.
+  for (const { match, duty } of pendingBagPushes) {
+    if (now >= match.kickoffAt) continue
+    try {
+      notificationsSent += await notifyBagDuty(db, { match, duty, transport, now })
+    } catch (error) {
+      console.error('bag duty push failed', error)
+    }
+  }
+
   const { sent } = await processDueNotifications(db, now, transport)
-  return { locked, matchesCreated, expiredOffers, notificationsSent: sent }
+  return { locked, matchesCreated, expiredOffers, notificationsSent: notificationsSent + sent, bagDuties }
 }
