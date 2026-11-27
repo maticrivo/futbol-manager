@@ -4,9 +4,10 @@ import type { Db } from '@/db'
 import { matches } from '@/db/schema'
 import type { PushTransport } from '@/lib/push'
 import { TZ } from '@/lib/time'
+import { ensureBagDuty } from './bag'
 import { advanceMatch, lockMatch } from './lock'
 import { createMatchForDateIfAbsent, createNextMatch } from './matches'
-import { processDueNotifications } from './notifications'
+import { notifyBagDuty, processDueNotifications } from './notifications'
 import { expireOffers } from './queue'
 
 export type TickCounts = {
@@ -14,6 +15,7 @@ export type TickCounts = {
   matchesCreated: number
   expiredOffers: number
   notificationsSent: number
+  bagDuties: number
 }
 
 function isDuplicateMatch(error: unknown): boolean {
@@ -33,6 +35,8 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
   let locked = 0
   let matchesCreated = 0
   let expiredOffers = 0
+  let notificationsSent = 0
+  let bagDuties = 0
 
   const active = await db
     .select()
@@ -81,6 +85,10 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
   }
 
   for (const match of active) {
+    const draw = await ensureBagDuty(db, { matchId: match.id, now })
+    if (draw.created) bagDuties++
+    if (draw.duty) notificationsSent += await notifyBagDuty(db, { match, duty: draw.duty, transport, now })
+
     let transitioned = false
     if (match.status === 'scheduled' && now >= match.lockAt) {
       const result = await lockMatch(db, match.id, now)
@@ -115,5 +123,5 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
   }
 
   const { sent } = await processDueNotifications(db, now, transport)
-  return { locked, matchesCreated, expiredOffers, notificationsSent: sent }
+  return { locked, matchesCreated, expiredOffers, notificationsSent: notificationsSent + sent, bagDuties }
 }

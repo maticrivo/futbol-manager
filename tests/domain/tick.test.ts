@@ -1,6 +1,6 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
-import { charges, entries, matches, users, notificationPrefs } from '@/db/schema'
+import { bagDuties, charges, entries, matches, users, notificationPrefs } from '@/db/schema'
 import { signup } from '@/domain/entries'
 import { advanceMatch, lockMatch } from '@/domain/lock'
 import { createMatchForDate, getMatch } from '@/domain/matches'
@@ -40,6 +40,18 @@ async function subscribeThreeMembers(): Promise<void> {
       await testDb.insert(notificationPrefs).values({ memberId: id, category, enabled: true })
     }
   }
+}
+
+async function subscribeAndConfirm(matchId: number, n: number): Promise<string[]> {
+  const created = await testDb.insert(users)
+    .values(Array.from({ length: n }, (_, i) => ({ name: `Bag ${i}`, status: 'active' as const })))
+    .returning({ id: users.id })
+  for (const { id } of created) {
+    await savePushSubscription(testDb, { memberId: id, endpoint: `https://push/${id}`, p256dh: 'k', auth: 'a' })
+    const signed = await signup(testDb, { memberId: id, matchId, now: signupNow })
+    if (!signed.ok) throw new Error(signed.code)
+  }
+  return created.map(row => row.id)
 }
 
 it('locks once, creates the next match once and never double-charges', async () => {
@@ -240,4 +252,34 @@ it('expires an expired offer before lock and counts it once', async () => {
 
   expect(a.expiredOffers).toBe(1)
   expect(b.expiredOffers).toBe(0)
+})
+
+it('draws the bag duty once at kickoff minus one hour and notifies the roster', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30') // kickoff 20:00 Asia/Jerusalem
+  await subscribeAndConfirm(match.id, 3)
+
+  const before = await runTick(testDb, new Date('2027-03-30T15:59:00Z'), transport)
+  const at = await runTick(testDb, new Date('2027-03-30T16:00:00Z'), transport)
+  const again = await runTick(testDb, new Date('2027-03-30T16:10:00Z'), transport)
+
+  expect(before.bagDuties).toBe(0)
+  expect(at.bagDuties).toBe(1)
+  expect(at.notificationsSent).toBe(3)
+  expect(again.bagDuties).toBe(0)
+  expect(again.notificationsSent).toBe(0)
+  expect(await testDb.select().from(bagDuties)).toHaveLength(1)
+})
+
+it('draws lazily on page load and the tick still sends the push', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await subscribeAndConfirm(match.id, 3)
+  const at = new Date('2027-03-30T16:00:00Z')
+
+  await advanceMatch(testDb, match.id, at)
+  expect(await testDb.select().from(bagDuties)).toHaveLength(1)
+  expect(transport).not.toHaveBeenCalled()
+
+  const tick = await runTick(testDb, at, transport)
+  expect(tick.bagDuties).toBe(0)
+  expect(tick.notificationsSent).toBe(3)
 })

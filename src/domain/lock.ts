@@ -3,6 +3,7 @@ import type { Db, Tx } from '@/db'
 import { entries, matches, users } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
 import { writeAudit } from './audit'
+import { ensureBagDuty } from './bag'
 import { chargeAddedMember, createMatchCharges, isValidReason, lockAdminActor, waiveRemovedMember } from './charges'
 import { lockMatch as lockMatchRow, lockMatchForEntry, remainingSpots, type Entry } from './entries'
 import { getMatch, type Match } from './matches'
@@ -39,6 +40,11 @@ const playedDelay = 3 * 60 * 60_000
 export async function advanceMatch(db: Db, matchId: number, now: Date): Promise<void> {
   const match = await getMatch(db, matchId)
   if (!match) return
+
+  // Draw lazily from page loads and ticks alike; the tick sends the push.
+  if (match.status === 'scheduled' || match.status === 'locked') {
+    await ensureBagDuty(db, { matchId, now })
+  }
 
   if (match.status === 'scheduled') {
     if (now < match.lockAt) {
