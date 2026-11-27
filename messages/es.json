@@ -410,6 +410,17 @@
         "unset": "Sin definir",
         "disabled": "La asistencia ya no se puede cambiar en un partido cancelado."
       },
+      "bag": {
+        "title": "El bolso",
+        "assigned": "Asignado: {name}",
+        "backup": "Suplente: {name}",
+        "actual": "Lo llevó",
+        "none": "Nadie",
+        "save": "Guardar",
+        "saving": "Guardando…",
+        "saved": "Guardado.",
+        "waiting": "Disponible desde el inicio del partido."
+      },
       "guests": {
         "title": "Pagos de invitados",
         "empty": "No hay invitados en este partido.",
@@ -451,6 +462,8 @@
     "INVALID_REASON": "Indicá un motivo válido.",
     "INVALID_SETTING": "Ese valor no es válido.",
     "MATCH_CANCELLED": "El partido se canceló.",
+    "TOO_EARLY": "Se puede registrar desde el inicio del partido.",
+    "NOT_IN_ROSTER": "Ese miembro no está anotado a este partido.",
     "NOT_FOUND": "No se encontró el partido o la inscripción.",
     "NOT_OWNER": "No podés cambiar la inscripción de otra persona.",
     "LOCKED": "La lista ya está cerrada.",

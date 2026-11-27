@@ -6,6 +6,7 @@ import { and, eq, inArray } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import AdminRoster from '@/components/AdminRoster'
 import AttendanceList from '@/components/AttendanceList'
+import BagDutyForm from '@/components/BagDutyForm'
 import CancelMatchForm from '@/components/CancelMatchForm'
 import CopyMessage from '@/components/CopyMessage'
 import DeleteMatchForm from '@/components/DeleteMatchForm'
@@ -57,7 +58,7 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
     getTranslations('match'),
   ])
 
-  const { match: current, phase, spotsLeft, roster } = view
+  const { match: current, phase, spotsLeft, roster, bagDuty } = view
   const finished = current.status === 'played' || current.status === 'cancelled'
   const locked = current.status === 'locked' || now >= current.lockAt
   const canOpenSignups = !locked && !finished && (phase === 'before' || now < current.signupOpensAt)
@@ -173,6 +174,17 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
 
       <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
+
+      {bagDuty && (
+        <BagDutyForm
+          matchId={current.id}
+          assigned={bagDuty.assigned}
+          backup={bagDuty.backup}
+          actualMemberId={bagDuty.actual?.memberId ?? null}
+          members={roster.filter(e => e.kind === 'member' && e.memberId).map(e => ({ id: e.memberId!, name: e.memberName ?? '' }))}
+          disabled={current.status === 'cancelled' || now < current.kickoffAt}
+        />
+      )}
 
       <GuestPayments
         matchId={current.id}

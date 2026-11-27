@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { getDb } from '@/db'
 import { charges, entries, guestPayments, users } from '@/db/schema'
+import { recordBagTaker } from '@/domain/bag'
 import { cancelMatch, recordGuestPayment, recordPayment, refundGuestPayment, setMonthlyExpense } from '@/domain/billing'
 import { restoreCharge, waiveCharge } from '@/domain/charges'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, setAttendance } from '@/domain/lock'
@@ -14,7 +15,7 @@ import { sendPaymentReminder } from '@/domain/notifications'
 import {
   createMatchForDate, createNextMatch, deleteMatch, getLastUpcomingMatch, openSignupsNow, updateMatch, updateSettings, type Settings, type UpdateMatchPatch,
 } from '@/domain/matches'
-import { parseUserId, type ActionResult } from '@/lib/actions'
+import { parseUserId, toActionResult, type ActionResult } from '@/lib/actions'
 import { requireAdmin } from '@/lib/auth'
 import { defaultTransport } from '@/lib/push'
 import { TZ } from '@/lib/time'
@@ -500,6 +501,23 @@ export async function setAttendanceAction(_prev: ActionResult | null, formData: 
 
   revalidateMatch(matchId)
   return { ok: true }
+}
+
+export async function recordBagDutyAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  const admin = await requireAdmin()
+  const db = getDb()
+
+  const matchId = positiveId(formData.get('matchId'))
+  if (matchId === null) return { ok: false, code: 'NOT_FOUND' }
+
+  const rawMemberId = formData.get('memberId')
+  const memberId = typeof rawMemberId === 'string' && rawMemberId !== '' ? rawMemberId : null
+
+  const result = await recordBagTaker(db, { actorId: admin.id, matchId, memberId, now: new Date() })
+  if (!result.ok) return toActionResult(result)
+
+  revalidateMatch(matchId)
+  return toActionResult(result)
 }
 
 export async function recordGuestPaymentAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {

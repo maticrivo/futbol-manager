@@ -410,6 +410,17 @@
         "unset": "Not set",
         "disabled": "Attendance can no longer be changed for a cancelled match."
       },
+      "bag": {
+        "title": "Bag duty",
+        "assigned": "Assigned: {name}",
+        "backup": "Backup: {name}",
+        "actual": "Took it",
+        "none": "No one",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved.",
+        "waiting": "Available from kickoff."
+      },
       "guests": {
         "title": "Guest payments",
         "empty": "No guests on this match.",
@@ -451,6 +462,8 @@
     "INVALID_REASON": "Enter a valid reason.",
     "INVALID_SETTING": "That value isn’t valid.",
     "MATCH_CANCELLED": "This match was cancelled.",
+    "TOO_EARLY": "Recording opens at kickoff.",
+    "NOT_IN_ROSTER": "That member isn’t confirmed for this match.",
     "NOT_FOUND": "The match or entry could not be found.",
     "NOT_OWNER": "You can’t change someone else’s entry.",
     "LOCKED": "The roster is locked.",

@@ -1,6 +1,9 @@
 import { and, eq, isNotNull, lt, ne, sql } from 'drizzle-orm'
 import type { Db } from '@/db'
 import { bagDuties, entries, matches } from '@/db/schema'
+import { err, ok, type Result } from '@/lib/result'
+import { writeAudit } from './audit'
+import { lockAdminActor } from './charges'
 
 export type BagDuty = typeof bagDuties.$inferSelect
 
@@ -90,4 +93,48 @@ export async function ensureBagDuty(
 
   const [existing] = await db.select().from(bagDuties).where(eq(bagDuties.matchId, matchId))
   return existing ? { duty: existing, created: false } : { duty: null, created: false }
+}
+
+export async function recordBagTaker(
+  db: Db,
+  input: { actorId: string; matchId: number; memberId: string | null; now: Date },
+): Promise<Result<BagDuty, 'FORBIDDEN' | 'NOT_FOUND' | 'TOO_EARLY' | 'NOT_IN_ROSTER' | 'MATCH_CANCELLED'>> {
+  const { actorId, matchId, memberId, now } = input
+
+  return db.transaction(async tx => {
+    const [match] = await tx.select().from(matches).where(eq(matches.id, matchId)).for('update')
+    if (!await lockAdminActor(tx, actorId)) return err('FORBIDDEN')
+    if (!match) return err('NOT_FOUND')
+    if (match.status === 'cancelled') return err('MATCH_CANCELLED')
+    if (now.getTime() < match.kickoffAt.getTime()) return err('TOO_EARLY')
+
+    const [duty] = await tx.select().from(bagDuties).where(eq(bagDuties.matchId, matchId)).for('update')
+    if (!duty) return err('NOT_FOUND')
+
+    if (memberId !== null) {
+      const [entry] = await tx.select({ id: entries.id }).from(entries).where(and(
+        eq(entries.matchId, matchId),
+        eq(entries.status, 'confirmed'),
+        eq(entries.kind, 'member'),
+        eq(entries.memberId, memberId),
+      ))
+      if (!entry) return err('NOT_IN_ROSTER')
+    }
+
+    const [updated] = await tx.update(bagDuties)
+      .set({ actualMemberId: memberId, recordedBy: actorId, recordedAt: now, updatedAt: now })
+      .where(eq(bagDuties.id, duty.id))
+      .returning()
+
+    await writeAudit(tx, {
+      actorId,
+      action: 'bag.record',
+      entity: 'bag_duty',
+      entityId: String(duty.id),
+      detail: { previous: duty.actualMemberId, actual: memberId },
+      createdAt: now,
+    })
+
+    return ok(updated)
+  })
 }

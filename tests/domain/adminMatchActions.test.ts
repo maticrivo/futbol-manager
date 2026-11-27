@@ -8,12 +8,14 @@ import {
   openSignupsNowAction,
   recordGuestPaymentAction,
   refundGuestPaymentAction,
+  recordBagDutyAction,
   restoreChargeAction,
   setAttendanceAction,
   updateMatchAction,
   waiveChargeAction,
 } from '@/app/actions/admin'
 import { charges, entries, guestPayments, matches } from '@/db/schema'
+import { ensureBagDuty } from '@/domain/bag'
 import { addGuest, signup } from '@/domain/entries'
 import { lockMatch } from '@/domain/lock'
 import { createMember } from '@/domain/members'
@@ -268,5 +270,20 @@ it('revalidates the dashboard, admin and match pages on success', async () => {
   expect(await updateMatchAction(null, form)).toEqual({ ok: true })
   expect(revalidatePath).toHaveBeenCalledWith('/')
   expect(revalidatePath).toHaveBeenCalledWith('/admin')
+  expect(revalidatePath).toHaveBeenCalledWith(`/admin/matches/${match.id}`)
+})
+
+it('recordBagDutyAction saves the actual taker', async () => {
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const match = await createMatchForDate(testDb, '2026-11-24') // kickoff already in the past
+  const { member: ana } = await createMember(testDb, { name: 'Ana' })
+  await signup(testDb, { memberId: ana.id, matchId: match.id, now: new Date('2026-11-21T10:00:00Z') })
+  await ensureBagDuty(testDb, { matchId: match.id, now: new Date('2026-11-24T17:00:00Z') })
+  vi.mocked(requireAdmin).mockResolvedValue(admin)
+
+  const form = new FormData()
+  form.set('matchId', String(match.id))
+  form.set('memberId', ana.id)
+  expect(await recordBagDutyAction(null, form)).toEqual({ ok: true })
   expect(revalidatePath).toHaveBeenCalledWith(`/admin/matches/${match.id}`)
 })

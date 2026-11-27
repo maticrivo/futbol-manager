@@ -1,7 +1,7 @@
 import { and, eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
-import { bagDuties, entries, matches, users } from '@/db/schema'
-import { ensureBagDuty, getBagCredits } from '@/domain/bag'
+import { auditLog, bagDuties, entries, matches, users } from '@/db/schema'
+import { ensureBagDuty, getBagCredits, recordBagTaker } from '@/domain/bag'
 import { addGuest, signup } from '@/domain/entries'
 import { createMatchForDate } from '@/domain/matches'
 import { resetDb, testDb } from '../db'
@@ -140,4 +140,39 @@ it('ignores guests and cancelled matches', async () => {
   await signup(testDb, { memberId: ana, matchId: played.id, now: signupNow })
   await testDb.update(matches).set({ status: 'played' }).where(eq(matches.id, played.id))
   expect((await ensureBagDuty(testDb, { matchId: played.id, now: oneHourBefore(played.kickoffAt) })).duty).toBeNull()
+})
+
+it('lets an admin record and correct who took the bag', async () => {
+  const [admin, ana, beto] = await makeMembers('Boss', 'Ana', 'Beto')
+  await testDb.update(users).set({ role: 'admin' }).where(eq(users.id, admin))
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  for (const id of [ana, beto]) await signup(testDb, { memberId: id, matchId: match.id, now: signupNow })
+  await ensureBagDuty(testDb, { matchId: match.id, now: oneHourBefore(match.kickoffAt) })
+
+  const early = await recordBagTaker(testDb, {
+    actorId: admin, matchId: match.id, memberId: ana, now: oneHourBefore(match.kickoffAt),
+  })
+  expect(early).toEqual({ ok: false, code: 'TOO_EARLY' })
+
+  const recorded = await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: ana, now: match.kickoffAt })
+  expect(recorded.ok && recorded.value.actualMemberId).toBe(ana)
+
+  const corrected = await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: beto, now: match.kickoffAt })
+  expect(corrected.ok && corrected.value.actualMemberId).toBe(beto)
+  expect(await testDb.select().from(auditLog).where(eq(auditLog.action, 'bag.record'))).toHaveLength(2)
+})
+
+it('rejects non-admins and non-roster members, and allows clearing', async () => {
+  const [admin, ana, outsider] = await makeMembers('Boss', 'Ana', 'Outsider')
+  await testDb.update(users).set({ role: 'admin' }).where(eq(users.id, admin))
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await signup(testDb, { memberId: ana, matchId: match.id, now: signupNow })
+  await ensureBagDuty(testDb, { matchId: match.id, now: oneHourBefore(match.kickoffAt) })
+
+  expect(await recordBagTaker(testDb, { actorId: ana, matchId: match.id, memberId: ana, now: match.kickoffAt }))
+    .toEqual({ ok: false, code: 'FORBIDDEN' })
+  expect(await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: outsider, now: match.kickoffAt }))
+    .toEqual({ ok: false, code: 'NOT_IN_ROSTER' })
+  const cleared = await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: null, now: match.kickoffAt })
+  expect(cleared.ok && cleared.value.actualMemberId).toBeNull()
 })
