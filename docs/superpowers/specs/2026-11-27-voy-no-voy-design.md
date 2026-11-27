@@ -135,9 +135,12 @@ Pending and disabled members are ignored.
   they use the going → undecided actions below), `MATCH_CANCELLED`,
   `MATCH_LOCKED`, `NOT_OPEN`.
 - Going → undecided reuses `withdraw` (from `confirmed`) and `leaveQueue`
-  (from `queued`). From `offered`, undecided is letting the offer lapse,
-  which `expireOffers` already turns into `withdrawn`; **No voy** on an
-  offer passes it to the next member *and* answers No voy.
+  (from `queued`), unchanged; these are the only actions the UI offers
+  while on the roster or the waiting list. From `offered`, undecided is
+  letting the offer lapse, which `expireOffers` already turns into
+  `withdrawn`; **No voy** on an offer passes it to the next member *and*
+  answers No voy. `decline` also accepts `confirmed` and `queued` rows, so
+  the domain does not depend on which buttons the UI shows.
 - Row reuse resets `createdAt` in `signup` and `adminAddEntry`, as
   `joinQueue` already does. The roster is numbered in `createdAt` order, so
   without this a member who said No voy on Friday and signed up on Monday
@@ -176,44 +179,59 @@ time:
   becomes `queue_offer:${entry.id}:${offeredAt}` (epoch milliseconds). One
   side effect: an offer that is live at deploy time is pushed once more.
 - The lock reminder now goes only to members who have not answered, so its
-  copy in `src/lib/notificationCopy.ts` changes. Proposed: es "¿Vas o no
+  copy in `src/lib/notificationCopy.ts` changes (approved): es "¿Vas o no
   vas?" / "La inscripción al partido del {{date}} cierra pronto. Avisá si
-  vas."; en "Are you in?" / "Sign-up for the match on {{date}} closes soon.
-  Let us know if you're going."; he "באים למשחק?" / "ההרשמה למשחק ב־{{date}}
-  נסגרת בקרוב. עדכנו אם אתם באים." (Hebrew to be checked by a native
-  speaker). The preference label stays "Roster lock reminder".
+  vas o no."; en "Are you playing?" / "Sign-up for the match on {{date}}
+  closes soon. Let us know if you're in."; he "מגיעים למשחק?" / "ההרשמה
+  למשחק ב־{{date}} נסגרת בקרוב. עדכנו אם אתם מגיעים." The preference label
+  stays "Roster lock reminder".
 
 ### Member UI (home page)
 
-The redesign's rules apply: one primary action, status as a chip, quiet
-secondary actions. `MatchView` gains `myResponse: MatchResponse`. In phases
-`open` and `guest`:
+The redesign's rules apply: one primary action, status as a chip, and the
+fixed mobile bar repeats the primary action. Buttons that give something up
+(a spot, a place in line, an offer) keep the danger outline; taking back a
+No voy costs nothing and is quiet. `MatchView` gains
+`myResponse: MatchResponse`. The rules live in a pure helper,
+`src/lib/answers.ts` (`answerActions`, `responseChip`). In phases `open`
+and `guest`:
 
-| State | Chip | Primary | Quiet actions | Where |
-|---|---|---|---|---|
-| unanswered | No answer yet | Sign up / Join the waiting list (existing) | No voy | desktop actions and `MobileActionBar`; join stays in `QueuePanel` |
-| confirmed | Going | none | No voy, Not sure yet | desktop actions and `MobileActionBar`, replacing Withdraw |
-| queued | On the waiting list | none | No voy, Leave the waiting list (existing label) | `QueuePanel` |
-| offered | Spot reserved (existing offer card) | Claim spot (existing) | No voy | the offer card in `QueuePanel` |
-| declined | Not going | Sign up / Join the waiting list (existing) | Not sure yet | desktop actions and `MobileActionBar`; join stays in `QueuePanel` |
+| State | Chip | Actions | Where |
+|---|---|---|---|
+| unanswered | No answer yet | Sign up (or Join the waiting list when full), No voy | desktop actions and `MobileActionBar`; on desktop, Join stays only in `QueuePanel` |
+| confirmed | Going | Withdraw (existing label and behaviour) | desktop actions and `MobileActionBar` |
+| queued | On the waiting list | Leave the waiting list (existing) | `QueuePanel` |
+| offered | none (the offer card says the spot is reserved) | Claim spot (existing), No voy | the offer card in `QueuePanel` |
+| declined | Not going | Sign up (or Join the waiting list when full), Not sure yet | desktop actions and `MobileActionBar`; on desktop, Join stays only in `QueuePanel` |
 
+- Withdrawing and leaving the waiting list are an **undo** of the sign-up,
+  back to undecided, exactly as before this change. A member who wants to
+  say No voy does so afterwards. Two answer buttons on the roster ("No voy",
+  "Not sure yet") were tried and dropped: they did not say that they cancel
+  the sign-up.
+- No voy on an offer answers a new question ("do you want this spot?"), so
+  it stays there, next to Claim.
 - The chip is a `Badge` in `MatchCard` next to the phase chip.
 - `MatchActionForm` gains two intents: `decline` (label `match.decline`,
-  outline danger, the styling Withdraw has today) and `undecided`
-  (`clearDeclineAction`, label `match.notSure`, ghost). The existing
-  `withdraw` intent keeps its action but is relabelled `match.notSure` and
-  styled ghost. `leave` keeps `queue.leave`.
-- `MobileActionBar` shows at most the primary plus one quiet action. It
-  stays hidden in `before`, `locked`, `played` and `cancelled`, as today.
+  danger outline) and `undecided` (`clearDeclineAction`, label
+  `match.notSure`, ghost). `withdraw` and `leave` are unchanged.
+- `MobileActionBar` shows the answer actions, primary first. When the match
+  is full it drops the spots-left label, which "Join the waiting list"
+  already conveys and which no longer fits beside two buttons at phone
+  width. In `before` it shows only Withdraw, for a member an admin added
+  early, as today. It stays hidden in `locked`, `played` and `cancelled`.
 - Locked, played and cancelled matches show no answer actions.
 
 ### Response lists
 
-- A `ResponsesPanel` component takes `notGoing` and `unanswered` (a list or
-  `null`) and renders what it is given, with counts and empty states. It
-  knows nothing about roles or phases.
-- Home page: below the roster, from `listMatchResponses` with the current
-  member as viewer.
+- A `ResponsesPanel` component takes `notGoing`, `unanswered` (a list or
+  `null`) and `showEmpty`. It renders what it is given, with counts and
+  empty states, and knows nothing about roles.
+- Like the waiting-list card, it stays visible with its empty state while
+  answers are open (`showEmpty` in `open` and `guest`), and otherwise
+  appears only when there is someone to list.
+- Home page: at the bottom of the page, from `listMatchResponses` with the
+  current member as viewer. Admins therefore also see "No answer yet" here.
 - Admin match page (`/admin/matches/[id]`): the same panel, with the admin
   as viewer.
 
@@ -221,8 +239,7 @@ secondary actions. `MatchView` gains `myResponse: MatchResponse`. In phases
 
 New keys in `messages/{en,es,he}.json`:
 
-- `match.decline` (No voy), `match.notSure` (Not sure yet), replacing the
-  now-unused `match.withdraw`.
+- `match.decline` (No voy) and `match.notSure` (Not sure yet).
 - `match.response.{unanswered,going,queued,notGoing}` for the chip.
 - `responses.{notGoing,unanswered,notGoingEmpty,unansweredEmpty}` for the
   panel.
@@ -300,7 +317,7 @@ Automated (`npm test`; needs Postgres 17 and `TEST_DATABASE_URL` in
 - `tests/domain/matchActions.test.ts`: both new actions, including a lock
   crossed during the action (fails with `MATCH_LOCKED` but still
   revalidates).
-- `tests/domain/homePage.test.ts` (new), rendering `Home()` with
+- `tests/domain/homePage.test.tsx` (new), rendering `Home()` with
   `renderToStaticMarkup` as `billPage.test.ts` does:
   - an unanswered member's name is absent for a member viewer and present
     for an admin;
@@ -328,6 +345,15 @@ Spanish and Hebrew:
 - Re-joining the roster resets the member's position, including after a
   plain withdrawal.
 - The queue-offer push key includes `offeredAt`.
+- Withdraw and Leave the waiting list stay as the single, unchanged undo
+  on the roster and the waiting list; No voy is offered to members who are
+  not on either, and on an offer.
+- The "Not going" card shows its empty state while answers are open, like
+  the waiting-list card.
+- On phones, a full match puts "Join the waiting list" in the fixed bar
+  next to No voy, following the redesign's primary-action rule (the shipped
+  bar was hidden in that state). The spec's "Claim spot" in the bar during
+  an offer was never shipped and is left out of scope here.
 - The existing "Sign up" / "Anotarme" label stays rather than becoming
   "Voy": when the match is full the primary action is "Join the waiting
   list" instead, so the button does not always mean "voy". The chip, not
