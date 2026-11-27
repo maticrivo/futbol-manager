@@ -54,9 +54,10 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
   const [state, formAction] = useActionState(actions[intent], null)
 
   const isPrimary = intent === 'signup' || intent === 'claim'
-  const isDanger = intent === 'decline' || intent === 'leave' || intent === 'removeGuest'
-  // Going back to undecided is a quiet secondary choice.
-  const isQuiet = intent === 'withdraw' || intent === 'undecided'
+  // Red when the member gives something up (a spot, a place in line, a guest's spot).
+  const isDanger = intent === 'decline' || intent === 'withdraw' || intent === 'leave' || intent === 'removeGuest'
+  // Taking back a "No voy" costs nothing, so it stays quiet.
+  const isQuiet = intent === 'undecided'
 
   if (intent === 'removeGuest') {
     return (
