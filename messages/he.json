@@ -139,7 +139,14 @@
     "kickoff": "שעת פתיחה",
     "venue": "מגרש",
     "costLabel": "עלות",
-    "spotsLabel": "מקומות פנויים"
+    "spotsLabel": "מקומות פנויים",
+    "bag": {
+      "title": "התיק",
+      "assigned": "<name>{name}</name> לוקח את התיק השבוע.",
+      "backup": "גיבוי: <name>{name}</name>",
+      "actual": "לקח בפועל: <name>{name}</name>",
+      "noBackup": "—"
+    }
   },
   "queue": {
     "title": "רשימת המתנה",

@@ -139,7 +139,14 @@
     "kickoff": "Inicio",
     "venue": "Lugar",
     "costLabel": "Costo",
-    "spotsLabel": "Disponibilidad"
+    "spotsLabel": "Disponibilidad",
+    "bag": {
+      "title": "El bolso",
+      "assigned": "<name>{name}</name> se lleva el bolso esta semana.",
+      "backup": "Suplente: <name>{name}</name>",
+      "actual": "Lo llevó: <name>{name}</name>",
+      "noBackup": "—"
+    }
   },
   "queue": {
     "title": "Lista de espera",

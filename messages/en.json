@@ -139,7 +139,14 @@
     "kickoff": "Kickoff",
     "venue": "Venue",
     "costLabel": "Cost",
-    "spotsLabel": "Availability"
+    "spotsLabel": "Availability",
+    "bag": {
+      "title": "The bag",
+      "assigned": "<name>{name}</name> takes the bag this week.",
+      "backup": "Backup: <name>{name}</name>",
+      "actual": "Took it: <name>{name}</name>",
+      "noBackup": "—"
+    }
   },
   "queue": {
     "title": "Waiting list",

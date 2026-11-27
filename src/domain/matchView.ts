@@ -1,7 +1,7 @@
 import { and, eq, getTableColumns, inArray } from 'drizzle-orm'
 import { alias } from 'drizzle-orm/pg-core'
 import type { Db } from '@/db'
-import { entries, matches, users } from '@/db/schema'
+import { bagDuties, entries, matches, users } from '@/db/schema'
 import type { Entry, EntryView } from './entries'
 import type { Match } from './matches'
 import { phaseAt, type MatchPhase } from './phase'
@@ -11,6 +11,8 @@ import { responseOf, type MatchResponse } from './responses'
 export { phaseAt, type MatchPhase } from './phase'
 
 export type MatchRosterEntry = EntryView & { hostName: string | null }
+export type BagPerson = { memberId: string; name: string | null; nickname: string | null }
+export type BagDutyView = { assigned: BagPerson; backup: BagPerson | null; actual: BagPerson | null }
 
 export type MatchView = {
   match: Match
@@ -23,9 +25,13 @@ export type MatchView = {
   myQueueEntry: Entry | null
   myOffer: Entry | null
   myResponse: MatchResponse
+  bagDuty: BagDutyView | null
 }
 
 const hosts = alias(users, 'hosts')
+const bagAssigned = alias(users, 'bag_assigned')
+const bagBackup = alias(users, 'bag_backup')
+const bagActual = alias(users, 'bag_actual')
 
 export async function getMatchView(
   db: Db,
@@ -51,6 +57,32 @@ export async function getMatchView(
   // The roster query skips inactive rows, so read the viewer's own answer separately.
   const [mine] = await db.select({ status: entries.status }).from(entries)
     .where(and(eq(entries.matchId, matchId), eq(entries.memberId, memberId)))
+
+  const [duty] = await db.select({
+    assignedMemberId: bagDuties.assignedMemberId,
+    assignedName: bagAssigned.name,
+    assignedNickname: bagAssigned.nickname,
+    backupMemberId: bagDuties.backupMemberId,
+    backupName: bagBackup.name,
+    backupNickname: bagBackup.nickname,
+    actualMemberId: bagDuties.actualMemberId,
+    actualName: bagActual.name,
+    actualNickname: bagActual.nickname,
+  }).from(bagDuties)
+    .leftJoin(bagAssigned, eq(bagDuties.assignedMemberId, bagAssigned.id))
+    .leftJoin(bagBackup, eq(bagDuties.backupMemberId, bagBackup.id))
+    .leftJoin(bagActual, eq(bagDuties.actualMemberId, bagActual.id))
+    .where(eq(bagDuties.matchId, matchId))
+
+  const bagDuty: BagDutyView | null = duty ? {
+    assigned: { memberId: duty.assignedMemberId, name: duty.assignedName, nickname: duty.assignedNickname },
+    backup: duty.backupMemberId
+      ? { memberId: duty.backupMemberId, name: duty.backupName, nickname: duty.backupNickname }
+      : null,
+    actual: duty.actualMemberId
+      ? { memberId: duty.actualMemberId, name: duty.actualName, nickname: duty.actualNickname }
+      : null,
+  } : null
 
   const roster: MatchRosterEntry[] = []
   const queue: MatchRosterEntry[] = []
@@ -80,6 +112,6 @@ export async function getMatchView(
 
   return {
     match, phase: phaseAt(match, now), spotsLeft: Math.max(0, match.capacity - roster.length - pendingOffers),
-    roster, queue, queuePosition, myEntry, myQueueEntry, myOffer, myResponse: responseOf(mine?.status ?? null),
+    roster, queue, queuePosition, myEntry, myQueueEntry, myOffer, myResponse: responseOf(mine?.status ?? null), bagDuty,
   }
 }

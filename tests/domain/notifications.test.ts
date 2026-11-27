@@ -2,7 +2,6 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { entries, matches, users, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
 import { ensureBagDuty } from '@/domain/bag'
-import { signup } from '@/domain/entries'
 import { createMatchForDate, openSignupsNow } from '@/domain/matches'
 import { createMember, type Member } from '@/domain/members'
 import {
