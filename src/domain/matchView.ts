@@ -4,9 +4,12 @@ import type { Db } from '@/db'
 import { entries, matches, users } from '@/db/schema'
 import type { Entry, EntryView } from './entries'
 import type { Match } from './matches'
+import { phaseAt, type MatchPhase } from './phase'
 import { responseOf, type MatchResponse } from './responses'
 
-export type MatchPhase = 'before' | 'open' | 'guest' | 'locked' | 'played' | 'cancelled'
+// Phase lives in its own module so `responses` can use it without importing this one.
+export { phaseAt, type MatchPhase } from './phase'
+
 export type MatchRosterEntry = EntryView & { hostName: string | null }
 
 export type MatchView = {
@@ -20,15 +23,6 @@ export type MatchView = {
   myQueueEntry: Entry | null
   myOffer: Entry | null
   myResponse: MatchResponse
-}
-
-export function phaseAt(match: Match, now: Date): MatchPhase {
-  if (match.status === 'cancelled') return 'cancelled'
-  if (match.status === 'played') return 'played'
-  if (match.status === 'locked' || now >= match.lockAt) return 'locked'
-  if (now >= match.guestPhaseAt) return 'guest'
-  if (now >= match.signupOpensAt) return 'open'
-  return 'before'
 }
 
 const hosts = alias(users, 'hosts')

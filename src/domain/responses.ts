@@ -3,7 +3,7 @@ import type { Db } from '@/db'
 import { entries, matches, users } from '@/db/schema'
 import type { Entry } from './entries'
 import { memberNameOrder, toMember, type Member } from './members'
-import { phaseAt } from './matchView'
+import { phaseAt } from './phase'
 
 /** A member's answer for one match ("voy" / "no voy" / not yet). */
 export type MatchResponse = 'going' | 'not_going' | 'unanswered'
