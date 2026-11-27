@@ -5,6 +5,7 @@ import { insertMatch } from '../helpers/fixtures'
 import {
   accounts,
   auditLog,
+  bagDuties,
   charges,
   entries,
   expenses,
@@ -114,6 +115,14 @@ describe('schema constraints', () => {
     await testDb.insert(entries).values({ matchId: match.id, kind: 'guest', guestName: 'Dani', hostMemberId: user.id, status: 'confirmed' })
     const guests = await testDb.select().from(entries).where(eq(entries.matchId, match.id))
     expect(guests).toHaveLength(3)
+  })
+
+  it('allows one bag duty per match', async () => {
+    const match = await insertMatch(testDb)
+    const [member] = await testDb.insert(users).values({ name: 'Ana', status: 'active' }).returning()
+    const row = { matchId: match.id, assignedMemberId: member.id, assignedAt: new Date() }
+    await testDb.insert(bagDuties).values(row)
+    await expect(testDb.insert(bagDuties).values(row)).rejects.toMatchObject({ cause: { code: '23505' } })
   })
 
   it('cascades auth and setup rows when deleting a user but blocks history', async () => {

@@ -16,6 +16,7 @@ const tables = [
   'payments',
   'expenses',
   'charges',
+  'bag_duties',
   'entries',
   'matches',
   'session',
