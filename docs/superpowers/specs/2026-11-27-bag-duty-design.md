@@ -70,10 +70,10 @@ corrected counts as the assigned member having taken it.
 | `recorded_at` | timestamptz, null | |
 | `created_at`, `updated_at` | timestamptz | house style |
 
-A row exists only when a draw happened and at least one member was eligible, so
-"no draw" is simply "no row". New enum value `bag_duty` in
-`notification_category` (`ALTER TYPE ... ADD VALUE`, no data writes in the same
-migration).
+A row exists when a draw ran (and at least one member was eligible) or when an
+admin backfilled a missed week, so "no draw" is simply "no row". New enum value
+`bag_duty` in `notification_category` (`ALTER TYPE ... ADD VALUE`, no data
+writes in the same migration).
 
 ### Credit rule (fairness)
 
@@ -96,6 +96,14 @@ The current match never counts (its kickoff is in the future at draw time).
 ### Draw — `ensureBagDuty(db, { matchId, now, random? })`
 
 - Skip if the match is cancelled or played, or `now < kickoff_at − 60 min`.
+- Draw only inside the window `kickoff_at − 60 min <= now < kickoff_at`. After
+  kickoff there is no automatic draw and no push. If the window was missed (for
+  example an outage), the week is skipped by fairness, but an admin can still
+  record the real taker after kickoff: that creates the row with assigned =
+  actual = taker (a backfilled record).
+- Credits count a duty when it has an actual taker, or when it was drawn before
+  kickoff (`assigned_at <= kickoff_at`). A late automatic draw can therefore
+  never fabricate a credit; only a real record can.
 - Eligible = entries of `kind = 'member'`, `status = 'confirmed'` for that match.
 - Pick uniformly at random among the eligible members with the oldest credit
   (never-credited sorts first). Ties are broken by the injected `random`
@@ -137,7 +145,11 @@ in he/en/es.
 
 On `/admin/matches/[id]`, a `BagDutyForm` section shows assignment, backup and
 record, with a select of the match's confirmed members plus "no one" and a save
-button. Enabled from kickoff onward; still editable after `played`.
+button. Enabled from kickoff onward; still editable after `played`. When no
+draw ran (missed window), the form still appears after kickoff and lets the
+admin backfill the real taker. A recorded taker who is no longer on the roster
+stays listed as an option (marked off-roster) so saving can never silently
+clear the record.
 
 `recordBagDutyAction` → `recordBagTaker(db, { actorId, matchId, memberId|null, now })`:
 admin-only, match not cancelled, `now >= kickoff_at`, member must be confirmed
