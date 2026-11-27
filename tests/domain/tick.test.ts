@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { bagDuties, charges, entries, matches, users, notificationPrefs } from '@/db/schema'
 import { signup } from '@/domain/entries'
+import { getBagCredits } from '@/domain/bag'
 import { advanceMatch, lockMatch } from '@/domain/lock'
 import { createMatchForDate, getMatch } from '@/domain/matches'
 import { NOTIFICATION_CATEGORIES } from '@/domain/notifications'
@@ -282,4 +283,20 @@ it('draws lazily on page load and the tick still sends the push', async () => {
   const tick = await runTick(testDb, at, transport)
   expect(tick.bagDuties).toBe(0)
   expect(tick.notificationsSent).toBe(3)
+})
+
+it('does not draw, push or credit when the tick first runs after kickoff', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const ids = await subscribeAndConfirm(match.id, 3)
+  const late = new Date('2027-03-30T19:00:00Z') // kickoff 17:00Z + 2h
+
+  const tick = await runTick(testDb, late, transport)
+
+  expect(tick.bagDuties).toBe(0)
+  expect(await testDb.select().from(bagDuties)).toHaveLength(0)
+  expect(transport).not.toHaveBeenCalled()
+  const credits = await getBagCredits(testDb, {
+    now: new Date('2027-03-31T12:00:00Z'), memberIds: ids,
+  })
+  expect([...credits.values()].every(credit => credit === null)).toBe(true)
 })

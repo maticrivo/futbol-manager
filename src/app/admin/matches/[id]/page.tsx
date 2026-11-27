@@ -22,6 +22,7 @@ import { listMembers } from '@/domain/members'
 import { getMatch } from '@/domain/matches'
 import { getMatchView } from '@/domain/matchView'
 import { listMatchResponses } from '@/domain/responses'
+import { bagTakerOptions } from '@/lib/bag-duty'
 import { requireAdmin } from '@/lib/auth'
 import { buildGroupMessage } from '@/lib/copy'
 import { requestOrigin } from '@/lib/request-origin'
@@ -124,6 +125,8 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       })),
     }))
 
+  const canRecordBag = bagDuty !== null || (now >= current.kickoffAt && current.status !== 'cancelled')
+
   return (
     <div className="space-y-6">
 
@@ -175,13 +178,16 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
 
       <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
 
-      {bagDuty && (
+      {canRecordBag && (
         <BagDutyForm
           matchId={current.id}
-          assigned={bagDuty.assigned}
-          backup={bagDuty.backup}
-          actualMemberId={bagDuty.actual?.memberId ?? null}
-          members={roster.filter(e => e.kind === 'member' && e.memberId).map(e => ({ id: e.memberId!, name: e.memberName ?? '' }))}
+          assigned={bagDuty?.assigned ?? null}
+          backup={bagDuty?.backup ?? null}
+          actual={bagDuty?.actual ?? null}
+          members={bagTakerOptions(
+            roster.filter(e => e.kind === 'member' && e.memberId).map(e => ({ id: e.memberId!, name: e.memberName ?? '' })),
+            bagDuty?.actual ?? null,
+          )}
           disabled={current.status === 'cancelled' || now < current.kickoffAt}
         />
       )}

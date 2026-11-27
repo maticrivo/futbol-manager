@@ -142,9 +142,9 @@
     "spotsLabel": "Disponibilidad",
     "bag": {
       "title": "El bolso",
-      "assigned": "<name>{name}</name> se lleva el bolso esta semana.",
-      "backup": "Suplente: <name>{name}</name>",
-      "actual": "Lo llevó: <name>{name}</name>",
+      "assigned": "<name></name> se lleva el bolso esta semana.",
+      "backup": "Suplente: <name></name>",
+      "actual": "Lo llevó: <name></name>",
       "noBackup": "—"
     }
   },
@@ -203,7 +203,7 @@
     },
     "push": {
       "title": "Notificaciones push",
-      "description": "Recibí notificaciones en este dispositivo cuando se abra la inscripción y cuando la cuenta esté lista.",
+      "description": "Recibí notificaciones en este dispositivo cuando se abra la inscripción, cuando te toque llevar el bolso y cuando la cuenta esté lista.",
       "loading": "Verificando este dispositivo…",
       "insecure": "Las notificaciones necesitan una conexión segura (HTTPS). Abrí la app desde su dirección HTTPS y recargala.",
       "unsupported": "Este navegador no admite notificaciones push.",
@@ -419,7 +419,10 @@
         "save": "Guardar",
         "saving": "Guardando…",
         "saved": "Guardado.",
-        "waiting": "Disponible desde el inicio del partido."
+        "waiting": "Disponible desde el inicio del partido.",
+        "offRoster": "ya no está en la lista",
+        "recordedLabel": "Registrado:",
+        "noDraw": "No se sorteó este partido."
       },
       "guests": {
         "title": "Pagos de invitados",

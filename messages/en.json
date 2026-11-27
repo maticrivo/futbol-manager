@@ -142,9 +142,9 @@
     "spotsLabel": "Availability",
     "bag": {
       "title": "The bag",
-      "assigned": "<name>{name}</name> takes the bag this week.",
-      "backup": "Backup: <name>{name}</name>",
-      "actual": "Took it: <name>{name}</name>",
+      "assigned": "<name></name> takes the bag this week.",
+      "backup": "Backup: <name></name>",
+      "actual": "Took it: <name></name>",
       "noBackup": "—"
     }
   },
@@ -203,7 +203,7 @@
     },
     "push": {
       "title": "Push notifications",
-      "description": "Get notified on this device when sign-ups open and bills are ready.",
+      "description": "Get notified on this device when sign-ups open, when it is your turn to take the bag, and when bills are ready.",
       "loading": "Checking this device…",
       "insecure": "Notifications need a secure (HTTPS) connection. Open the app through its HTTPS address, then reload.",
       "unsupported": "This browser does not support push notifications.",
@@ -419,7 +419,10 @@
         "save": "Save",
         "saving": "Saving…",
         "saved": "Saved.",
-        "waiting": "Available from kickoff."
+        "waiting": "Available from kickoff.",
+        "offRoster": "no longer on roster",
+        "recordedLabel": "Recorded:",
+        "noDraw": "No draw ran for this match."
       },
       "guests": {
         "title": "Guest payments",

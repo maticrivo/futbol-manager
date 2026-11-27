@@ -4,9 +4,10 @@ import type { Db } from '@/db'
 import { matches } from '@/db/schema'
 import type { PushTransport } from '@/lib/push'
 import { TZ } from '@/lib/time'
-import { ensureBagDuty } from './bag'
+import { ensureBagDuty, type BagDuty } from './bag'
 import { advanceMatch, lockMatch } from './lock'
 import { createMatchForDateIfAbsent, createNextMatch } from './matches'
+import type { Match } from './matches'
 import { notifyBagDuty, processDueNotifications } from './notifications'
 import { expireOffers } from './queue'
 
@@ -84,10 +85,12 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
     }
   }
 
+  const pendingBagPushes: { match: Match; duty: BagDuty }[] = []
+
   for (const match of active) {
     const draw = await ensureBagDuty(db, { matchId: match.id, now })
     if (draw.created) bagDuties++
-    if (draw.duty) notificationsSent += await notifyBagDuty(db, { match, duty: draw.duty, transport, now })
+    if (draw.duty) pendingBagPushes.push({ match, duty: draw.duty })
 
     let transitioned = false
     if (match.status === 'scheduled' && now >= match.lockAt) {
@@ -119,6 +122,18 @@ export async function runTick(db: Db, now: Date, transport: PushTransport): Prom
         throw error
       })
       if (next) matchesCreated++
+    }
+  }
+
+  // Pushes are best-effort: a failed delivery must not abort locking, the
+  // successor repair or the rest of the tick. Only announce inside the draw
+  // window, so a tick that first sees a match after kickoff stays quiet.
+  for (const { match, duty } of pendingBagPushes) {
+    if (now >= match.kickoffAt) continue
+    try {
+      notificationsSent += await notifyBagDuty(db, { match, duty, transport, now })
+    } catch (error) {
+      console.error('bag duty push failed', error)
     }
   }
 

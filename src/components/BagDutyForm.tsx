@@ -4,6 +4,7 @@ import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import { recordBagDutyAction } from '@/app/actions/admin'
 import type { BagPerson } from '@/domain/matchView'
+import type { TakerOption } from '@/lib/bag-duty'
 import SubmitButton from './SubmitButton'
 import { Card } from '@/components/ui/Card'
 import { Field } from '@/components/ui/Field'
@@ -21,12 +22,12 @@ function PersonLine({ label, person, muted = false }: { label: string; person: B
   )
 }
 
-export default function BagDutyForm({ matchId, assigned, backup, actualMemberId, members, disabled }: {
+export default function BagDutyForm({ matchId, assigned, backup, actual, members, disabled }: {
   matchId: number
-  assigned: BagPerson
+  assigned: BagPerson | null
   backup: BagPerson | null
-  actualMemberId: string | null
-  members: { id: string; name: string }[]
+  actual: BagPerson | null
+  members: TakerOption[]
   disabled: boolean
 }) {
   const t = useTranslations()
@@ -37,9 +38,22 @@ export default function BagDutyForm({ matchId, assigned, backup, actualMemberId,
       <h2 className="text-xl font-semibold text-ink">{t('admin.match.bag.title')}</h2>
 
       <div className="space-y-1">
-        <PersonLine label={t('admin.match.bag.assigned', { name: '' }).trim()} person={assigned} />
-        {backup && <PersonLine label={t('admin.match.bag.backup', { name: '' }).trim()} person={backup} muted />}
+        {assigned ? (
+          <>
+            <PersonLine label={t('admin.match.bag.assigned', { name: '' }).trim()} person={assigned} />
+            {backup && <PersonLine label={t('admin.match.bag.backup', { name: '' }).trim()} person={backup} muted />}
+          </>
+        ) : (
+          <p className="text-sm text-muted">{t('admin.match.bag.noDraw')}</p>
+        )}
       </div>
+
+      {actual && (
+        <p className="text-sm text-ink">
+          {t('admin.match.bag.recordedLabel')}{' '}
+          <MemberName name={actual.name} nickname={actual.nickname} />
+        </p>
+      )}
 
       {disabled ? (
         <p className="text-sm text-muted">{t('admin.match.bag.waiting')}</p>
@@ -48,14 +62,18 @@ export default function BagDutyForm({ matchId, assigned, backup, actualMemberId,
           <input type="hidden" name="matchId" value={matchId} />
           <Field label={t('admin.match.bag.actual')} className="flex-1">
             <select
-              key={actualMemberId ?? ''}
+              key={actual?.memberId ?? ''}
               name="memberId"
-              defaultValue={actualMemberId ?? ''}
+              defaultValue={actual?.memberId ?? ''}
               className={SELECT_CLASS}
             >
               <option value="">{t('admin.match.bag.none')}</option>
               {members.map(member => (
-                <option key={member.id} value={member.id}><bdi>{member.name}</bdi></option>
+                <option key={member.id} value={member.id}>
+                  {member.offRoster
+                    ? <><bdi>{member.name}</bdi> ({t('admin.match.bag.offRoster')})</>
+                    : <bdi>{member.name}</bdi>}
+                </option>
               ))}
             </select>
           </Field>

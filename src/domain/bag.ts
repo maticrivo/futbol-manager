@@ -1,4 +1,4 @@
-import { and, eq, isNotNull, lt, ne, sql } from 'drizzle-orm'
+import { and, eq, isNotNull, lt, lte, ne, or, sql } from 'drizzle-orm'
 import type { Db } from '@/db'
 import { bagDuties, entries, matches } from '@/db/schema'
 import { err, ok, type Result } from '@/lib/result'
@@ -18,11 +18,16 @@ export async function getBagCredits(
   const rows = await db
     .select({
       kickoffAt: matches.kickoffAt,
-      creditedMemberId: sql<string>`coalesce(actual_member_id, assigned_member_id)`,
+      creditedMemberId: sql<string>`coalesce(${bagDuties.actualMemberId}, ${bagDuties.assignedMemberId})`,
     })
     .from(bagDuties)
     .innerJoin(matches, eq(matches.id, bagDuties.matchId))
-    .where(and(ne(matches.status, 'cancelled'), lt(matches.kickoffAt, input.now)))
+    .where(and(
+      ne(matches.status, 'cancelled'),
+      lt(matches.kickoffAt, input.now),
+      // A late-drawn row credits nobody until an admin marks who really took it.
+      or(isNotNull(bagDuties.actualMemberId), lte(bagDuties.assignedAt, matches.kickoffAt)),
+    ))
 
   const credits = new Map<string, Date | null>(input.memberIds.map(id => [id, null]))
   for (const row of rows) {
@@ -60,12 +65,20 @@ export async function ensureBagDuty(
 ): Promise<BagDrawResult> {
   const { matchId, now, random = Math.random } = input
 
+  // One row per match: once it exists there is nothing to draw, and callers
+  // (ticks and page loads) avoid rescanning the credit history.
+  const [existing] = await db.select().from(bagDuties).where(eq(bagDuties.matchId, matchId))
+  if (existing) return { duty: existing, created: false }
+
   const [match] = await db.select().from(matches).where(eq(matches.id, matchId))
   if (!match) return { duty: null, created: false }
   if (match.status === 'cancelled' || match.status === 'played') return { duty: null, created: false }
 
+  // The draw window is [kickoff - 1h, kickoff): a tick that first sees the match
+  // at or after kickoff must not fabricate a late assignment.
   const drawAt = match.kickoffAt.getTime() - 60 * 60_000
   if (now.getTime() < drawAt) return { duty: null, created: false }
+  if (now.getTime() >= match.kickoffAt.getTime()) return { duty: null, created: false }
 
   const rows = await db
     .select({ memberId: entries.memberId })
@@ -91,8 +104,8 @@ export async function ensureBagDuty(
     .returning()
   if (inserted) return { duty: inserted, created: true }
 
-  const [existing] = await db.select().from(bagDuties).where(eq(bagDuties.matchId, matchId))
-  return existing ? { duty: existing, created: false } : { duty: null, created: false }
+  const [raced] = await db.select().from(bagDuties).where(eq(bagDuties.matchId, matchId))
+  return raced ? { duty: raced, created: false } : { duty: null, created: false }
 }
 
 export async function recordBagTaker(
@@ -109,7 +122,6 @@ export async function recordBagTaker(
     if (now.getTime() < match.kickoffAt.getTime()) return err('TOO_EARLY')
 
     const [duty] = await tx.select().from(bagDuties).where(eq(bagDuties.matchId, matchId)).for('update')
-    if (!duty) return err('NOT_FOUND')
 
     if (memberId !== null) {
       const [entry] = await tx.select({ id: entries.id }).from(entries).where(and(
@@ -119,6 +131,31 @@ export async function recordBagTaker(
         eq(entries.memberId, memberId),
       ))
       if (!entry) return err('NOT_IN_ROSTER')
+    }
+
+    // The draw window can be missed (late tick, late schedule). Recording the
+    // taker then creates the row so the week still counts for fairness.
+    if (!duty) {
+      if (memberId === null) return err('NOT_FOUND')
+      const [created] = await tx.insert(bagDuties).values({
+        matchId,
+        assignedMemberId: memberId,
+        actualMemberId: memberId,
+        assignedAt: now,
+        recordedBy: actorId,
+        recordedAt: now,
+      }).returning()
+
+      await writeAudit(tx, {
+        actorId,
+        action: 'bag.record',
+        entity: 'bag_duty',
+        entityId: String(created.id),
+        detail: { previous: null, actual: memberId },
+        createdAt: now,
+      })
+
+      return ok(created)
     }
 
     const [updated] = await tx.update(bagDuties)

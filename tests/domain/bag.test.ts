@@ -51,6 +51,36 @@ it('ignores cancelled and future matches', async () => {
   expect((await getBagCredits(testDb, { now, memberIds: [ana] })).get(ana)).toBeNull()
 })
 
+it('ignores a late unmarked duty but credits a marked one', async () => {
+  const [ana, beto] = await makeMembers('Ana', 'Beto')
+  const unmarked = await createMatchForDate(testDb, '2027-03-16')
+  await testDb.insert(bagDuties).values({
+    matchId: unmarked.id,
+    assignedMemberId: ana,
+    assignedAt: new Date(unmarked.kickoffAt.getTime() + 60_000),
+  })
+  expect((await getBagCredits(testDb, { now, memberIds: [ana] })).get(ana)).toBeNull()
+
+  const marked = await createMatchForDate(testDb, '2027-03-23')
+  await testDb.insert(bagDuties).values({
+    matchId: marked.id,
+    assignedMemberId: ana,
+    actualMemberId: beto,
+    assignedAt: new Date(marked.kickoffAt.getTime() + 60_000),
+  })
+  const credits = await getBagCredits(testDb, { now, memberIds: [ana, beto] })
+  expect(credits.get(ana)).toBeNull()
+  expect(credits.get(beto)?.toISOString()).toBe(marked.kickoffAt.toISOString())
+})
+
+it('keeps the latest kickoff when a member has several duties', async () => {
+  const [ana] = await makeMembers('Ana')
+  await setDuty('2027-03-09', ana, null)
+  const latest = await setDuty('2027-03-23', ana, null)
+  expect((await getBagCredits(testDb, { now, memberIds: [ana] })).get(ana)?.toISOString())
+    .toBe(latest.toISOString())
+})
+
 const signupNow = new Date('2027-03-27T10:00:00Z')
 
 async function signedUpMatch(matchDate: string, names: string[]): Promise<{ matchId: number; ids: string[] }> {
@@ -74,6 +104,23 @@ it('draws nobody before the hour before kickoff', async () => {
   const { matchId } = await signedUpMatch('2027-03-30', ['Ana'])
   const early = new Date(oneHourBefore(await kickoffOf(matchId)).getTime() - 1)
   expect((await ensureBagDuty(testDb, { matchId, now: early })).duty).toBeNull()
+})
+
+it('draws at exactly one hour before kickoff', async () => {
+  const { matchId } = await signedUpMatch('2027-03-30', ['Ana'])
+  const at = oneHourBefore(await kickoffOf(matchId))
+  const result = await ensureBagDuty(testDb, { matchId, now: at, random: () => 0 })
+  expect(result.created).toBe(true)
+  expect(result.duty?.assignedMemberId).toBeTruthy()
+})
+
+it('never draws at or after kickoff', async () => {
+  const { matchId } = await signedUpMatch('2027-03-30', ['Ana'])
+  const kickoff = await kickoffOf(matchId)
+
+  expect((await ensureBagDuty(testDb, { matchId, now: kickoff })).duty).toBeNull()
+  expect((await ensureBagDuty(testDb, { matchId, now: new Date(kickoff.getTime() + 60_000) })).duty).toBeNull()
+  expect(await testDb.select().from(bagDuties)).toHaveLength(0)
 })
 
 it('assigns a member and a different backup', async () => {
@@ -103,6 +150,36 @@ it('repeats with whoever took it longest ago once everyone has taken it', async 
   for (const id of [ana, beto]) await signup(testDb, { memberId: id, matchId: match.id, now: signupNow })
   const result = await ensureBagDuty(testDb, { matchId: match.id, now: oneHourBefore(match.kickoffAt) })
   expect(result.duty?.assignedMemberId).toBe(ana)
+})
+
+it('assigns the never-credited member and backs up the one with the oldest credit', async () => {
+  const [ana, beto, caro] = await makeMembers('Ana', 'Beto', 'Caro')
+  await setDuty('2027-03-09', ana, null)
+  await setDuty('2027-03-23', beto, null)
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  for (const id of [ana, beto, caro]) {
+    await signup(testDb, { memberId: id, matchId: match.id, now: signupNow })
+  }
+
+  const result = await ensureBagDuty(testDb, {
+    matchId: match.id, now: oneHourBefore(match.kickoffAt), random: () => 0,
+  })
+  expect(result.duty?.assignedMemberId).toBe(caro)
+  expect(result.duty?.backupMemberId).toBe(ana)
+})
+
+it('creates one row under concurrent draws and reports a single creation', async () => {
+  const { matchId } = await signedUpMatch('2027-03-30', ['Ana', 'Beto'])
+  const at = oneHourBefore(await kickoffOf(matchId))
+
+  const [a, b] = await Promise.all([
+    ensureBagDuty(testDb, { matchId, now: at, random: () => 0 }),
+    ensureBagDuty(testDb, { matchId, now: at, random: () => 0 }),
+  ])
+
+  expect([a.created, b.created].filter(Boolean)).toHaveLength(1)
+  expect(a.duty?.id).toBe(b.duty?.id)
+  expect(await testDb.select().from(bagDuties)).toHaveLength(1)
 })
 
 it('never draws twice, even if the assignee leaves the roster', async () => {
@@ -175,4 +252,42 @@ it('rejects non-admins and non-roster members, and allows clearing', async () =>
     .toEqual({ ok: false, code: 'NOT_IN_ROSTER' })
   const cleared = await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: null, now: match.kickoffAt })
   expect(cleared.ok && cleared.value.actualMemberId).toBeNull()
+})
+
+it('backs a missed draw with a recorded row that credits the taker', async () => {
+  const [admin, ana] = await makeMembers('Boss', 'Ana')
+  await testDb.update(users).set({ role: 'admin' }).where(eq(users.id, admin))
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await signup(testDb, { memberId: ana, matchId: match.id, now: signupNow })
+
+  const late = new Date(match.kickoffAt.getTime() + 2 * 60 * 60_000)
+  const recorded = await recordBagTaker(testDb, { actorId: admin, matchId: match.id, memberId: ana, now: late })
+
+  expect(recorded.ok).toBe(true)
+  expect(recorded.ok && recorded.value.assignedMemberId).toBe(ana)
+  expect(recorded.ok && recorded.value.actualMemberId).toBe(ana)
+  expect(recorded.ok && recorded.value.assignedAt.toISOString()).toBe(late.toISOString())
+  expect(recorded.ok && recorded.value.recordedBy).toBe(admin)
+  expect(recorded.ok && recorded.value.recordedAt?.toISOString()).toBe(late.toISOString())
+
+  const [audit] = await testDb.select().from(auditLog).where(eq(auditLog.action, 'bag.record'))
+  expect(audit.detail).toEqual({ previous: null, actual: ana })
+
+  const credits = await getBagCredits(testDb, {
+    now: new Date('2027-04-01T12:00:00Z'), memberIds: [ana],
+  })
+  expect(credits.get(ana)?.toISOString()).toBe(match.kickoffAt.toISOString())
+})
+
+it('cannot clear a record when no duty exists', async () => {
+  const [admin, ana] = await makeMembers('Boss', 'Ana')
+  await testDb.update(users).set({ role: 'admin' }).where(eq(users.id, admin))
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await signup(testDb, { memberId: ana, matchId: match.id, now: signupNow })
+
+  const cleared = await recordBagTaker(testDb, {
+    actorId: admin, matchId: match.id, memberId: null, now: match.kickoffAt,
+  })
+  expect(cleared).toEqual({ ok: false, code: 'NOT_FOUND' })
+  expect(await testDb.select().from(bagDuties)).toHaveLength(0)
 })
