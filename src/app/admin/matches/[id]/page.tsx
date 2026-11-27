@@ -11,6 +11,7 @@ import CopyMessage from '@/components/CopyMessage'
 import DeleteMatchForm from '@/components/DeleteMatchForm'
 import EditMatchForm from '@/components/EditMatchForm'
 import GuestPayments from '@/components/GuestPayments'
+import ResponsesPanel from '@/components/ResponsesPanel'
 import { getDb } from '@/db'
 import { entries } from '@/db/schema'
 import { listGuestPayments, type MatchGuestPayment } from '@/domain/billing'
@@ -19,6 +20,7 @@ import { advanceMatch } from '@/domain/lock'
 import { listMembers } from '@/domain/members'
 import { getMatch } from '@/domain/matches'
 import { getMatchView } from '@/domain/matchView'
+import { listMatchResponses } from '@/domain/responses'
 import { requireAdmin } from '@/lib/auth'
 import { buildGroupMessage } from '@/lib/copy'
 import { requestOrigin } from '@/lib/request-origin'
@@ -44,8 +46,9 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
   const now = new Date()
   await advanceMatch(db, match.id, now)
 
-  const [view, members, charges, guestPayments, locale, t, tm] = await Promise.all([
+  const [view, responses, members, charges, guestPayments, locale, t, tm] = await Promise.all([
     getMatchView(db, { matchId: match.id, memberId: admin.id, now }),
+    listMatchResponses(db, { matchId: match.id, viewer: admin, now }),
     listMembers(db),
     listMatchCharges(db, match.id),
     listGuestPayments(db, match.id),
@@ -166,6 +169,8 @@ export default async function AdminMatchPage({ params }: { params: Promise<{ id:
       />
 
       <AdminRoster matchId={current.id} rows={rosterRows} members={addableMembers} locked={locked} disabled={finished} />
+
+      <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
 
       <AttendanceList matchId={current.id} attendees={attendees} disabled={current.status === 'cancelled'} />
 

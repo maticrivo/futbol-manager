@@ -2,15 +2,18 @@ import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import Countdown from '@/components/Countdown'
 import GuestForm from '@/components/GuestForm'
-import MatchActionForm from '@/components/MatchActionForm'
 import MatchCard from '@/components/MatchCard'
 import QueuePanel from '@/components/QueuePanel'
 import RosterList from '@/components/RosterList'
 import MobileActionBar from '@/components/MobileActionBar'
+import AnswerActions from '@/components/AnswerActions'
+import ResponsesPanel from '@/components/ResponsesPanel'
 import { getDb } from '@/db'
 import { advanceMatch } from '@/domain/lock'
 import { getMatchView } from '@/domain/matchView'
 import { getUpcomingMatch } from '@/domain/matches'
+import { listMatchResponses } from '@/domain/responses'
+import { answerActions, responseChip } from '@/lib/answers'
 import { requireMember } from '@/lib/auth'
 import { Card } from '@/components/ui/Card'
 
@@ -34,14 +37,16 @@ export default async function Home() {
     )
   }
   await advanceMatch(db, upcoming.id, now)
-  const view = await getMatchView(db, { matchId: upcoming.id, memberId: member.id, now })
+  const [view, responses] = await Promise.all([
+    getMatchView(db, { matchId: upcoming.id, memberId: member.id, now }),
+    listMatchResponses(db, { matchId: upcoming.id, viewer: member, now }),
+  ])
   const { match, phase, spotsLeft, roster, queue, queuePosition, myEntry, myQueueEntry, myOffer } = view
-  const canSignup = (phase === 'open' || phase === 'guest') && spotsLeft > 0 && !myEntry && !myQueueEntry && !myOffer
-  const canWithdraw = myEntry && (phase === 'before' || phase === 'open' || phase === 'guest')
+  const actions = answerActions(view)
 
   return (
     <main key={match.id} className="mx-auto w-full max-w-3xl space-y-4 px-4 py-8 pb-28 md:pb-8 text-start">
-      <MatchCard match={match} phase={phase} spotsLeft={spotsLeft} />
+      <MatchCard match={match} phase={phase} spotsLeft={spotsLeft} response={responseChip(view)} />
       {phase !== 'played' && phase !== 'cancelled' && (
         <Countdown
           renderedAt={now.toISOString()}
@@ -55,10 +60,12 @@ export default async function Home() {
           kickoffLabel={t('countdown.kickoff')}
         />
       )}
-      <div className="hidden md:block space-y-3">
-        {canSignup && <MatchActionForm key="signup" intent="signup" matchId={match.id} />}
-        {canWithdraw && <MatchActionForm key="withdraw" intent="withdraw" matchId={match.id} entryId={myEntry.id} />}
-      </div>
+      {actions.some(intent => intent !== 'join') && (
+        <div className="hidden md:flex flex-wrap items-start gap-3">
+          {/* On desktop the waiting-list card beside it already holds Join. */}
+          <AnswerActions actions={actions.filter(intent => intent !== 'join')} matchId={match.id} entryId={myEntry?.id} prefix="desktop" />
+        </div>
+      )}
       <RosterList roster={roster} matchId={match.id} myEntryId={myEntry?.id ?? null} memberId={member.id} asAdmin={member.role === 'admin'} phase={phase} />
       <QueuePanel
         match={match}
@@ -70,10 +77,10 @@ export default async function Home() {
         myQueueEntry={myQueueEntry}
         myOffer={myOffer}
       />
+      <ResponsesPanel {...responses} showEmpty={phase === 'open' || phase === 'guest'} />
       {phase === 'guest' && <GuestForm matchId={match.id} />}
       <MobileActionBar
-        canSignup={canSignup}
-        canWithdraw={canWithdraw}
+        actions={actions}
         matchId={match.id}
         entryId={myEntry?.id}
         spotsLeft={spotsLeft}

@@ -4,7 +4,7 @@ import { and, eq } from 'drizzle-orm'
 import { revalidatePath } from 'next/cache'
 import { getDb, type Db } from '@/db'
 import { entries } from '@/db/schema'
-import { addGuest, removeGuest, signup, withdraw } from '@/domain/entries'
+import { addGuest, clearDecline, decline, removeGuest, signup, withdraw } from '@/domain/entries'
 import { advanceMatch } from '@/domain/lock'
 import { claimOffer, joinQueue, leaveQueue } from '@/domain/queue'
 import { toActionResult, type ActionResult } from '@/lib/actions'
@@ -58,6 +58,14 @@ export async function signupAction(_prev: ActionResult | null, formData: FormDat
 
 export async function withdrawAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
   return run(formData, { entry: ({ db, member, entryId, now }) => withdraw(db, { actorMemberId: member.id, entryId, now }) })
+}
+
+export async function declineAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  return run(formData, { match: ({ db, member, matchId, now }) => decline(db, { memberId: member.id, matchId, now }) })
+}
+
+export async function clearDeclineAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {
+  return run(formData, { match: ({ db, member, matchId, now }) => clearDecline(db, { memberId: member.id, matchId, now }) })
 }
 
 export async function joinQueueAction(_prev: ActionResult | null, formData: FormData): Promise<ActionResult> {

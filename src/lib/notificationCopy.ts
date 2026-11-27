@@ -10,9 +10,9 @@ export const notificationCopy = {
     es: { title: 'Ya podés agregar invitados', body: 'Agregá invitados al partido del {{date}}.' },
   },
   lock_reminder: {
-    he: { title: 'ההרשמה נסגרת בקרוב', body: 'זה הזמן לעדכן את ההרשמה למשחק ב־{{date}}.' },
-    en: { title: 'Sign-up closes soon', body: 'Update your sign-up for the match on {{date}} before it closes.' },
-    es: { title: 'La inscripción cierra pronto', body: 'Actualizá tu inscripción al partido del {{date}} antes del cierre.' },
+    he: { title: 'מגיעים למשחק?', body: 'ההרשמה למשחק ב־{{date}} נסגרת בקרוב. עדכנו אם אתם מגיעים.' },
+    en: { title: 'Are you playing?', body: 'Sign-up for the match on {{date}} closes soon. Let us know if you’re in.' },
+    es: { title: '¿Vas o no vas?', body: 'La inscripción al partido del {{date}} cierra pronto. Avisá si vas o no.' },
   },
   queue_offer: {
     he: { title: 'התפנה לך מקום במשחק', body: 'אשרו את המקום במשחק ב־{{date}} לפני שההצעה תפוג.' },

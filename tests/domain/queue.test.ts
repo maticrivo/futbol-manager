@@ -5,7 +5,7 @@ import { waitForLockWait } from '../lock-wait'
 import { entries, matches, users as memberRows } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { claimOffer, joinQueue, leaveQueue, expireOffers, offerNext } from '@/domain/queue'
-import { addGuest, freeSpots, removeGuest, signup, withdraw } from '@/domain/entries'
+import { addGuest, decline, freeSpots, removeGuest, signup, withdraw } from '@/domain/entries'
 
 const now = new Date('2027-03-27T10:00:00Z')
 const guestOpen = new Date('2027-03-29T11:00:00Z')
@@ -182,4 +182,81 @@ it('fills two vacancies in one offerNext call and returns the first promotion', 
     .toMatchObject({ memberId: members[14].id, status: 'offered' })
   expect((await pendingOffers(match.id)).map(offer => offer.memberId))
     .toEqual([members[14].id, members[15].id])
+})
+
+it('offers the spot to the queue head when a confirmed member declines', async () => {
+  const { match, members } = await fullMatch()
+  expect(await decline(testDb, { memberId: members[0].id, matchId: match.id, now })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+  expect(await pendingOffer(match.id)).toMatchObject({ memberId: members[14].id, status: 'offered' })
+})
+
+it('passes an offer on to the next member when the offered member says No voy', async () => {
+  const { match, members } = await fullMatch()
+  await withdraw(testDb, { entryId: await entryId(match.id, members[0].id), actorMemberId: members[0].id, now })
+  expect((await pendingOffer(match.id))?.memberId).toBe(members[14].id)
+
+  const later = new Date(now.getTime() + 60_000)
+  expect(await decline(testDb, { memberId: members[14].id, matchId: match.id, now: later })).toMatchObject({
+    ok: true, value: { status: 'declined', offeredAt: null, offerExpiresAt: null },
+  })
+  expect(await pendingOffer(match.id)).toMatchObject({ memberId: members[15].id, offeredAt: later })
+})
+
+it('takes a queued member out of the line without making an offer', async () => {
+  const { match, members } = await fullMatch()
+  expect(await decline(testDb, { memberId: members[15].id, matchId: match.id, now })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+  expect(await pendingOffers(match.id)).toEqual([])
+  expect(await freeSpots(testDb, match.id)).toBe(0)
+})
+
+it('serializes No voy and a claim on the same offer, ending declined with the spot passed on', async () => {
+  const { match, members } = await fullMatch()
+  await withdraw(testDb, { entryId: await entryId(match.id, members[0].id), actorMemberId: members[0].id, now })
+  const offer = await pendingOffer(match.id)
+  if (!offer) throw new Error('Expected an offer')
+  const later = new Date(now.getTime() + 60_000)
+
+  const holder = await testDb.$client.connect()
+  let claim: ReturnType<typeof claimOffer> | undefined
+  let answer: ReturnType<typeof decline> | undefined
+  try {
+    await holder.query('BEGIN')
+    await holder.query('SELECT id FROM matches WHERE id = $1 FOR UPDATE', [match.id])
+
+    claim = claimOffer(testDb, { entryId: offer.id, memberId: members[14].id, now: later })
+    void claim.catch(() => {})
+    await waitForLockWait('"matches"."id" = (select "match_id" from "entries" where "entries"."id" = $')
+
+    answer = decline(testDb, { memberId: members[14].id, matchId: match.id, now: later })
+    void answer.catch(() => {})
+    await waitForLockWait('"matches"."id" = $1 for update')
+
+    await holder.query('COMMIT')
+
+    const [claimed, declined] = await Promise.all([claim, answer])
+    expect(declined).toMatchObject({ ok: true, value: { status: 'declined' } })
+    if (!claimed.ok) expect(claimed.code).toBe('NOT_OFFERED')
+    expect(await pendingOffer(match.id)).toMatchObject({ memberId: members[15].id, status: 'offered' })
+  } finally {
+    try {
+      await holder.query('ROLLBACK')
+    } finally {
+      holder.release()
+      await Promise.allSettled([claim, answer])
+    }
+  }
+}, 10_000)
+
+it('passes an offer on with No voy during the guest phase', async () => {
+  const { match, members } = await fullMatch()
+  await withdraw(testDb, { entryId: await entryId(match.id, members[0].id), actorMemberId: members[0].id, now: guestOpen })
+  expect((await pendingOffer(match.id))?.memberId).toBe(members[14].id)
+  expect(await decline(testDb, { memberId: members[14].id, matchId: match.id, now: guestOpen })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+  expect((await pendingOffer(match.id))?.memberId).toBe(members[15].id)
 })

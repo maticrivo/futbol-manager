@@ -3,7 +3,8 @@
 import { useActionState } from 'react'
 import { useTranslations } from 'next-intl'
 import {
-  addGuestAction, claimOfferAction, joinQueueAction, leaveQueueAction, removeGuestAction, signupAction, withdrawAction,
+  addGuestAction, claimOfferAction, clearDeclineAction, declineAction, joinQueueAction, leaveQueueAction, removeGuestAction,
+  signupAction, withdrawAction,
 } from '@/app/actions/match'
 import { Button } from './ui/Button'
 import { Field } from './ui/Field'
@@ -12,6 +13,8 @@ import { InlineMessage } from './ui/InlineMessage'
 const actions = {
   signup: signupAction,
   withdraw: withdrawAction,
+  decline: declineAction,
+  undecided: clearDeclineAction,
   join: joinQueueAction,
   leave: leaveQueueAction,
   claim: claimOfferAction,
@@ -22,6 +25,8 @@ const actions = {
 const labels = {
   signup: 'match.signup',
   withdraw: 'match.withdraw',
+  decline: 'match.decline',
+  undecided: 'match.notSure',
   join: 'queue.join',
   leave: 'queue.leave',
   claim: 'queue.claim',
@@ -31,7 +36,7 @@ const labels = {
 
 type FormProps = { matchId: number } & (
   | { intent: 'withdraw' | 'claim' | 'removeGuest'; entryId: number }
-  | { intent: 'signup' | 'join' | 'leave' | 'addGuest'; entryId?: never }
+  | { intent: 'signup' | 'join' | 'leave' | 'addGuest' | 'decline' | 'undecided'; entryId?: never }
 )
 
 function ActionError({ code }: { code: string | null }) {
@@ -49,14 +54,17 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
   const [state, formAction] = useActionState(actions[intent], null)
 
   const isPrimary = intent === 'signup' || intent === 'claim'
-  const isDanger = intent === 'withdraw' || intent === 'leave' || intent === 'removeGuest'
+  // Red when the member gives something up (a spot, a place in line, a guest's spot).
+  const isDanger = intent === 'decline' || intent === 'withdraw' || intent === 'leave' || intent === 'removeGuest'
+  // Taking back a "No voy" costs nothing, so it stays quiet.
+  const isQuiet = intent === 'undecided'
 
   if (intent === 'removeGuest') {
     return (
       <form action={formAction}>
         <input type="hidden" name="matchId" value={matchId} />
         {entryId !== undefined && <input type="hidden" name="entryId" value={entryId} />}
-        <Button type="submit" variant="ghost" size="sm" className="text-danger hover:bg-danger-soft">
+        <Button type="submit" variant="dangerGhost" size="sm">
           {t(labels[intent])}
         </Button>
         <ActionError code={state?.ok === false ? state.code : null} />
@@ -82,9 +90,9 @@ export default function MatchActionForm({ intent, matchId, entryId }: FormProps)
       )}
       <Button
         type="submit"
-        variant={isDanger ? 'outline' : isPrimary ? 'primary' : 'secondary'}
+        variant={isDanger ? 'dangerOutline' : isQuiet ? 'ghost' : isPrimary ? 'primary' : 'secondary'}
         size="md"
-        className={isDanger ? 'border-danger/30 text-danger hover:bg-danger-soft w-full sm:w-auto' : 'w-full sm:w-auto'}
+        className="w-full sm:w-auto"
       >
         {t(labels[intent])}
       </Button>

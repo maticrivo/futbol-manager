@@ -82,7 +82,7 @@ export const matches = pgTable('matches', {
 })
 
 export const entryKindEnum = pgEnum('entry_kind', ['member', 'guest'])
-export const entryStatusEnum = pgEnum('entry_status', ['confirmed', 'queued', 'offered', 'withdrawn', 'expired', 'removed'])
+export const entryStatusEnum = pgEnum('entry_status', ['confirmed', 'queued', 'offered', 'withdrawn', 'expired', 'removed', 'declined'])
 
 export const entries = pgTable('entries', {
   id: integer('id').generatedAlwaysAsIdentity().primaryKey(),

@@ -1,9 +1,10 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it } from 'vitest'
 import { auditLog, charges, entries, matches, users } from '@/db/schema'
-import { addGuest, signup, withdraw } from '@/domain/entries'
+import { addGuest, decline, signup, withdraw } from '@/domain/entries'
 import { adminAddEntry, adminRemoveEntry, advanceMatch, lockMatch, restoreCharge, setAttendance, waiveCharge } from '@/domain/lock'
 import { createMatchForDate, getMatch } from '@/domain/matches'
+import { getMatchView } from '@/domain/matchView'
 import { joinQueue } from '@/domain/queue'
 import { resetDb, testDb } from '../db'
 import { waitForLockWait } from '../lock-wait'
@@ -378,4 +379,27 @@ it('advances matches repeatedly and concurrently without duplicate charges or pr
   await Promise.all([advanceMatch(testDb, match.id, new Date(playTime)), advanceMatch(testDb, match.id, new Date(playTime))])
   expect(await getMatch(testDb, match.id)).toMatchObject({ status: 'played' })
   await expect(advanceMatch(testDb, 999, lockTime)).resolves.toBeUndefined()
+})
+
+it('keeps a declined member declined and uncharged through lock', async () => {
+  const { match, people, roster } = await setup()
+  expect((await decline(testDb, { memberId: people.extra.id, matchId: match.id, now: guestOpen })).ok).toBe(true)
+  expect(await lockMatch(testDb, match.id, lockTime)).toMatchObject({ ok: true, value: { chargesCreated: 3 } })
+  expect((await matchCharges(match.id)).map(row => row.memberId)).toEqual(roster.map(entry => entry.memberId))
+  const [entry] = await testDb.select().from(entries).where(eq(entries.memberId, people.extra.id))
+  expect(entry.status).toBe('declined')
+})
+
+it('lets an admin add a member who declined, listing them last in the roster', async () => {
+  const { match, people } = await setup()
+  const early = new Date('2027-03-27T10:00:00Z') // before setup's signups at guestOpen
+  expect((await decline(testDb, { memberId: people.extra.id, matchId: match.id, now: early })).ok).toBe(true)
+
+  const addedAt = new Date(guestOpen.getTime() + 60_000)
+  const added = await adminAddEntry(testDb, {
+    actorId: people.admin.id, matchId: match.id, memberId: people.extra.id, now: addedAt, reason: '',
+  })
+  expect(added).toMatchObject({ ok: true, value: { status: 'confirmed', createdAt: addedAt } })
+  const view = await getMatchView(testDb, { matchId: match.id, memberId: people.admin.id, now: addedAt })
+  expect(view.roster.at(-1)?.memberId).toBe(people.extra.id)
 })

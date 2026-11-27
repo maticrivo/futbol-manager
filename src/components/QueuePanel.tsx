@@ -46,7 +46,10 @@ export default async function QueuePanel({
                 })}
               </p>
             )}
-            <MatchActionForm key={myOffer.id} intent="claim" matchId={match.id} entryId={myOffer.id} />
+            <div className="flex flex-wrap items-start gap-2">
+              <MatchActionForm key={myOffer.id} intent="claim" matchId={match.id} entryId={myOffer.id} />
+              <MatchActionForm key="offer-decline" intent="decline" matchId={match.id} />
+            </div>
           </div>
         </InlineMessage>
       )}

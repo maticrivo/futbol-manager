@@ -51,6 +51,11 @@ one locks; an admin can edit it or cancel a week (holiday).
 - When all 14 spots are taken, the signup button becomes **Join queue**.
 - A member may withdraw until the lock. Withdrawing frees the spot and
   starts the queue.
+- While signups are open, a member can answer **No voy** (not going) for the
+  match, or go back to undecided ("Not sure yet"). Being on the roster or
+  the queue counts as **Voy**. No voy from the roster or an offer frees the
+  spot exactly like a withdrawal. A member who joins the roster again is
+  listed by when they rejoined.
 - After Monday 14:00, freed spots still go to the queue first; only when the
   queue is empty does a spot open publicly to members and guests.
 - Before Monday 14:00, a queue-empty freed spot returns to the members-only
@@ -72,7 +77,8 @@ one locks; an admin can edit it or cancel a week (holiday).
 - When a spot frees, the first member in the queue receives a push with a
   one-tap **Claim** button and has an exclusive window of 30 minutes
   (admin-configurable).
-- No answer or pass → the offer expires and moves to the next member.
+- No answer → the offer expires, moves to the next member, and leaves the
+  member undecided. Answering No voy on an offer passes it on immediately.
 - The offer is tied to the freed spot; if two spots free, two offers can run
   in parallel.
 - Queue dissolves at lock; any pending offer is void.
@@ -170,15 +176,17 @@ never enables it.
 
 Categories, each toggleable per member:
 
-- Signup opened (Friday 09:00)
-- Guest phase opened (Monday 14:00)
-- Lock reminder (Tuesday 12:30)
+- Signup opened (Friday 09:00), to members who have not answered
+- Guest phase opened (Monday 14:00), to everyone
+- Lock reminder (Tuesday 12:30), to members who have not answered
 - Queue offer (immediate, actionable)
 - Bill ready (1st of the month)
 - Admin payment reminder (admin-triggered, to members with a balance)
 
 All scheduled notifications are deduplicated by a unique key in a
 notification log, so a retried or duplicated tick never double-sends.
+A member who has answered (Voy or No voy) is skipped, not logged, so going
+back to undecided within the window still brings the reminder.
 
 **WhatsApp fallback:** the admin screens include a "Copy message for the
 group" action that produces short text with the app link (signup open,
@@ -256,7 +264,7 @@ result is harder to hand over.
   guest_phase_at, lock_at, status (scheduled/locked/played/cancelled), notes
 - `entries` — match_id, kind (member/guest), member_id or guest_name +
   host_member_id, status (confirmed/queued/offered/withdrawn/expired/
-  removed), created_at, offered_at, offer_expires_at
+  removed/declined), created_at, offered_at, offer_expires_at
 - `charges` — match_id, member_id, amount, billing_month, status
   (charged/waived), waived_by, waive_reason, unique (match_id, member_id)
 - `payments` — member_id, amount, paid_at, method, recorded_by, note

@@ -345,3 +345,13 @@ it('rejects cancellation by a non-admin, without a valid reason, or for a missin
   expect(await cancelMatch(testDb, { ...input, matchId: 999 })).toEqual({ ok: false, code: 'NOT_FOUND' })
   expect(await testDb.select().from(matches)).toMatchObject([{ status: 'scheduled' }])
 })
+
+it('leaves a declined answer untouched and uncharged when a scheduled match is cancelled', async () => {
+  const { adminId, memberId } = await setupMember()
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  await testDb.insert(entries).values({ matchId: match.id, memberId, kind: 'member', status: 'declined' })
+  expect(await cancelMatch(testDb, { actorId: adminId, matchId: match.id, now, reason: 'match cancelled' }))
+    .toMatchObject({ ok: true, value: { status: 'cancelled' } })
+  expect((await testDb.select().from(entries)).map(row => row.status)).toEqual(['declined'])
+  expect(await testDb.select().from(charges)).toEqual([])
+})

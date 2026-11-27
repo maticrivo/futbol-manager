@@ -4,7 +4,7 @@ import { testDb, resetDb } from '../db'
 import { matches } from '@/db/schema'
 import { createMatchForDate } from '@/domain/matches'
 import { createMember } from '@/domain/members'
-import { addGuest, signup, withdraw } from '@/domain/entries'
+import { addGuest, decline, signup, withdraw } from '@/domain/entries'
 import { joinQueue } from '@/domain/queue'
 import { getMatchView } from '@/domain/matchView'
 
@@ -119,4 +119,17 @@ it('still reports the caller as queued when there is an unreserved spot', async 
   expect(view.spotsLeft).toBe(1)
   expect(view.myQueueEntry).toMatchObject({ memberId: waiting.id, status: 'queued' })
   expect(view.myOffer).toBeNull()
+})
+
+it('reports my answer for the match', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const now = new Date('2027-03-27T10:00:00Z')
+  const people = []
+  for (let i = 0; i < 3; i++) people.push((await createMember(testDb, { name: `P${i}` })).member)
+  await signup(testDb, { memberId: people[1].id, matchId: match.id, now })
+  await decline(testDb, { memberId: people[2].id, matchId: match.id, now })
+  const responseOf = async (memberId: string) => (await getMatchView(testDb, { matchId: match.id, memberId, now })).myResponse
+  expect(await responseOf(people[0].id)).toBe('unanswered')
+  expect(await responseOf(people[1].id)).toBe('going')
+  expect(await responseOf(people[2].id)).toBe('not_going')
 })

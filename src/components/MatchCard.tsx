@@ -5,9 +5,19 @@ import { splitVenue } from '@/lib/venue'
 import { Card } from '@/components/ui/Card'
 import { Badge } from '@/components/ui/Badge'
 import { Icon } from '@/components/ui/icons'
+import type { ResponseChip } from '@/lib/answers'
 import { matchPhaseTone } from './MatchHero'
 
-export default async function MatchCard({ match, phase, spotsLeft }: Pick<MatchView, 'match' | 'phase' | 'spotsLeft'>) {
+const responseTone = {
+  unanswered: 'outline',
+  going: 'success',
+  queued: 'warning',
+  notGoing: 'secondary',
+} as const
+
+export default async function MatchCard({
+  match, phase, spotsLeft, response = null,
+}: Pick<MatchView, 'match' | 'phase' | 'spotsLeft'> & { response?: ResponseChip | null }) {
   const [locale, t] = await Promise.all([getLocale(), getTranslations('match')])
   const tone = matchPhaseTone(phase)
   const legacyVenue = splitVenue(match.venue)
@@ -18,9 +28,16 @@ export default async function MatchCard({ match, phase, spotsLeft }: Pick<MatchV
     <Card className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <h1 className="text-xl sm:text-2xl font-bold tracking-tight text-ink">{t('title')}</h1>
-        <Badge variant={tone} size="md">
-          {t(`phase.${phase}`)}
-        </Badge>
+        <div className="flex flex-wrap items-center gap-2">
+          {response && (
+            <Badge variant={responseTone[response]} size="md">
+              {t(`response.${response}`)}
+            </Badge>
+          )}
+          <Badge variant={tone} size="md">
+            {t(`phase.${phase}`)}
+          </Badge>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
