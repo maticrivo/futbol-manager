@@ -16,14 +16,14 @@ export function toMember(row: MemberRow): Member {
   }
 }
 
+// Orders members by the name `toMember` displays, case-insensitively.
+export const memberNameOrder = sql`lower(coalesce(nullif(trim(${users.name}), ''), split_part(${users.email}, '@', 1), 'Player'))`
+
 export async function listMembers(db: Db): Promise<Member[]> {
   const rows = await db
     .select()
     .from(users)
-    .orderBy(
-      sql`lower(coalesce(nullif(trim(${users.name}), ''), split_part(${users.email}, '@', 1), 'Player'))`,
-      asc(users.id)
-    )
+    .orderBy(memberNameOrder, asc(users.id))
   return rows.map(toMember)
 }
 
