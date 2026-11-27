@@ -191,7 +191,8 @@
       "lock_reminder": "Recordatorio de cierre de lista",
       "queue_offer": "Oferta de la lista de espera",
       "bill_ready": "Cuenta mensual lista",
-      "payment_reminder": "Recordatorio de pago"
+      "payment_reminder": "Recordatorio de pago",
+      "bag_duty": "El bolso"
     },
     "push": {
       "title": "Notificaciones push",

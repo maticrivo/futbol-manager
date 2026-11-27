@@ -191,7 +191,8 @@
       "lock_reminder": "תזכורת לסגירת הרשימה",
       "queue_offer": "הצעת מקום מרשימת ההמתנה",
       "bill_ready": "חשבון חודשי מוכן",
-      "payment_reminder": "תזכורת לתשלום"
+      "payment_reminder": "תזכורת לתשלום",
+      "bag_duty": "התיק"
     },
     "push": {
       "title": "התראות דחיפה",

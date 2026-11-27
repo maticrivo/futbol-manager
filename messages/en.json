@@ -191,7 +191,8 @@
       "lock_reminder": "Roster lock reminder",
       "queue_offer": "Waiting-list offer",
       "bill_ready": "Monthly bill ready",
-      "payment_reminder": "Payment reminder"
+      "payment_reminder": "Payment reminder",
+      "bag_duty": "Bag duty"
     },
     "push": {
       "title": "Push notifications",

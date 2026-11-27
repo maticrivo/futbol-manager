@@ -1,4 +1,4 @@
-import { and, asc, DrizzleQueryError, eq, gt } from 'drizzle-orm'
+import { and, asc, DrizzleQueryError, eq, gt, isNotNull } from 'drizzle-orm'
 import { DateTime } from 'luxon'
 import type { Db, Executor } from '@/db'
 import { entries, matches, users, notificationLog, notificationPrefs } from '@/db/schema'
@@ -6,6 +6,7 @@ import { notificationCopy } from '@/lib/notificationCopy'
 import { sendWebPush, type NotificationPayload, type PushTransport } from '@/lib/push'
 import { err, ok, type Result } from '@/lib/result'
 import { billingMonthOf, TZ } from '@/lib/time'
+import type { BagDuty } from './bag'
 import type { Entry } from './entries'
 import type { Match } from './matches'
 import { answeredMemberIds } from './responses'
@@ -21,6 +22,7 @@ const CATEGORY_DEFAULTS = {
   queue_offer: true,
   bill_ready: true,
   payment_reminder: true,
+  bag_duty: true,
 } satisfies Record<NotificationCategory, true>
 
 export const NOTIFICATION_CATEGORIES = Object.keys(CATEGORY_DEFAULTS) as NotificationCategory[]
@@ -42,7 +44,9 @@ export async function setNotificationPref(
     .onConflictDoUpdate({ target: [notificationPrefs.memberId, notificationPrefs.category], set: { enabled } })
 }
 
-type NotificationData = { matchDate?: string; venue?: string; url: string; month?: string }
+type NotificationData = {
+  matchDate?: string; venue?: string; url: string; month?: string; name?: string; backup?: string
+}
 
 export function buildNotification(event: NotificationCategory, locale: string, data: NotificationData): NotificationPayload {
   const copy = notificationCopy[event][locale === 'he' || locale === 'es' ? locale : 'en']
@@ -50,9 +54,11 @@ export function buildNotification(event: NotificationCategory, locale: string, d
     date: data.matchDate ?? '',
     month: data.month ?? '',
     venue: data.venue ?? '',
+    name: data.name ?? '',
+    backup: data.backup ?? '',
   }
   const render = (template: string) =>
-    template.replace(/\{\{(date|month|venue)\}\}/g, (_, key: string) => substitutions[key]).trim()
+    template.replace(/\{\{(date|month|venue|name|backup)\}\}/g, (_, key: string) => substitutions[key]).trim()
   return { title: render(copy.title), body: render(copy.body), url: data.url }
 }
 
@@ -91,6 +97,54 @@ export async function sendMemberNotification(
 
 function matchData(match: Match): NotificationData {
   return { matchDate: match.matchDate, venue: match.venue, url: '/' }
+}
+
+function displayName(user: { name: string | null; nickname: string | null } | undefined): string {
+  return user?.nickname?.trim() || user?.name || ''
+}
+
+export async function notifyBagDuty(
+  db: Db,
+  input: { match: Match; duty: BagDuty; transport: PushTransport; now: Date },
+): Promise<number> {
+  const { match, duty, transport, now } = input
+
+  const [assigned] = await db.select({ name: users.name, nickname: users.nickname }).from(users)
+    .where(eq(users.id, duty.assignedMemberId))
+  if (!assigned) return 0
+  const name = displayName(assigned)
+
+  let backupName = ''
+  if (duty.backupMemberId) {
+    const [backup] = await db.select({ name: users.name, nickname: users.nickname }).from(users)
+      .where(eq(users.id, duty.backupMemberId))
+    backupName = displayName(backup)
+  }
+
+  const roster = await db.select({ id: users.id, locale: users.locale })
+    .from(entries)
+    .innerJoin(users, eq(users.id, entries.memberId))
+    .where(and(
+      eq(entries.matchId, match.id),
+      eq(entries.status, 'confirmed'),
+      eq(entries.kind, 'member'),
+      isNotNull(entries.memberId),
+    ))
+
+  let sent = 0
+  for (const member of roster) {
+    const payload = buildNotification('bag_duty', member.locale, {
+      name, backup: backupName || '—', url: '/',
+    })
+    if (await sendMemberNotification(db, {
+      memberId: member.id,
+      category: 'bag_duty',
+      eventKey: `bag_duty:match:${match.id}`,
+      payload,
+      now,
+    }, transport)) sent++
+  }
+  return sent
 }
 
 export async function sendPaymentReminder(

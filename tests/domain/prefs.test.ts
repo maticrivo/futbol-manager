@@ -14,7 +14,7 @@ const schemaCategories = notificationPrefs.category.enumValues
 const allOn = () => Object.fromEntries(NOTIFICATION_CATEGORIES.map(category => [category, true]))
 
 it('contains exactly the schema enum categories with no duplicates', () => {
-  const expected = ['signup_open', 'guest_phase', 'lock_reminder', 'queue_offer', 'bill_ready', 'payment_reminder']
+  const expected = ['signup_open', 'guest_phase', 'lock_reminder', 'queue_offer', 'bill_ready', 'payment_reminder', 'bag_duty']
   expect(new Set(NOTIFICATION_CATEGORIES)).toEqual(new Set(schemaCategories))
   expect(new Set(NOTIFICATION_CATEGORIES).size).toBe(NOTIFICATION_CATEGORIES.length)
   expect(new Set(NOTIFICATION_CATEGORIES)).toEqual(new Set(expected))
