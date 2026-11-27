@@ -233,3 +233,20 @@ it('lists a member who signs up again, after declining or withdrawing, at the en
   expect((await signup(testDb, { memberId: b.id, matchId: match.id, now: at(6) })).ok).toBe(true)
   expect(await roster()).toEqual([c.id, a.id, b.id])
 })
+
+it('takes answers during the guest phase too', async () => {
+  const { match, made } = await setup(14)
+  const [going, notGoing] = made
+  await testDb.insert(entries).values({ matchId: match.id, memberId: made[15].id, kind: 'member', status: 'declined' })
+
+  expect(await decline(testDb, { memberId: going.id, matchId: match.id, now: guestOpen })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+  expect(await freeSpots(testDb, match.id)).toBe(1)
+  expect(await clearDecline(testDb, { memberId: made[15].id, matchId: match.id, now: guestOpen })).toMatchObject({
+    ok: true, value: { status: 'withdrawn' },
+  })
+  expect(await decline(testDb, { memberId: notGoing.id, matchId: match.id, now: guestOpen })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+})

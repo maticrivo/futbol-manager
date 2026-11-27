@@ -55,7 +55,7 @@ async function render(viewer: Member) {
 }
 
 function intents(html: string) {
-  return new Set([...html.matchAll(/data-intent="([a-zA-Z]+)"/g)].map(([, intent]) => intent))
+  return [...html.matchAll(/data-intent="([a-zA-Z]+)"/g)].map(([, intent]) => intent)
 }
 
 async function scenario({ full = false } = {}) {
@@ -88,14 +88,16 @@ it('shows who is not going to everyone, but who has not answered only to admins'
   expect(asAdmin).toContain('Nadia Unanswered')
 })
 
+// Document order: desktop answer actions, then the waiting-list card, then the mobile bar,
+// which repeats the answer actions in the same order.
 it.each([
-  ['unanswered', undefined, false, ['signup', 'decline']],
-  ['confirmed', 'confirmed', false, ['decline', 'withdraw']],
-  ['declined', 'declined', false, ['signup', 'undecided']],
-  ['unanswered on a full match', undefined, true, ['join', 'decline']],
-  ['queued', 'queued', true, ['decline', 'leave']],
-  ['offered', 'offered', true, ['claim', 'decline']],
-] as const)('offers the right answers to a %s member', async (_, status, full, expected) => {
+  ['unanswered', undefined, false, ['signup', 'decline'], []],
+  ['confirmed', 'confirmed', false, ['decline', 'withdraw'], []],
+  ['declined', 'declined', false, ['signup', 'undecided'], []],
+  ['unanswered on a full match', undefined, true, ['decline'], ['join']],
+  ['queued', 'queued', true, [], ['decline', 'leave']],
+  ['offered', 'offered', true, [], ['claim', 'decline']],
+] as const)('offers the right answers to a %s member', async (_, status, full, answer, queue) => {
   const { match, viewer } = await scenario({ full })
   if (status) {
     await testDb.insert(entries).values({
@@ -103,5 +105,5 @@ it.each([
       ...(status === 'offered' ? { offeredAt: open, offerExpiresAt: new Date(open.getTime() + 30 * 60_000) } : {}),
     })
   }
-  expect(intents(await render(viewer))).toEqual(new Set(expected))
+  expect(intents(await render(viewer))).toEqual([...answer, ...queue, ...answer])
 })

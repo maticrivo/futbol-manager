@@ -250,3 +250,13 @@ it('serializes No voy and a claim on the same offer, ending declined with the sp
     }
   }
 }, 10_000)
+
+it('passes an offer on with No voy during the guest phase', async () => {
+  const { match, members } = await fullMatch()
+  await withdraw(testDb, { entryId: await entryId(match.id, members[0].id), actorMemberId: members[0].id, now: guestOpen })
+  expect((await pendingOffer(match.id))?.memberId).toBe(members[14].id)
+  expect(await decline(testDb, { memberId: members[14].id, matchId: match.id, now: guestOpen })).toMatchObject({
+    ok: true, value: { status: 'declined' },
+  })
+  expect((await pendingOffer(match.id))?.memberId).toBe(members[15].id)
+})
