@@ -1,7 +1,7 @@
 import { eq } from 'drizzle-orm'
 import { beforeEach, expect, it, vi } from 'vitest'
 import { entries, matches, users, notificationLog, notificationPrefs, pushSubscriptions } from '@/db/schema'
-import { createMatchForDate } from '@/domain/matches'
+import { createMatchForDate, openSignupsNow } from '@/domain/matches'
 import { createMember } from '@/domain/members'
 import {
   buildNotification,
@@ -186,7 +186,7 @@ it('notifies a promotion from expireOffers once using the entry ID', async () =>
 })
 
 it.each([
-  ['signup_open', '2027-03-26T07:00:00.000Z', '2027-03-26T07:30:00.000Z'],
+  ['signup_open', '2027-03-26T06:00:00.000Z', '2027-03-26T06:30:00.000Z'],
   ['guest_phase', '2027-03-29T11:00:00.000Z', '2027-03-29T11:30:00.000Z'],
   ['lock_reminder', '2027-03-30T09:30:00.000Z', '2027-03-30T10:00:00.000Z'],
 ] as const)('scans %s at both inclusive boundaries, deduping concurrent ticks', async (category, start, end) => {
@@ -226,6 +226,33 @@ it.each([
       sentAt: closing,
     })
   }
+})
+
+it('sends signup_open at a custom signup time, not nine hours later', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const signupAt = new Date('2027-03-25T12:00:00.000Z')
+  await testDb.update(matches).set({ signupOpensAt: signupAt }).where(eq(matches.id, match.id))
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  const transport = transportOk()
+
+  expect(await processDueNotifications(testDb, new Date('2027-03-25T11:59:00.000Z'), transport)).toEqual({ sent: 0 })
+  expect(await processDueNotifications(testDb, signupAt, transport)).toEqual({ sent: 1 })
+  expect(await testDb.select().from(notificationLog)).toMatchObject([
+    { eventKey: `signup_open:match:${match.id}`, memberId: member.id, sentAt: signupAt },
+  ])
+})
+
+it('sends the signup push on the next tick after Open signups now', async () => {
+  const match = await createMatchForDate(testDb, '2027-03-30')
+  const admin = (await createMember(testDb, { name: 'Boss', role: 'admin' })).member
+  const { member } = await createMember(testDb, { name: 'Ana' })
+  await savePushSubscription(testDb, { memberId: member.id, ...subscription })
+  const openedAt = new Date('2027-03-26T05:00:00.000Z')
+
+  const opened = await openSignupsNow(testDb, { actorId: admin.id, matchId: match.id, now: openedAt })
+  expect(opened.ok).toBe(true)
+  expect(await processDueNotifications(testDb, openedAt, transportOk())).toEqual({ sent: 1 })
 })
 
 it('sends the later scheduled match notification when only its window is due', async () => {

@@ -34,8 +34,7 @@ paid, and what the month adds up to.
 
 | Time | What happens |
 |------|--------------|
-| Friday 00:00 | Signup opens for members. 14 spots, first come first served. |
-| Friday 09:00 | Push (and WhatsApp text prepared) "signup is open". |
+| Friday 09:00 | Signup opens for members. Push (and WhatsApp text prepared) "signup is open". 14 spots, first come first served. |
 | Monday 14:00 | If spots remain, the guest phase opens. Members can still sign up, and any member can add named guests. |
 | Tuesday 12:30 | Push "roster locks at 14:00". |
 | Tuesday 14:00 | Roster locks. Each member on it is charged ₪35. Queue and pending offers dissolve. |
@@ -349,7 +348,7 @@ result is harder to hand over.
 
 ## Calls made in this document (partner may veto)
 
-- Signup opens at Friday 00:00, announcement push at Friday 09:00.
+- Signup opens at Friday 09:00; the push fires at `signupOpensAt`.
 - Lock at Tuesday 14:00; reminder at 12:30.
 - Queue window 30 minutes, configurable; queue offers run in parallel when
   multiple spots free.

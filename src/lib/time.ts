@@ -15,8 +15,8 @@ export function weekSchedule(matchDate: string, kickoffTime: string = '20:00'): 
   const lockAt = matchDateTime.set({ hour: 14, minute: 0 }).toJSDate()
   // guestPhaseAt: 1 day earlier at 14:00
   const guestPhaseAt = matchDateTime.minus({ days: 1 }).set({ hour: 14, minute: 0 }).toJSDate()
-  // signupOpensAt: 4 days earlier (which is Friday 00:00 if match is Tuesday) at 00:00
-  const signupOpensAt = matchDateTime.minus({ days: 4 }).set({ hour: 0, minute: 0 }).toJSDate()
+  // signupOpensAt: 4 days earlier (which is Friday 09:00 if match is Tuesday) at 09:00
+  const signupOpensAt = matchDateTime.minus({ days: 4 }).set({ hour: 9, minute: 0 }).toJSDate()
 
   return {
     kickoffAt,

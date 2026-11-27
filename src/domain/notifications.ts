@@ -145,7 +145,7 @@ export async function processDueNotifications(db: Db, now: Date, transport: Push
     .orderBy(asc(matches.kickoffAt))
   for (const match of scheduled) {
     const windows = [
-      ['signup_open', match.signupOpensAt.getTime() + 9 * 60 * MINUTE],
+      ['signup_open', match.signupOpensAt.getTime()],
       ['guest_phase', match.guestPhaseAt.getTime()],
       ['lock_reminder', match.lockAt.getTime() - 90 * MINUTE],
     ] as const

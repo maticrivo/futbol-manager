@@ -65,7 +65,7 @@ it('locks once, creates the next match once and never double-charges', async () 
 it('sends the Friday signup push once per member', async () => {
   await createMatchForDate(testDb, '2027-03-30')
   await subscribeThreeMembers()
-  const fridayNine = new Date('2027-03-26T07:00:00Z')
+  const fridayNine = new Date('2027-03-26T06:00:00Z')
 
   const a = await runTick(testDb, fridayNine, transport)
   const b = await runTick(testDb, fridayNine, transport)
