@@ -462,5 +462,5 @@ it('notifies confirmed members once about the bag duty', async () => {
 
 it('renders the backup-less copy without a dangling backup', () => {
   const payload = buildNotification('bag_duty', 'es', { name: 'Ana', backup: '—', url: '/' })
-  expect(payload.body).toBe('Ana se lleva el bolso. Suplente: —')
+  expect(payload.body).toBe('Ana se lleva el bolso. Suplente: —.')
 })
