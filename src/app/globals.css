@@ -112,6 +112,28 @@ body {
   text-align: start;
 }
 
+@media (max-width: 767px) {
+  html,
+  body {
+    overscroll-behavior-y: contain;
+  }
+
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
+
+  button,
+  a,
+  [role='button'],
+  input,
+  select,
+  textarea {
+    touch-action: manipulation;
+  }
+}
+
 @keyframes football-spin {
   to {
     transform: rotate(360deg);
