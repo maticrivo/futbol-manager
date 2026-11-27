@@ -444,7 +444,8 @@ it('pushes a second offer made on the same entry after the member passed and rej
 
 it('notifies confirmed members once about the bag duty', async () => {
   const match = await createMatchForDate(testDb, '2027-03-30')
-  const [ana, beto, caro] = await Promise.all(['Ana', 'Beto', 'Caro'].map(subscribedMember))
+  const [ana, beto] = await Promise.all(['Ana', 'Beto'].map(subscribedMember))
+  await subscribedMember('Caro') // subscribed, but not on the roster
   for (const id of [ana.id, beto.id]) {
     await signup(testDb, { memberId: id, matchId: match.id, now: new Date('2027-03-27T10:00:00Z') })
   }
@@ -456,7 +457,7 @@ it('notifies confirmed members once about the bag duty', async () => {
   const second = await notifyBagDuty(testDb, { match, duty: duty!, transport, now: at })
   expect(first).toBe(2)
   expect(second).toBe(0)
-  expect(transport).toHaveBeenCalledTimes(2) // Caro is not on the roster
+  expect(transport).toHaveBeenCalledTimes(2)
 })
 
 it('renders the backup-less copy without a dangling backup', () => {
